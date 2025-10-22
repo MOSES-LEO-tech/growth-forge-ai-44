@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Award, BookOpen, Calendar, TrendingUp, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Recommendations from "@/components/Recommendations";
+import ScholarshipMatches from "@/components/ScholarshipMatches";
 
 const StudentDashboard = ({ profile }: { profile: any }) => {
   const [achievements, setAchievements] = useState([]);
@@ -87,7 +89,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
         })}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -185,6 +187,11 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Recommendations />
+        <ScholarshipMatches />
       </div>
     </div>
   );
