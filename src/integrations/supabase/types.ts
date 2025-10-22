@@ -314,6 +314,95 @@ export type Database = {
           },
         ]
       }
+      scholarship_applications: {
+        Row: {
+          applied_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          scholarship_id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          scholarship_id: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          scholarship_id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholarship_applications_scholarship_id_fkey"
+            columns: ["scholarship_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scholarships: {
+        Row: {
+          amount: number | null
+          application_url: string | null
+          created_at: string | null
+          deadline: string
+          description: string
+          eligibility_criteria: Json | null
+          grade_levels: string[] | null
+          id: string
+          organization: string
+          requirements: string[] | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          application_url?: string | null
+          created_at?: string | null
+          deadline: string
+          description: string
+          eligibility_criteria?: Json | null
+          grade_levels?: string[] | null
+          id?: string
+          organization: string
+          requirements?: string[] | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          application_url?: string | null
+          created_at?: string | null
+          deadline?: string
+          description?: string
+          eligibility_criteria?: Json | null
+          grade_levels?: string[] | null
+          id?: string
+          organization?: string
+          requirements?: string[] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
