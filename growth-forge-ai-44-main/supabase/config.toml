@@ -1,0 +1,7 @@
+project_id = "xrnnsysvwbbulezhvszb"
+
+[functions.generate-recommendations]
+verify_jwt = true
+
+[functions.match-scholarships]
+verify_jwt = true
