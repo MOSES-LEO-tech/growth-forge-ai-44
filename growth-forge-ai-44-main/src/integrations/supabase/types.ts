@@ -13,7 +13,71 @@ export type Database = {
     PostgrestVersion: "13.0.5"
   }
   public: {
+    Views: {
+      student_counts: {
+        Row: {
+          total_students: number
+          active_students: number
+          inactive_students: number
+        }
+        Relationships: []
+      }
+    }
     Tables: {
+      students: {
+        Row: {
+          id: string
+          profile_id: string | null
+          enrollment_date: string
+          grade_level: string | null
+          school_name: string | null
+          graduation_year: number | null
+          major_interest: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          profile_id?: string | null
+          enrollment_date?: string
+          grade_level?: string | null
+          school_name?: string | null
+          graduation_year?: number | null
+          major_interest?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string | null
+          enrollment_date?: string
+          grade_level?: string | null
+          school_name?: string | null
+          graduation_year?: number | null
+          major_interest?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      },
       achievements: {
         Row: {
           category: string
