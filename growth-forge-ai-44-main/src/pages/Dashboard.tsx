@@ -81,7 +81,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-bold">StudentHub Dashboard</h1>
+          <h1 className="text-xl font-bold">MILESTONE Dashboard</h1>
           <Button variant="ghost" onClick={handleSignOut}>
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out

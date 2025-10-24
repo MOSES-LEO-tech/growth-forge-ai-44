@@ -52,7 +52,7 @@ const Auth = () => {
 
       toast({
         title: "Account created!",
-        description: "Welcome to StudentHub. Redirecting to your dashboard..."
+        description: "Welcome to MILESTONE. Redirecting to your dashboard..."
       });
       
       navigate("/dashboard");
@@ -105,7 +105,7 @@ const Auth = () => {
               <GraduationCap className="w-10 h-10 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome to StudentHub</CardTitle>
+          <CardTitle className="text-2xl">Welcome to MILESTONE</CardTitle>
           <CardDescription>Create your account or sign in to continue</CardDescription>
         </CardHeader>
         <CardContent>

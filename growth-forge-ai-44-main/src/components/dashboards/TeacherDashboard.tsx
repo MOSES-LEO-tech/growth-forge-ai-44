@@ -12,7 +12,7 @@ const TeacherDashboard = ({ profile }: { profile: any }) => {
           Welcome, {profile.full_name}!
         </h2>
         <p className="text-muted-foreground">
-          {isAdmin ? "Manage your school's StudentHub platform" : "Guide and verify student achievements"}
+          {isAdmin ? "Manage your school's MILESTONE platform" : "Guide and verify student achievements"}
         </p>
       </div>
 
