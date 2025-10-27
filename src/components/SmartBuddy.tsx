@@ -3,23 +3,103 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, Settings } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
+type Personality = {
+  id: string;
+  name: string;
+  emoji: string;
+  greeting: string;
+  description: string;
+};
+
+const personalities: Personality[] = [
+  {
+    id: "default",
+    name: "SmartBuddy",
+    emoji: "🌟",
+    greeting: "Hey there, superstar! 👋 I'm SmartBuddy, your friendly AI companion. How can I help make your day awesome? 😄",
+    description: "Friendly, encouraging, and supportive"
+  },
+  {
+    id: "study-ninja",
+    name: "Study Ninja",
+    emoji: "🥷",
+    greeting: "Ready to crush those goals? 🥷 I'm Study Ninja - let's get focused and make progress happen!",
+    description: "Disciplined, focused, productivity-oriented"
+  },
+  {
+    id: "chill-mentor",
+    name: "Chill Mentor",
+    emoji: "🧘",
+    greeting: "Hey, take a breath... you've got this. 🧘 I'm here to help you find your flow, no stress.",
+    description: "Calm, wise, and laid-back"
+  },
+  {
+    id: "hype-squad",
+    name: "Hype Squad",
+    emoji: "🎉",
+    greeting: "YOOO LET'S GOOO! 🎉 I'm Hype Squad and I'm SO PUMPED to see you here! What amazing thing are we doing today?!",
+    description: "Super energetic, cheerful, celebratory"
+  },
+  {
+    id: "science-sage",
+    name: "Science Sage",
+    emoji: "🔬",
+    greeting: "Greetings, curious mind! 🔬 I'm Science Sage. Ready to explore, experiment, and discover something fascinating?",
+    description: "Analytical, curious, loves experiments"
+  },
+  {
+    id: "creative-spark",
+    name: "Creative Spark",
+    emoji: "🎨",
+    greeting: "Hey creative soul! 🎨 I'm Creative Spark - let's think outside the box and make something amazing together!",
+    description: "Artistic, imaginative, innovative"
+  },
+  {
+    id: "life-coach",
+    name: "Life Coach",
+    emoji: "💪",
+    greeting: "Welcome, champion! 💪 I'm Life Coach - together we'll set goals, track progress, and unlock your potential!",
+    description: "Motivational, goal-oriented, growth mindset"
+  }
+];
+
 const SmartBuddy = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
+  const [personality, setPersonality] = useState<string>(() => {
+    return localStorage.getItem("smartbuddy-personality") || "default";
+  });
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const current = personalities.find(p => p.id === personality) || personalities[0];
+    return [{
       role: "assistant",
-      content: "Hey there, superstar! 👋 I'm SmartBuddy, your friendly AI companion. How can I help make your day awesome? 😄",
-    },
-  ]);
+      content: current.greeting,
+    }];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,7 +117,10 @@ const SmartBuddy = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: userMessages }),
+      body: JSON.stringify({ 
+        messages: userMessages,
+        personality: personality 
+      }),
     });
 
     if (!resp.ok) {
@@ -156,12 +239,63 @@ const SmartBuddy = () => {
     }
   };
 
+  const handlePersonalityChange = (newPersonality: string) => {
+    setPersonality(newPersonality);
+    localStorage.setItem("smartbuddy-personality", newPersonality);
+    const current = personalities.find(p => p.id === newPersonality) || personalities[0];
+    setMessages([{
+      role: "assistant",
+      content: current.greeting,
+    }]);
+    setSettingsOpen(false);
+    toast.success(`Switched to ${current.name}!`);
+  };
+
+  const currentPersonality = personalities.find(p => p.id === personality) || personalities[0];
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="border-b bg-gradient-to-r from-primary/10 to-secondary/10">
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
-          SmartBuddy
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <span>{currentPersonality.emoji} {currentPersonality.name}</span>
+          </div>
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Settings className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Choose Your Buddy's Personality</DialogTitle>
+                <DialogDescription>
+                  Pick the vibe that matches your mood!
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Select value={personality} onValueChange={handlePersonalityChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {personalities.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{p.emoji}</span>
+                          <div>
+                            <div className="font-medium">{p.name}</div>
+                            <div className="text-xs text-muted-foreground">{p.description}</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
