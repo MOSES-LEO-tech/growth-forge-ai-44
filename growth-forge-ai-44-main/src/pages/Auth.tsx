@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useInView } from "@/hooks/useInView";
 import { z } from "zod";
 
 const signUpSchema = z.object({
@@ -28,6 +29,9 @@ const Auth = () => {
     fullName: "",
     role: "student" as "student" | "parent" | "teacher" | "admin"
   });
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(cardRef, { threshold: 0.1, triggerOnce: true });
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +102,14 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
+      <Card 
+        ref={cardRef}
+        className={`w-full max-w-md transition-all duration-700 ${
+          isInView 
+            ? 'animate-in fade-in slide-in-from-bottom-4' 
+            : 'opacity-0 translate-y-4'
+        }`}
+      >
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">

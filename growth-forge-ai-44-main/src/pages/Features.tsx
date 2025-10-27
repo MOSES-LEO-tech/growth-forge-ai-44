@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useInView } from "@/hooks/useInView";
 import { 
   GraduationCap, 
   Users, 
@@ -33,6 +34,11 @@ interface Feature {
 const Features = () => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const titleRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const titleInView = useInView(titleRef, { threshold: 0.3, triggerOnce: true });
+  const tabsInView = useInView(tabsRef, { threshold: 0.1, triggerOnce: true });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -174,8 +180,18 @@ const Features = () => {
     }
   ];
 
-  const renderFeatureCard = (feature: Feature) => (
-    <Card key={feature.title} className="overflow-hidden">
+  const renderFeatureCard = (feature: Feature, index: number = 0) => (
+    <Card 
+      key={feature.title} 
+      className={`overflow-hidden transition-all duration-700 ${
+        tabsInView 
+          ? 'animate-in fade-in slide-in-from-bottom-4' 
+          : 'opacity-0 translate-y-4'
+      }`}
+      style={{ 
+        animationDelay: tabsInView ? `${index * 100}ms` : '0ms'
+      }}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -206,14 +222,29 @@ const Features = () => {
       <Navbar />
       
       <main className="flex-1 container mx-auto px-4 py-8 mt-16">
-        <div className="text-center mb-12">
+        <div 
+          ref={titleRef}
+          className={`text-center mb-12 transition-all duration-1000 ${
+            titleInView 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-8'
+          }`}
+        >
           <h1 className="text-4xl font-bold tracking-tight mb-4">MILESTONE Features</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Discover the powerful features designed to support your educational journey
           </p>
         </div>
 
-        <Tabs defaultValue={userRole || "student"} className="w-full">
+        <Tabs 
+          ref={tabsRef}
+          defaultValue={userRole || "student"} 
+          className={`w-full transition-all duration-700 ${
+            tabsInView 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-4'
+          }`}
+        >
           <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="student">
               <GraduationCap className="h-4 w-4 mr-2" />
@@ -235,25 +266,25 @@ const Features = () => {
           
           <TabsContent value="student" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterFeaturesByRole("student").map(renderFeatureCard)}
+              {filterFeaturesByRole("student").map((feature, index) => renderFeatureCard(feature, index))}
             </div>
           </TabsContent>
           
           <TabsContent value="parent" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterFeaturesByRole("parent").map(renderFeatureCard)}
+              {filterFeaturesByRole("parent").map((feature, index) => renderFeatureCard(feature, index))}
             </div>
           </TabsContent>
           
           <TabsContent value="teacher" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterFeaturesByRole("teacher").map(renderFeatureCard)}
+              {filterFeaturesByRole("teacher").map((feature, index) => renderFeatureCard(feature, index))}
             </div>
           </TabsContent>
           
           <TabsContent value="admin" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterFeaturesByRole("admin").map(renderFeatureCard)}
+              {filterFeaturesByRole("admin").map((feature, index) => renderFeatureCard(feature, index))}
             </div>
           </TabsContent>
         </Tabs>

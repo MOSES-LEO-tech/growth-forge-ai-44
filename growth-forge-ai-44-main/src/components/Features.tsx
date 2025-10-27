@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
+import { useInView } from "@/hooks/useInView";
 import { 
   Award, 
   Brain, 
   Calendar, 
   GraduationCap, 
   LineChart, 
-  Shield,
+  ShieldCheck,
   Users,
   Zap
 } from "lucide-react";
@@ -48,7 +49,7 @@ const features = [
     gradient: "from-indigo-500 to-purple-500"
   },
   {
-    icon: Shield,
+    icon: ShieldCheck,
     title: "Verified by Schools",
     description: "All achievements and projects verified by trusted school administrators.",
     gradient: "from-cyan-500 to-blue-500"
@@ -62,10 +63,20 @@ const features = [
 ];
 
 const Features = () => {
+  const { ref: titleRef, isInView: titleInView } = useInView({ threshold: 0.3 });
+  const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
+
   return (
     <section id="features" className="py-24 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+        <div 
+          ref={titleRef}
+          className={`text-center mb-16 transition-all duration-1000 ${
+            titleInView 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-8'
+          }`}
+        >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Everything You Need to
             <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Succeed</span>
@@ -75,14 +86,23 @@ const Features = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div 
+          ref={gridRef}
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <Card 
                 key={feature.title}
-                className="p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-[var(--gradient-card)] border-border/50 animate-in fade-in slide-in-from-bottom-4"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className={`p-6 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 bg-[var(--gradient-card)] border-border/50 ${
+                  gridInView 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-8'
+                }`}
+                style={{ 
+                  transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
+                }}
               >
                 <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4`}>
                   <Icon className="w-6 h-6 text-white" />

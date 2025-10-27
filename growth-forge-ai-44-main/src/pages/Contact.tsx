@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,20 +7,43 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const Contact = () => {
+  const titleRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  
+  const titleInView = useInView(titleRef, { threshold: 0.1, triggerOnce: true });
+  const cardsInView = useInView(cardsRef, { threshold: 0.1, triggerOnce: true });
+
   return (
     <div className="min-h-screen">
       <Navbar />
 
       <main className="container mx-auto px-4 pt-24 pb-16">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Contact Us</h1>
-          <p className="text-muted-foreground mb-8">
-            We’d love to hear from you. Reach out with questions, feedback, or partnership inquiries.
-          </p>
+          <div 
+            ref={titleRef}
+            className={`transition-all duration-700 ${
+              titleInView 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+          >
+            <h1 className="text-3xl font-bold mb-2">Contact Us</h1>
+            <p className="text-muted-foreground mb-8">
+              We'd love to hear from you. Reach out with questions, feedback, or partnership inquiries.
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div 
+            ref={cardsRef}
+            className={`grid md:grid-cols-2 gap-8 transition-all duration-700 delay-200 ${
+              cardsInView 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+          >
             {/* Contact Details */}
             <Card>
               <CardHeader>

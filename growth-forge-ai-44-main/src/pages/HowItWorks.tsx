@@ -1,7 +1,9 @@
+import { useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useInView } from "@/hooks/useInView";
 import { 
   UserPlus, 
   Upload, 
@@ -22,13 +24,30 @@ import {
 } from "lucide-react";
 
 const HowItWorksPage = () => {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const overviewRef = useRef<HTMLDivElement>(null);
+  const stepsRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  
+  const heroInView = useInView(heroRef, { threshold: 0.3, triggerOnce: true });
+  const overviewInView = useInView(overviewRef, { threshold: 0.3, triggerOnce: true });
+  const stepsInView = useInView(stepsRef, { threshold: 0.1, triggerOnce: true });
+  const tabsInView = useInView(tabsRef, { threshold: 0.1, triggerOnce: true });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="py-16 bg-gradient-to-b from-background to-muted/30">
+        <section 
+          ref={heroRef}
+          className={`py-16 bg-gradient-to-b from-background to-muted/30 transition-all duration-1000 ${
+            heroInView 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-8'
+          }`}
+        >
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               How <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Growth Forge</span> Works
@@ -42,9 +61,21 @@ const HowItWorksPage = () => {
         {/* Overview Steps Section */}
         <section className="py-16 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-12 text-center">The Journey at a Glance</h2>
+            <h2 
+              ref={overviewRef}
+              className={`text-3xl font-bold mb-12 text-center transition-all duration-1000 ${
+                overviewInView 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              The Journey at a Glance
+            </h2>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+            <div 
+              ref={stepsRef}
+              className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative"
+            >
               {/* Connection line */}
               <div className="hidden lg:block absolute top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-accent opacity-20" />
               
@@ -78,7 +109,14 @@ const HowItWorksPage = () => {
                 return (
                   <Card 
                     key={step.number}
-                    className="p-8 text-center relative hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-[var(--gradient-card)] border-border/50"
+                    className={`p-8 text-center relative hover:shadow-xl transition-all duration-700 hover:-translate-y-2 bg-[var(--gradient-card)] border-border/50 ${
+                      stepsInView 
+                        ? 'animate-in fade-in slide-in-from-bottom-4' 
+                        : 'opacity-0 translate-y-4'
+                    }`}
+                    style={{ 
+                      animationDelay: stepsInView ? `${index * 150}ms` : '0ms'
+                    }}
                   >
                     <div className="relative inline-block mb-6">
                       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center relative z-10">
@@ -100,12 +138,40 @@ const HowItWorksPage = () => {
         {/* Detailed Features Section */}
         <section className="py-16 bg-muted/30">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-4 text-center">Detailed Platform Features</h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 text-center">
+            <h2 
+              ref={tabsRef}
+              className={`text-3xl font-bold mb-4 text-center transition-all duration-1000 ${
+                tabsInView 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              Detailed Platform Features
+            </h2>
+            <p 
+              className={`text-xl text-muted-foreground max-w-3xl mx-auto mb-12 text-center transition-all duration-1000 ${
+                tabsInView 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+              style={{ 
+                transitionDelay: tabsInView ? '200ms' : '0ms'
+              }}
+            >
               Explore all the powerful tools and features Growth Forge offers to help you succeed
             </p>
 
-            <Tabs defaultValue="students" className="w-full max-w-5xl mx-auto">
+            <Tabs 
+              defaultValue="students" 
+              className={`w-full max-w-5xl mx-auto transition-all duration-700 ${
+                tabsInView 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-4'
+              }`}
+              style={{ 
+                transitionDelay: tabsInView ? '400ms' : '0ms'
+              }}
+            >
               <TabsList className="grid w-full grid-cols-3 mb-8">
                 <TabsTrigger value="students">For Students</TabsTrigger>
                 <TabsTrigger value="schools">For Schools</TabsTrigger>

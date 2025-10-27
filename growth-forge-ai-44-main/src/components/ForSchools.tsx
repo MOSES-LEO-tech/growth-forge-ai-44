@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Shield, Users, BarChart } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
+import { CheckCircle2, School, Users, BarChart, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const benefits = [
   {
-    icon: Shield,
+    icon: ShieldCheck,
     title: "Verified Achievements",
     description: "Maintain authenticity with admin-approved verification system"
   },
@@ -22,11 +23,22 @@ const benefits = [
 ];
 
 const ForSchools = () => {
+  const { ref: contentRef, isInView: contentInView } = useInView({ threshold: 0.2 });
+
   return (
     <section id="for-schools" className="py-24 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+        <div 
+          ref={contentRef}
+          className="grid lg:grid-cols-2 gap-12 items-center"
+        >
+          <div 
+            className={`transition-all duration-1000 ${
+              contentInView 
+                ? 'opacity-100 translate-x-0' 
+                : 'opacity-0 -translate-x-8'
+            }`}
+          >
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               Built for
               <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Modern Schools</span>
@@ -41,8 +53,14 @@ const ForSchools = () => {
                 return (
                   <div 
                     key={benefit.title}
-                    className="flex gap-4 items-start animate-in fade-in slide-in-from-left"
-                    style={{ animationDelay: `${index * 100}ms` }}
+                    className={`flex gap-4 items-start transition-all duration-500 ${
+                      contentInView 
+                        ? 'opacity-100 translate-x-0' 
+                        : 'opacity-0 -translate-x-4'
+                    }`}
+                    style={{ 
+                      transitionDelay: contentInView ? `${200 + index * 100}ms` : '0ms'
+                    }}
                   >
                     <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
                       <Icon className="w-6 h-6 text-white" />
@@ -56,14 +74,34 @@ const ForSchools = () => {
               })}
             </div>
 
-            <Link to="/auth">
-              <Button size="lg" className="text-lg px-8">
-                Get Started for Your School
-              </Button>
-            </Link>
+            <div 
+              className={`transition-all duration-700 ${
+                contentInView 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-4'
+              }`}
+              style={{ 
+                transitionDelay: contentInView ? '600ms' : '0ms'
+              }}
+            >
+              <Link to="/auth">
+                <Button size="lg" className="text-lg px-8">
+                  Get Started for Your School
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          <Card className="p-8 bg-[var(--gradient-card)] border-border/50">
+          <Card 
+            className={`p-8 bg-[var(--gradient-card)] border-border/50 transition-all duration-1000 ${
+              contentInView 
+                ? 'opacity-100 translate-x-0' 
+                : 'opacity-0 translate-x-8'
+            }`}
+            style={{ 
+              transitionDelay: contentInView ? '300ms' : '0ms'
+            }}
+          >
             <h3 className="text-2xl font-bold mb-6">What's Included</h3>
             <ul className="space-y-4">
               {[
@@ -78,8 +116,14 @@ const ForSchools = () => {
               ].map((feature, index) => (
                 <li 
                   key={feature}
-                  className="flex items-center gap-3 animate-in fade-in slide-in-from-right"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className={`flex items-center gap-3 transition-all duration-400 ${
+                    contentInView 
+                      ? 'opacity-100 translate-x-0' 
+                      : 'opacity-0 translate-x-4'
+                  }`}
+                  style={{ 
+                    transitionDelay: contentInView ? `${500 + index * 50}ms` : '0ms'
+                  }}
                 >
                   <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
                   <span>{feature}</span>
