@@ -6,6 +6,7 @@ import { Award, BookOpen, Calendar, TrendingUp, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Recommendations from "@/components/Recommendations";
 import ScholarshipMatches from "@/components/ScholarshipMatches";
+import SmartBuddy from "@/components/SmartBuddy";
 
 const StudentDashboard = ({ profile }: { profile: any }) => {
   const [achievements, setAchievements] = useState([]);
@@ -189,9 +190,13 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Recommendations />
         <ScholarshipMatches />
+      </div>
+
+      <div className="mb-6">
+        <SmartBuddy />
       </div>
     </div>
   );
