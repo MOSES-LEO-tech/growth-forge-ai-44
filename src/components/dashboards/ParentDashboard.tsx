@@ -1,7 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, Award, Calendar } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const ParentDashboard = ({ profile }: { profile: any }) => {
+  const { ref: statsRef, isInView: statsInView } = useInView({ threshold: 0.2 });
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -9,7 +11,10 @@ const ParentDashboard = ({ profile }: { profile: any }) => {
         <p className="text-muted-foreground">Monitor your child's growth and achievements</p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div 
+        ref={statsRef}
+        className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      >
         {[
           { icon: Users, label: "Connected Students", value: "1", gradient: "from-primary to-blue-500" },
           { icon: Award, label: "Total Achievements", value: "0", gradient: "from-accent to-amber-500" },
@@ -18,7 +23,13 @@ const ParentDashboard = ({ profile }: { profile: any }) => {
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 50}ms` }}>
+            <Card 
+              key={stat.label} 
+              className={`transition-all duration-700 ${
+                statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: statsInView ? `${index * 50}ms` : '0ms' }}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>

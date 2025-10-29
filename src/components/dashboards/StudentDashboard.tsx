@@ -7,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import Recommendations from "@/components/Recommendations";
 import ScholarshipMatches from "@/components/ScholarshipMatches";
 import SmartBuddy from "@/components/SmartBuddy";
+import { useInView } from "@/hooks/useInView";
 
 const StudentDashboard = ({ profile }: { profile: any }) => {
   const [achievements, setAchievements] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { ref: statsRef, isInView: statsInView } = useInView({ threshold: 0.2 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,11 +73,20 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
         <p className="text-muted-foreground">Here's what's happening with your journey</p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div 
+        ref={statsRef}
+        className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      >
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 50}ms` }}>
+            <Card 
+              key={stat.label} 
+              className={`transition-all duration-700 ${
+                statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: statsInView ? `${index * 50}ms` : '0ms' }}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
