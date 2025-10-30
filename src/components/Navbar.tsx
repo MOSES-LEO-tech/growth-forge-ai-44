@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
+
 const Navbar = () => {
-  return <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
             <GraduationCap className="w-6 h-6 text-primary-foreground" />
           </div>
@@ -21,6 +23,12 @@ const Navbar = () => {
           <Link to="/schools" className="text-sm font-medium hover:text-primary transition-colors">
             Schools
           </Link>
+          <Link to="/gallery" className="text-sm font-medium hover:text-primary transition-colors">
+            Gallery
+          </Link>
+          <Link to="/projects" className="text-sm font-medium hover:text-primary transition-colors">
+            Projects
+          </Link>
         </div>
 
         <div className="flex items-center gap-4">
@@ -32,6 +40,8 @@ const Navbar = () => {
           </Link>
         </div>
       </div>
-    </nav>;
+    </nav>
+  );
 };
+
 export default Navbar;
