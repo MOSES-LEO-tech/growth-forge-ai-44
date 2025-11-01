@@ -1,70 +1,43 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Award, BookOpen, Calendar, TrendingUp, Plus } from "lucide-react";
+import { Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Recommendations from "@/components/Recommendations";
 import ScholarshipMatches from "@/components/ScholarshipMatches";
 import SmartBuddy from "@/components/SmartBuddy";
-import { useInView } from "@/hooks/useInView";
+import DashboardStats from "@/components/DashboardStats";
+import AddProjectModal from "@/components/AddProjectModal";
+import AddGalleryModal from "@/components/AddGalleryModal";
 
 const StudentDashboard = ({ profile }: { profile: any }) => {
   const [achievements, setAchievements] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { ref: statsRef, isInView: statsInView } = useInView({ threshold: 0.2 });
+
+  const fetchData = async () => {
+    const { data: achievementsData } = await supabase
+      .from("achievements")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("date_earned", { ascending: false })
+      .limit(5);
+
+    const { data: projectsData } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("owner_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    setAchievements(achievementsData || []);
+    setProjects(projectsData || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: achievementsData } = await supabase
-        .from("achievements")
-        .select("*")
-        .eq("user_id", profile.id)
-        .order("date_earned", { ascending: false })
-        .limit(5);
-
-      const { data: projectsData } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("owner_id", profile.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      setAchievements(achievementsData || []);
-      setProjects(projectsData || []);
-      setLoading(false);
-    };
-
     fetchData();
   }, [profile.id]);
-
-  const stats = [
-    {
-      icon: Award,
-      label: "Achievements",
-      value: achievements.length,
-      gradient: "from-accent to-amber-500"
-    },
-    {
-      icon: BookOpen,
-      label: "Active Projects",
-      value: projects.filter((p: any) => p.status === "ongoing").length,
-      gradient: "from-primary to-blue-500"
-    },
-    {
-      icon: Calendar,
-      label: "Events Attended",
-      value: "12",
-      gradient: "from-secondary to-purple-500"
-    },
-    {
-      icon: TrendingUp,
-      label: "Growth Score",
-      value: "85%",
-      gradient: "from-emerald-500 to-teal-500"
-    }
-  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -73,33 +46,12 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
         <p className="text-muted-foreground">Here's what's happening with your journey</p>
       </div>
 
-      <div 
-        ref={statsRef}
-        className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-      >
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card 
-              key={stat.label} 
-              className={`transition-all duration-700 ${
-                statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-              style={{ transitionDelay: statsInView ? `${index * 50}ms` : '0ms' }}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-2xl font-bold">{stat.value}</span>
-                </div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <DashboardStats
+        achievements={achievements.length}
+        projects={projects.filter((p: any) => p.status === "ongoing").length}
+        events={12}
+        growthScore={85}
+      />
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <Card>
@@ -109,10 +61,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
                 <CardTitle>Recent Achievements</CardTitle>
                 <CardDescription>Your latest verified accomplishments</CardDescription>
               </div>
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add
-              </Button>
+              <AddGalleryModal userId={profile.id} onItemAdded={fetchData} />
             </div>
           </CardHeader>
           <CardContent>
@@ -155,10 +104,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
                 <CardTitle>Active Projects</CardTitle>
                 <CardDescription>Track your ongoing work</CardDescription>
               </div>
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                New
-              </Button>
+              <AddProjectModal userId={profile.id} onProjectAdded={fetchData} />
             </div>
           </CardHeader>
           <CardContent>
