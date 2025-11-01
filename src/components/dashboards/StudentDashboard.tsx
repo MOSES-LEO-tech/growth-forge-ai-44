@@ -46,23 +46,20 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
         <p className="text-muted-foreground">Here's what's happening with your journey</p>
       </div>
 
-      <DashboardStats
-        achievements={achievements.length}
-        projects={projects.filter((p: any) => p.status === "ongoing").length}
-        events={12}
-        growthScore={85}
-      />
+      <div className="mb-8">
+        <DashboardStats
+          achievements={achievements.length}
+          projects={projects.filter((p: any) => p.status === "ongoing").length}
+          events={12}
+          growthScore={85}
+        />
+      </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid lg:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Recent Achievements</CardTitle>
-                <CardDescription>Your latest verified accomplishments</CardDescription>
-              </div>
-              <AddGalleryModal userId={profile.id} onItemAdded={fetchData} />
-            </div>
+            <CardTitle>Recent Achievements</CardTitle>
+            <CardDescription>Your latest verified accomplishments</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -143,6 +140,23 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Event Gallery</CardTitle>
+                <CardDescription>Capture your journey</CardDescription>
+              </div>
+              <AddGalleryModal userId={profile.id} onItemAdded={fetchData} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              No events yet. Add your first gallery entry!
+            </div>
           </CardContent>
         </Card>
       </div>
