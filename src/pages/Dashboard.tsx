@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
 import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
-import { LogOut } from "lucide-react";
+import DashboardHeader from "@/components/DashboardHeader";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -79,15 +78,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-bold">StudentHub Dashboard</h1>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
-      </header>
+      <DashboardHeader profile={profile} onSignOut={handleSignOut} />
       {renderDashboard()}
     </div>
   );
