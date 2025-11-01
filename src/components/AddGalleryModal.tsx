@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import UploadPanel from "@/components/UploadPanel";
 
 interface AddGalleryModalProps {
   userId: string;
@@ -26,6 +27,8 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     media_url: "",
     event_date: ""
   });
+  
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -50,6 +53,43 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
 
       if (eventError) throw eventError;
 
+      // Handle file uploads if any
+      let mediaUrl = form.media_url;
+      
+      if (selectedFiles.length > 0) {
+        const file = selectedFiles[0]; // Use the first file as the primary media
+        const filePath = `${userId}/${eventData.id}/${file.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('gallery-media')
+          .upload(filePath, file);
+          
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+        } else {
+          // Get public URL for the uploaded file
+          const { data: publicUrlData } = supabase.storage
+            .from('gallery-media')
+            .getPublicUrl(filePath);
+            
+          if (publicUrlData) {
+            mediaUrl = publicUrlData.publicUrl;
+          }
+        }
+        
+        // Upload any additional files
+        if (selectedFiles.length > 1) {
+          for (let i = 1; i < selectedFiles.length; i++) {
+            const additionalFile = selectedFiles[i];
+            const additionalFilePath = `${userId}/${eventData.id}/additional/${additionalFile.name}`;
+            
+            await supabase.storage
+              .from('gallery-media')
+              .upload(additionalFilePath, additionalFile);
+          }
+        }
+      }
+
       // Then add media item linked to the event
       const { error: mediaError } = await supabase
         .from("media_items")
@@ -57,7 +97,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
           title: form.title,
           description: form.description,
           media_type: form.media_type,
-          media_url: form.media_url,
+          media_url: mediaUrl,
           event_id: eventData.id,
           uploaded_by: userId
         }]);
@@ -70,6 +110,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
       });
 
       setForm({ title: "", description: "", media_type: "photo", media_url: "", event_date: "" });
+      setSelectedFiles([]);
       setOpen(false);
       onItemAdded?.();
     } catch (error) {
@@ -129,13 +170,19 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
             </Select>
           </div>
           <div>
-            <Label htmlFor="media_url">Media URL</Label>
+            <Label htmlFor="media_url">Media URL (Optional if uploading files)</Label>
             <Input
               id="media_url"
               value={form.media_url}
               onChange={(e) => handleChange("media_url", e.target.value)}
               placeholder="https://example.com/image.jpg"
-              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="files" className="mb-2 block">Upload Media</Label>
+            <UploadPanel 
+              onFilesSelected={setSelectedFiles} 
+              selectedFiles={selectedFiles} 
             />
           </div>
           <div>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import UploadPanel from "@/components/UploadPanel";
 
 interface AddProjectModalProps {
   userId: string;
@@ -25,6 +26,8 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     start_date: "",
     status: "pending" as "pending" | "ongoing" | "complete"
   });
+  
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -35,7 +38,8 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      // Insert project data
+      const { data: projectData, error } = await supabase
         .from("projects")
         .insert([{
           owner_id: userId,
@@ -43,9 +47,26 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
           description: form.description,
           start_date: form.start_date,
           status: form.status
-        }]);
+        }])
+        .select();
 
       if (error) throw error;
+      
+      // Upload files if any are selected
+      if (selectedFiles.length > 0 && projectData) {
+        const projectId = projectData[0].id;
+        
+        for (const file of selectedFiles) {
+          const filePath = `${userId}/${projectId}/${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(filePath, file);
+            
+          if (uploadError) {
+            console.error('Error uploading file:', uploadError);
+          }
+        }
+      }
 
       toast({
         title: "Success!",
@@ -53,6 +74,7 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
       });
 
       setForm({ title: "", description: "", start_date: "", status: "pending" });
+      setSelectedFiles([]);
       setOpen(false);
       onProjectAdded?.();
     } catch (error) {
@@ -121,6 +143,13 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
                 <SelectItem value="complete">Completed</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="files" className="mb-2 block">Project Files</Label>
+            <UploadPanel 
+              onFilesSelected={setSelectedFiles} 
+              selectedFiles={selectedFiles} 
+            />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
