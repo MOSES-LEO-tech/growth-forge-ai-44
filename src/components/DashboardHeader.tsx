@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
@@ -18,6 +19,8 @@ interface DashboardHeaderProps {
 }
 
 export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderProps) {
+  const location = useLocation();
+  
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -27,11 +30,35 @@ export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderP
       .slice(0, 2);
   };
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
     <header className="w-full bg-background/70 backdrop-blur-md border-b sticky top-0 z-50 transition-colors duration-500">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Left: Logo */}
         <Logo />
+
+        {/* Center: Navigation Links */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link 
+            to="/dashboard" 
+            className={`hover:text-primary transition-colors ${isActive('/dashboard') ? 'text-primary font-medium' : ''}`}
+          >
+            Dashboard
+          </Link>
+          <Link 
+            to="/gallery" 
+            className={`hover:text-primary transition-colors ${isActive('/gallery') ? 'text-primary font-medium' : ''}`}
+          >
+            Gallery
+          </Link>
+          <Link 
+            to="/projects" 
+            className={`hover:text-primary transition-colors ${isActive('/projects') ? 'text-primary font-medium' : ''}`}
+          >
+            Projects
+          </Link>
+        </nav>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
