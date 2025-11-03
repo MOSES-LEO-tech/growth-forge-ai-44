@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Event {
   id: string;
@@ -11,6 +13,7 @@ interface Event {
   event_date: string;
   location: string | null;
   verified: boolean;
+  media_url?: string;
 }
 
 interface EventTileProps {
@@ -19,15 +22,66 @@ interface EventTileProps {
 
 const EventTile = ({ event }: EventTileProps) => {
   const navigate = useNavigate();
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEventMedia = async () => {
+      try {
+        // If there's already a media_url, use it
+        if (event.media_url) {
+          setMediaUrl(event.media_url);
+          return;
+        }
+
+        // Otherwise check if there are uploaded files
+        const { data, error } = await supabase.storage
+          .from('gallery-files')
+          .list(`${event.id}`);
+
+        if (error) {
+          console.error('Error fetching gallery files:', error);
+          return;
+        }
+
+        // If there are files, get the URL of the first image
+        if (data && data.length > 0) {
+          // Find the first image file
+          const imageFile = data.find(file => 
+            file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
+          );
+          
+          if (imageFile) {
+            const { data: urlData } = await supabase.storage
+              .from('gallery-files')
+              .getPublicUrl(`${event.id}/${imageFile.name}`);
+            
+            setMediaUrl(urlData.publicUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing gallery files:', error);
+      }
+    };
+
+    fetchEventMedia();
+  }, [event.id, event.media_url]);
 
   return (
     <Card 
       className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
       onClick={() => navigate(`/gallery/${event.id}`)}
     >
-      {/* Cover Image Placeholder */}
+      {/* Cover Image */}
       <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-        <ImageIcon className="w-16 h-16 text-primary/40" />
+        {mediaUrl ? (
+          <img 
+            src={mediaUrl} 
+            alt={event.title} 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <ImageIcon className="w-16 h-16 text-primary/40" />
+        )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
       </div>
 
