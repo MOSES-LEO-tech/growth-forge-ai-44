@@ -9,12 +9,20 @@ import { format } from "date-fns";
 import SchoolGallery from "@/components/SchoolGallery";
 import { useInView } from "@/hooks/useInView";
 
+interface Event {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  description: string;
+  cover_image_url: string;
+}
+
 const EventGallery = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { ref: headerRef, isInView: headerInView } = useInView({ threshold: 0.2 });
   const { ref: galleryRef, isInView: galleryInView } = useInView({ threshold: 0.1 });
-
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ["event", id],
     queryFn: async () => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -9,28 +9,61 @@ import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
 import { useInView } from "@/hooks/useInView";
+import { useNavigate, useParams } from "react-router-dom";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  start_date: string;
+  end_date: string | null;
+  collaborators: string[] | null;
+  skills_tracked: any;
+  owner_id?: string;
+}
 
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+  const { userId } = useParams();
 
-  const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    };
+    getSession();
+  }, [navigate]);
 
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .or(`owner_id.eq.${user.id},collaborators.cs.{${user.id}}`)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('owner_id', userId || user.id);
+
+        if (error) {
+          console.error("Error fetching projects:", error);
+        } else {
+          setProjects(data);
+        }
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [user, userId]);
 
   const filteredProjects = projects?.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -95,7 +128,7 @@ const Projects = () => {
                   ref={gridRef}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <div className="col-span-full text-center py-16">
                       <p className="text-muted-foreground">Loading projects...</p>
                     </div>

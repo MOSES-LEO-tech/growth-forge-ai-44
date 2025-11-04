@@ -47,14 +47,14 @@ export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderP
             Dashboard
           </Link>
           <Link 
-            to="/gallery" 
-            className={`hover:text-primary transition-colors ${isActive('/gallery') ? 'text-primary font-medium' : ''}`}
+            to={`/gallery/user/${profile.id}`} 
+            className={`hover:text-primary transition-colors ${isActive(`/gallery/user/${profile.id}`) ? 'text-primary font-medium' : ''}`}
           >
             Gallery
           </Link>
           <Link 
-            to="/projects" 
-            className={`hover:text-primary transition-colors ${isActive('/projects') ? 'text-primary font-medium' : ''}`}
+            to={`/projects/${profile.id}`} 
+            className={`hover:text-primary transition-colors ${isActive(`/projects/${profile.id}`) ? 'text-primary font-medium' : ''}`}
           >
             Projects
           </Link>

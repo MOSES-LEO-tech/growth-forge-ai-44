@@ -8,21 +8,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 import EventTile from "@/components/EventTile";
 import { useInView } from "@/hooks/useInView";
+import { useParams } from "react-router-dom";
+
+interface Event {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  cover_image_url: string;
+  type: string;
+}
 
 const Gallery = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
+  const { userId } = useParams();
 
   const { data: events, isLoading } = useQuery({
-    queryKey: ["events"],
+    queryKey: ["events", userId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("events")
         .select("*")
         .eq("verified", true)
         .order("event_date", { ascending: false });
-      
+
+      if (userId) {
+        query = query.eq("created_by", userId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
