@@ -13,6 +13,7 @@ import { useInView } from "@/hooks/useInView";
 
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
 
@@ -94,7 +95,10 @@ const Projects = () => {
               <TabsContent value="all" className="mt-8">
                 {/* File Upload Panel */}
                 <div className="mb-8">
-                  <UploadPanel />
+                  <UploadPanel 
+                    onFilesSelected={setSelectedFiles}
+                    selectedFiles={selectedFiles}
+                  />
                 </div>
                 
                 <div 

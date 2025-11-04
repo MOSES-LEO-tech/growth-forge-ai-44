@@ -4,8 +4,12 @@ import { useState } from "react";
 import { Upload, File, Image as ImageIcon, Video } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function UploadPanel() {
-  const [files, setFiles] = useState<File[]>([]);
+interface UploadPanelProps {
+  onFilesSelected: (files: File[]) => void;
+  selectedFiles: File[];
+}
+
+export default function UploadPanel({ onFilesSelected, selectedFiles }: UploadPanelProps) {
   const [previews, setPreviews] = useState<{
     type: string;
     url: string;
@@ -15,10 +19,10 @@ export default function UploadPanel() {
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     
-    const selectedFiles = Array.from(e.target.files);
-    setFiles(selectedFiles);
+    const newFiles = Array.from(e.target.files);
+    onFilesSelected(newFiles);
 
-    const previewURLs = selectedFiles.map((file) => ({
+    const previewURLs = newFiles.map((file) => ({
       type: file.type.startsWith("image")
         ? "image"
         : file.type.startsWith("video")
@@ -88,9 +92,9 @@ export default function UploadPanel() {
         )}
 
         {/* File Info Summary */}
-        {files.length > 0 && (
+        {selectedFiles.length > 0 && (
           <div className="mt-4 text-sm text-muted-foreground">
-            {files.length} file(s) ready for upload
+            {selectedFiles.length} file(s) ready for upload
           </div>
         )}
       </CardContent>
