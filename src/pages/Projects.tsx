@@ -8,12 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
-import UploadPanel from "@/components/UploadPanel";
 import { useInView } from "@/hooks/useInView";
 
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
 
@@ -93,15 +91,7 @@ const Projects = () => {
               </TabsList>
               
               <TabsContent value="all" className="mt-8">
-                {/* File Upload Panel */}
-                <div className="mb-8">
-                  <UploadPanel 
-                    onFilesSelected={setSelectedFiles}
-                    selectedFiles={selectedFiles}
-                  />
-                </div>
-                
-                <div 
+                <div
                   ref={gridRef}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >

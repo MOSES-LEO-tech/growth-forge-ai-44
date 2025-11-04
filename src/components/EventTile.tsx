@@ -33,33 +33,25 @@ const EventTile = ({ event }: EventTileProps) => {
           return;
         }
 
-        // Otherwise check if there are uploaded files
-        const { data, error } = await supabase.storage
-          .from('gallery-files')
-          .list(`${event.id}`);
+        // Fetch media items from the database
+        const { data, error } = await supabase
+          .from('media_items')
+          .select('media_url')
+          .eq('event_id', event.id)
+          .eq('verified', true)
+          .limit(1)
+          .maybeSingle();
 
         if (error) {
-          console.error('Error fetching gallery files:', error);
+          console.error('Error fetching event media:', error);
           return;
         }
 
-        // If there are files, get the URL of the first image
-        if (data && data.length > 0) {
-          // Find the first image file
-          const imageFile = data.find(file => 
-            file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
-          );
-          
-          if (imageFile) {
-            const { data: urlData } = await supabase.storage
-              .from('gallery-files')
-              .getPublicUrl(`${event.id}/${imageFile.name}`);
-            
-            setMediaUrl(urlData.publicUrl);
-          }
+        if (data?.media_url) {
+          setMediaUrl(data.media_url);
         }
       } catch (error) {
-        console.error('Error processing gallery files:', error);
+        console.error('Error processing event media:', error);
       }
     };
 
