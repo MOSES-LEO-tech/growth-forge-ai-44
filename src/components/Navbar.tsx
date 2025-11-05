@@ -16,6 +16,9 @@ const Navbar = () => {
           <Link to="/how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
             How It Works
           </Link>
+          <Link to="/schools" className="text-sm font-medium hover:text-primary transition-colors">
+            Schools
+          </Link>
           <Link to="/contact" className="text-sm font-medium hover:text-primary transition-colors">
             Contact
           </Link>
