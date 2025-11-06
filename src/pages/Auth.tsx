@@ -76,7 +76,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
       });
@@ -87,8 +87,11 @@ const Auth = () => {
         title: "Welcome back!",
         description: "Redirecting to your dashboard..."
       });
-      
-      navigate("/dashboard");
+
+      // Navigate after a short delay to ensure auth state is updated
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 500);
     } catch (error: any) {
       toast({
         title: "Error",
