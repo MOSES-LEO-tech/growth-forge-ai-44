@@ -87,7 +87,7 @@ const EventGallery = () => {
           {/* Back Button */}
           <Button
             variant="ghost"
-            onClick={() => navigate("/gallery")}
+            onClick={() => navigate(event?.created_by ? `/gallery/user/${event.created_by}` : "/gallery")}
             className="mb-6"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
