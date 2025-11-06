@@ -14,7 +14,6 @@ interface Project {
   status: string;
   start_date: string;
   end_date: string | null;
-  collaborators: string[] | null;
   skills_tracked: any;
   owner_id?: string;
 }
@@ -38,6 +37,7 @@ interface ProjectCardProps {
 const ProjectCard = ({ project }: ProjectCardProps) => {
   const navigate = useNavigate();
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
+  const [collaboratorCount, setCollaboratorCount] = useState<number>(0);
 
   // Fetch project files
   useEffect(() => {
@@ -83,6 +83,22 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     };
 
     fetchProjectFiles();
+  }, [project.id]);
+
+  // Fetch collaborator count from join table
+  useEffect(() => {
+    const fetchCollaborators = async () => {
+      const { count, error } = await supabase
+        .from("project_collaborators")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+
+      if (!error && typeof count === "number") {
+        setCollaboratorCount(count);
+      }
+    };
+
+    fetchCollaborators();
   }, [project.id]);
 
   const getStatusColor = (status: string) => {
@@ -182,10 +198,10 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             <Calendar className="w-3 h-3" />
             <span>{format(new Date(project.start_date), "MMM dd, yyyy")}</span>
           </div>
-          {project.collaborators && project.collaborators.length > 0 && (
+          {collaboratorCount > 0 && (
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              <span>{project.collaborators.length} collaborators</span>
+              <span>{collaboratorCount} collaborator{collaboratorCount !== 1 ? 's' : ''}</span>
             </div>
           )}
           {project.skills_tracked && Object.keys(project.skills_tracked).length > 0 && (

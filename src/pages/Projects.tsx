@@ -18,7 +18,6 @@ interface Project {
   status: string;
   start_date: string;
   end_date: string | null;
-  collaborators: string[] | null;
   skills_tracked: any;
   owner_id?: string;
 }
