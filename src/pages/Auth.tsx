@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { GraduationCap, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
@@ -22,6 +23,8 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [signupEmail, setSignupEmail] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -50,12 +53,13 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Account created!",
-        description: "Welcome to StudentHub. Redirecting to your dashboard..."
-      });
+      setSignupEmail(validated.email);
+      setEmailSent(true);
       
-      navigate("/dashboard");
+      toast({
+        title: "Check your email!",
+        description: "We've sent you a confirmation link to verify your account."
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -95,6 +99,84 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  const handleResendEmail = async () => {
+    if (!signupEmail) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupEmail,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email sent!",
+        description: "We've resent the confirmation link to your email."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resend email",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Mail className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Check Your Email</CardTitle>
+            <CardDescription>
+              We've sent a confirmation link to <strong>{signupEmail}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Mail className="h-4 w-4" />
+              <AlertDescription>
+                Click the link in the email to verify your account and complete the signup process.
+              </AlertDescription>
+            </Alert>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground text-center">
+                Didn't receive the email?
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleResendEmail}
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Resend Confirmation Email"}
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full" 
+                onClick={() => {
+                  setEmailSent(false);
+                  setSignupEmail("");
+                }}
+              >
+                Back to Sign In
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
