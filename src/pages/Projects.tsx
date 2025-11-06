@@ -33,30 +33,48 @@ const Projects = () => {
   const { userId } = useParams();
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
+    let mounted = true;
+    
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted && session?.user) {
+          setUser(session.user);
+        }
+      } catch (error) {
+        console.error("Auth error:", error);
       }
     };
-    getSession();
-  }, [navigate]);
+    
+    initAuth();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (mounted) {
+        setUser(session?.user || null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchProjects = async () => {
-      if (user) {
+      if (user || userId) {
         const { data, error } = await supabase
           .from('projects')
           .select('*')
-          .eq('owner_id', userId || user.id);
+          .eq('owner_id', userId || user?.id);
 
         if (error) {
           console.error("Error fetching projects:", error);
         } else {
-          setProjects(data);
+          setProjects(data || []);
         }
+        setLoading(false);
+      } else {
         setLoading(false);
       }
     };
