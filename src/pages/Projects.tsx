@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,33 +33,13 @@ const Projects = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
 
-  useEffect(() => {
-    let mounted = true;
-    
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted && session?.user) {
-          setUser(session.user);
-        }
-      } catch (error) {
-        console.error("Auth error:", error);
-      }
-    };
-    
-    initAuth();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (mounted) {
-        setUser(session?.user || null);
-      }
-    });
+  const { user: authUser } = useAuth();
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+  useEffect(() => {
+    if (authUser && !userId) {
+      setUser(authUser);
+    }
+  }, [authUser, userId]);
 
   useEffect(() => {
     const fetchProjects = async () => {
