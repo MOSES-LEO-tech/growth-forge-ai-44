@@ -27,20 +27,17 @@ export type Collaborator = {
 async function fetchUserProjectsWithCounts(userId: string): Promise<ProjectWithCollaboratorCount[]> {
   const { data: projects, error } = await supabase
     .from("projects")
-    .select("id, owner_id, title, description, status, start_date, end_date, skills_tracked, created_at, updated_at")
+    .select("id, owner_id, title, description, status, start_date, end_date, skills_tracked, collaborators, created_at, updated_at")
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
 
-  const results: ProjectWithCollaboratorCount[] = [];
-  for (const p of projects || []) {
-    const { count } = await supabase
-      .from("project_collaborators")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", p.id);
-    results.push({ ...(p as ProjectSummary), collaboratorCount: count || 0 });
-  }
+  const results: ProjectWithCollaboratorCount[] = (projects || []).map(p => ({
+    ...(p as any),
+    collaboratorCount: Array.isArray(p.collaborators) ? p.collaborators.length : 0
+  }));
+  
   return results;
 }
 
@@ -60,15 +57,31 @@ export function useProjectCollaborators(projectId?: string) {
     queryKey: ["project-collaborators", projectId],
     queryFn: async (): Promise<Collaborator[]> => {
       if (!projectId) return [];
-      const { data, error } = await supabase
-        .from("project_collaborators")
-        .select("user_id, profiles:profiles!inner(full_name, avatar_url)")
-        .eq("project_id", projectId);
-      if (error) throw error;
-      return (data || []).map((row: any) => ({
-        user_id: row.user_id,
-        full_name: row.profiles.full_name,
-        avatar_url: row.profiles.avatar_url,
+      
+      // First get the project with its collaborators array
+      const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .select("collaborators")
+        .eq("id", projectId)
+        .maybeSingle();
+      
+      if (projectError) throw projectError;
+      if (!project || !Array.isArray(project.collaborators) || project.collaborators.length === 0) {
+        return [];
+      }
+      
+      // Then fetch the profiles for those collaborators
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", project.collaborators);
+      
+      if (profilesError) throw profilesError;
+      
+      return (profiles || []).map(profile => ({
+        user_id: profile.id,
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
       }));
     },
     enabled: !!projectId,
@@ -79,10 +92,26 @@ export function useAddCollaborator(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from("project_collaborators")
-        .insert([{ project_id: projectId, user_id: userId }]);
-      if (error) throw error;
+      // First get current collaborators
+      const { data: project, error: fetchError } = await supabase
+        .from("projects")
+        .select("collaborators")
+        .eq("id", projectId)
+        .maybeSingle();
+      
+      if (fetchError) throw fetchError;
+      
+      const currentCollaborators = Array.isArray(project?.collaborators) ? project.collaborators : [];
+      
+      // Add new collaborator if not already present
+      if (!currentCollaborators.includes(userId)) {
+        const { error } = await supabase
+          .from("projects")
+          .update({ collaborators: [...currentCollaborators, userId] })
+          .eq("id", projectId);
+        
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-collaborators", projectId] });
@@ -95,11 +124,25 @@ export function useRemoveCollaborator(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (userId: string) => {
+      // First get current collaborators
+      const { data: project, error: fetchError } = await supabase
+        .from("projects")
+        .select("collaborators")
+        .eq("id", projectId)
+        .maybeSingle();
+      
+      if (fetchError) throw fetchError;
+      
+      const currentCollaborators = Array.isArray(project?.collaborators) ? project.collaborators : [];
+      
+      // Remove collaborator
       const { error } = await supabase
-        .from("project_collaborators")
-        .delete()
-        .eq("project_id", projectId)
-        .eq("user_id", userId);
+        .from("projects")
+        .update({ 
+          collaborators: currentCollaborators.filter(id => id !== userId) 
+        })
+        .eq("id", projectId);
+      
       if (error) throw error;
     },
     onSuccess: () => {

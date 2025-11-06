@@ -85,15 +85,17 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     fetchProjectFiles();
   }, [project.id]);
 
-  // Fetch collaborator count from join table
+  // Fetch collaborator count from projects table
   useEffect(() => {
     const fetchCollaborators = async () => {
-      const { count, error } = await supabase
-        .from("project_collaborators")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", project.id);
+      const { data, error } = await supabase
+        .from("projects")
+        .select("collaborators")
+        .eq("id", project.id)
+        .maybeSingle();
 
-      if (!error && typeof count === "number") {
+      if (!error && data) {
+        const count = Array.isArray(data.collaborators) ? data.collaborators.length : 0;
         setCollaboratorCount(count);
       }
     };
