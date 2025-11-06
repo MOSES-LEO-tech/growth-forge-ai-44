@@ -5,7 +5,7 @@ import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
 
 const Dashboard = () => {
-  const { profile, signOut, loading } = useAuth();
+  const { profile, signOut } = useAuth();
 
   const renderDashboard = () => {
     switch (profile?.role) {
@@ -20,17 +20,6 @@ const Dashboard = () => {
         return <StudentDashboard profile={profile} />;
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">

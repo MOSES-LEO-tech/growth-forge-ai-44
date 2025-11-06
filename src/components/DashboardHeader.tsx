@@ -46,22 +46,18 @@ export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderP
           >
             Dashboard
           </Link>
-          {profile?.id && (
-            <>
-              <Link 
-                to={`/gallery/user/${profile.id}`} 
-                className={`hover:text-primary transition-colors ${isActive(`/gallery/user/${profile.id}`) ? 'text-primary font-medium' : ''}`}
-              >
-                Gallery
-              </Link>
-              <Link 
-                to={`/projects/${profile.id}`} 
-                className={`hover:text-primary transition-colors ${isActive(`/projects/${profile.id}`) ? 'text-primary font-medium' : ''}`}
-              >
-                Projects
-              </Link>
-            </>
-          )}
+          <Link 
+            to={`/gallery/user/${profile.id}`} 
+            className={`hover:text-primary transition-colors ${isActive(`/gallery/user/${profile.id}`) ? 'text-primary font-medium' : ''}`}
+          >
+            Gallery
+          </Link>
+          <Link 
+            to={`/projects/${profile.id}`} 
+            className={`hover:text-primary transition-colors ${isActive(`/projects/${profile.id}`) ? 'text-primary font-medium' : ''}`}
+          >
+            Projects
+          </Link>
         </nav>
 
         {/* Right: Actions */}
