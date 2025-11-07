@@ -12,11 +12,14 @@ import { useParams } from "react-router-dom";
 
 interface Event {
   id: string;
-  name: string;
-  date: string;
-  location: string;
-  cover_image_url: string;
-  type: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  location: string | null;
+  created_by: string | null;
+  verified: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const Gallery = () => {
@@ -25,28 +28,34 @@ const Gallery = () => {
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
   const { userId } = useParams();
 
-  const { data: events, isLoading } = useQuery({
+  const { data: events, isLoading, error } = useQuery({
     queryKey: ["events", userId],
     queryFn: async () => {
       let query = supabase
         .from("events")
         .select("*")
-        .eq("verified", true)
         .order("event_date", { ascending: false });
 
+      // If viewing a specific user's gallery, filter by that user
       if (userId) {
         query = query.eq("created_by", userId);
       }
+      // Otherwise, show verified events or events created by the current user
+      // The RLS policy will handle access control
 
       const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching events:", error);
+        throw error;
+      }
+      return data || [];
     },
   });
 
   const filteredEvents = events?.filter(event =>
-    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -98,7 +107,13 @@ const Gallery = () => {
                 >
                   {isLoading ? (
                     <div className="col-span-full text-center py-16">
+                      <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                       <p className="text-muted-foreground">Loading events...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="col-span-full text-center py-16">
+                      <p className="text-destructive mb-2">Error loading events</p>
+                      <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : 'Unknown error'}</p>
                     </div>
                   ) : filteredEvents && filteredEvents.length > 0 ? (
                     filteredEvents.map((event, index) => (
@@ -118,7 +133,7 @@ const Gallery = () => {
                     ))
                   ) : (
                     <div className="col-span-full text-center py-16">
-                      <p className="text-muted-foreground">No events found.</p>
+                      <p className="text-muted-foreground">No events found. Create your first event to get started!</p>
                     </div>
                   )}
                 </div>
