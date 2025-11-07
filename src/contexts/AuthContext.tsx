@@ -98,10 +98,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    try {
+      // Prefer local scope; avoids revoking all sessions on other devices
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      console.error('Supabase signOut error (continuing with local cleanup):', error);
+    } finally {
+      // Defensive local cleanup to ensure UI reflects logged-out state
+      try {
+        // Remove any stored Supabase auth tokens
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('sb-') || k.includes('supabase'))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+    }
   };
 
   return (

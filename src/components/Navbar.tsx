@@ -22,7 +22,14 @@ const Navbar = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate("/");
+      // Navigate to auth explicitly to avoid protected route redirects
+      navigate("/auth", { replace: true });
+      // As a fallback, force a reload to clear any in-memory caches
+      setTimeout(() => {
+        if (window.location.pathname !== "/auth") {
+          window.location.href = "/auth";
+        }
+      }, 50);
     } catch (error) {
       console.error("Error signing out:", error);
     }
