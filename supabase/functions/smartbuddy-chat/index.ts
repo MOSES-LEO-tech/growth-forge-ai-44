@@ -1,76 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Input validation schema
-const inputSchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(['user', 'assistant']),
-      content: z.string().max(2000, 'Message content too long (max 2000 characters)')
-    })
-  ).max(50, 'Too many messages (max 50)'),
-  personality: z.enum([
-    'default',
-    'study-ninja',
-    'chill-mentor',
-    'hype-squad',
-    'science-sage',
-    'creative-spark',
-    'life-coach'
-  ]).optional()
-});
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Parse and validate input
-    const rawBody = await req.json();
-    const validationResult = inputSchema.safeParse(rawBody);
-    
-    if (!validationResult.success) {
-      console.error('Validation error:', validationResult.error);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid input',
-        details: validationResult.error.issues.map(i => i.message).join(', ')
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { messages, personality = "default" } = validationResult.data;
-    console.log(`Chat request from user ${user.id}, ${messages.length} messages`);
+    const { messages, personality = "default" } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

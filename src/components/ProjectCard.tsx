@@ -14,6 +14,7 @@ interface Project {
   status: string;
   start_date: string;
   end_date: string | null;
+  collaborators: string[] | null;
   skills_tracked: any;
   owner_id?: string;
 }
@@ -37,7 +38,6 @@ interface ProjectCardProps {
 const ProjectCard = ({ project }: ProjectCardProps) => {
   const navigate = useNavigate();
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
-  const [collaboratorCount, setCollaboratorCount] = useState<number>(0);
 
   // Fetch project files
   useEffect(() => {
@@ -56,19 +56,10 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         if (data && data.length > 0) {
           // Process each file
           const files = await Promise.all(data.map(async (file) => {
-            // Try public URL first; fall back to a short-lived signed URL
-            const path = `${project.id}/${file.name}`;
+            // Get public URL for the file
             const { data: urlData } = await supabase.storage
               .from('project-files')
-              .getPublicUrl(path);
-
-            let resolvedUrl = urlData?.publicUrl;
-            if (!resolvedUrl) {
-              const { data: signed } = await supabase.storage
-                .from('project-files')
-                .createSignedUrl(path, 60 * 10); // 10 minutes
-              resolvedUrl = signed?.signedUrl || "";
-            }
+              .getPublicUrl(`${project.id}/${file.name}`);
 
             // Determine file type
             const fileType = file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
@@ -79,7 +70,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
 
             return {
               name: file.name,
-              url: resolvedUrl,
+              url: urlData.publicUrl,
               type: fileType as 'image' | 'video' | 'document'
             };
           }));
@@ -92,24 +83,6 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     };
 
     fetchProjectFiles();
-  }, [project.id]);
-
-  // Fetch collaborator count from projects table
-  useEffect(() => {
-    const fetchCollaborators = async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("collaborators")
-        .eq("id", project.id)
-        .maybeSingle();
-
-      if (!error && data) {
-        const count = Array.isArray(data.collaborators) ? data.collaborators.length : 0;
-        setCollaboratorCount(count);
-      }
-    };
-
-    fetchCollaborators();
   }, [project.id]);
 
   const getStatusColor = (status: string) => {
@@ -209,10 +182,10 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             <Calendar className="w-3 h-3" />
             <span>{format(new Date(project.start_date), "MMM dd, yyyy")}</span>
           </div>
-          {collaboratorCount > 0 && (
+          {project.collaborators && project.collaborators.length > 0 && (
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              <span>{collaboratorCount} collaborator{collaboratorCount !== 1 ? 's' : ''}</span>
+              <span>{project.collaborators.length} collaborators</span>
             </div>
           )}
           {project.skills_tracked && Object.keys(project.skills_tracked).length > 0 && (

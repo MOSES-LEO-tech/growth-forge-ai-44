@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +18,7 @@ interface Project {
   status: string;
   start_date: string;
   end_date: string | null;
+  collaborators: string[] | null;
   skills_tracked: any;
   owner_id?: string;
 }
@@ -33,29 +33,31 @@ const Projects = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
 
-  const { user: authUser } = useAuth();
-
   useEffect(() => {
-    if (authUser && !userId) {
-      setUser(authUser);
-    }
-  }, [authUser, userId]);
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    };
+    getSession();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchProjects = async () => {
-      if (user || userId) {
+      if (user) {
         const { data, error } = await supabase
           .from('projects')
           .select('*')
-          .eq('owner_id', userId || user?.id);
+          .eq('owner_id', userId || user.id);
 
         if (error) {
           console.error("Error fetching projects:", error);
         } else {
-          setProjects(data || []);
+          setProjects(data);
         }
-        setLoading(false);
-      } else {
         setLoading(false);
       }
     };
