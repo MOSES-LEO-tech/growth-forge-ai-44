@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { useAuth } from "@/contexts/AuthContext";
 
 const signUpSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -21,7 +22,8 @@ const signUpSchema = z.object({
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -29,12 +31,18 @@ const Auth = () => {
     role: "student" as "student" | "parent" | "teacher" | "admin"
   });
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, navigate, user]);
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       const validated = signUpSchema.parse(formData);
-      setLoading(true);
+      setFormLoading(true);
 
       const { data, error } = await supabase.auth.signUp({
         email: validated.email,
@@ -63,13 +71,13 @@ const Auth = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setFormLoading(false);
     }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setFormLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -92,7 +100,7 @@ const Auth = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setFormLoading(false);
     }
   };
 
@@ -138,9 +146,22 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
+                <div className="flex items-center justify-between">
+                  <Button type="submit" className="w-[60%]" disabled={formLoading}>
+                    {formLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                  <Button type="button" variant="link" className="w-[40%] text-right" onClick={() => navigate('/reset-password')}>
+                    Forgot password?
+                  </Button>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <Button type="button" variant="secondary" onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/dashboard` } })}>
+                    Continue with Google
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: `${window.location.origin}/dashboard` } })}>
+                    Continue with GitHub
+                  </Button>
+                </div>
               </form>
             </TabsContent>
             
@@ -195,9 +216,17 @@ const Auth = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating account..." : "Create Account"}
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? "Creating account..." : "Create Account"}
                 </Button>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <Button type="button" variant="secondary" onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/dashboard` } })}>
+                    Continue with Google
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: `${window.location.origin}/dashboard` } })}>
+                    Continue with GitHub
+                  </Button>
+                </div>
               </form>
             </TabsContent>
           </Tabs>

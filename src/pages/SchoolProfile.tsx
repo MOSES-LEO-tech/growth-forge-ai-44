@@ -1,235 +1,122 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Mail, Users, BookOpen, Calendar } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import SchoolGallery from "@/components/SchoolGallery";
-import SchoolStats from "@/components/SchoolStats";
-import SchoolHallOfFame from "@/components/SchoolHallOfFame";
-import SchoolYearbook from "@/components/SchoolYearbook";
-import { useInView } from "@/hooks/useInView";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-// Mock data - replace with API call
-const schoolData: any = {
-  "1": {
-    id: "1",
-    name: "Greenfield International Academy",
-    logoUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=200&h=200&fit=crop",
-    bannerUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&h=400&fit=crop",
-    location: "London, UK",
-    studentCount: 850,
-    teacherCount: 85,
-    activeUsers: 720,
-    tagline: "Excellence in Education",
-    type: "International School",
-    level: "Primary & Secondary",
-    curriculum: "IGCSE, A-Levels",
-    description: "Greenfield International Academy is committed to providing world-class education that nurtures critical thinking, creativity, and global citizenship.",
-    contact: {
-      email: "info@greenfield.edu",
-      phone: "+44 20 1234 5678",
-      address: "123 Education Lane, London, UK"
-    },
-    colors: {
-      primary: "hsl(142, 76%, 36%)",
-      secondary: "hsl(142, 76%, 56%)"
-    },
-    gallery: [
-      "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=600&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&h=400&fit=crop"
-    ],
-    hallOfFame: [
-      {
-        name: "Emma Richardson",
-        role: "Valedictorian 2023",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
-        bio: "Top graduate with perfect scores in Mathematics and Science"
-      },
-      {
-        name: "James Chen",
-        role: "Science Olympiad Winner",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-        bio: "International Science Olympiad Gold Medalist"
-      },
-      {
-        name: "Sarah Ahmed",
-        role: "Outstanding Leadership",
-        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop",
-        bio: "Student Council President, Community Service Award"
-      }
-    ],
-    yearbooks: [
-      { year: 2023, coverUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=300&h=400&fit=crop" },
-      { year: 2022, coverUrl: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=300&h=400&fit=crop" },
-      { year: 2021, coverUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop" }
-    ]
-  }
-};
+type DbSchool = import("@/integrations/supabase/types").Tables<"schools">;
+type MediaItem = import("@/integrations/supabase/types").Tables<"media_items">;
 
 const SchoolProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const school = schoolData[id || "1"];
-  
-  const { ref: headerRef, isInView: headerInView } = useInView({ threshold: 0.2 });
-  const { ref: statsRef, isInView: statsInView } = useInView({ threshold: 0.2 });
-  const { ref: galleryRef, isInView: galleryInView } = useInView({ threshold: 0.2 });
-  const { ref: fameRef, isInView: fameInView } = useInView({ threshold: 0.2 });
+  const { profile } = useAuth();
+  const [school, setSchool] = useState<DbSchool | null>(null);
+  const [gallery, setGallery] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!school) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">School not found</h2>
-          <Button onClick={() => navigate("/schools")}>Back to Schools</Button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const schoolQuery = supabase.from("schools").select("*").eq("id", id).single();
+      const galleryQuery = supabase
+        .from("media_items")
+        .select("*")
+        .eq("school_id", id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      const [{ data: s, error: se }, { data: g, error: ge }] = await Promise.all([
+        schoolQuery,
+        galleryQuery,
+      ]);
+      if (se) setError(se.message);
+      else setSchool(s as DbSchool);
+      if (!ge && g) setGallery(g as MediaItem[]);
+      setLoading(false);
+    };
+    if (id) load();
+  }, [id]);
+
+  const isSchoolAdmin = Boolean(
+    profile?.role === "admin" && school && profile?.school_id && String(profile.school_id) === String(school.id)
+  );
+
+  const goToAdmin = () => {
+    if (school) navigate(`/admin?schoolId=${school.id}`);
+  };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      
-      {/* Banner */}
-      <div 
-        className="relative h-80 bg-cover bg-center"
-        style={{ backgroundImage: `url(${school.bannerUrl})` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/70" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <img 
-            src={school.logoUrl} 
-            alt={school.name}
-            className="w-32 h-32 rounded-full border-4 border-white shadow-2xl"
-          />
-        </div>
-      </div>
+      <main className="container mx-auto px-4 pt-24 pb-12">
+        {loading ? (
+          <div className="text-center py-12">Loading school...</div>
+        ) : error ? (
+          <div className="text-center text-destructive">{error}</div>
+        ) : !school ? (
+          <div className="text-center">School not found.</div>
+        ) : (
+          <div className="space-y-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-3">
+                    {school.logo_url ? (
+                      <img src={school.logo_url} alt="Logo" className="w-10 h-10 rounded" />
+                    ) : null}
+                    {school.name}
+                  </CardTitle>
+                  <div className="text-muted-foreground">
+                    {school.location} • {school.country}
+                  </div>
+                </div>
+                {isSchoolAdmin ? (
+                  <Button onClick={goToAdmin} variant="default">Manage School</Button>
+                ) : null}
+              </CardHeader>
+              <CardContent>
+                {school.tagline ? (
+                  <p className="mb-2">{school.tagline}</p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  {school.type ? <Badge variant="secondary">{school.type}</Badge> : null}
+                  <Badge variant="outline">Students: {school.student_count ?? 0}</Badge>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Header Info */}
-      <section className="py-12 bg-background">
-        <div className="container mx-auto px-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/schools")}
-            className="mb-6"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Schools
-          </Button>
-
-          <div 
-            ref={headerRef}
-            className={`transition-all duration-1000 ${
-              headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-          >
-            <h1 className="text-5xl font-bold mb-4">{school.name}</h1>
-            <p className="text-xl text-muted-foreground italic mb-6">{school.tagline}</p>
-            <p className="text-lg text-muted-foreground max-w-3xl mb-8">{school.description}</p>
-            
-            <div className="flex flex-wrap gap-4 mb-8">
-              <Button size="lg">
-                <Mail className="w-5 h-5 mr-2" />
-                Contact School
-              </Button>
-              <Button size="lg" variant="outline">
-                <Users className="w-5 h-5 mr-2" />
-                Join Community
-              </Button>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Gallery</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {gallery.length === 0 ? (
+                  <div className="text-muted-foreground">No media yet.</div>
+                ) : (
+                  <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    {gallery.map((m) => (
+                      <div key={m.id} className="aspect-square bg-muted rounded overflow-hidden">
+                        {m.media_type === "image" ? (
+                          <img src={m.media_url || ""} alt={m.title || ""} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                            {m.media_type} content
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Specifications */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>School Information</CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Level</p>
-                <p className="font-semibold">{school.level}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Curriculum</p>
-                <p className="font-semibold">{school.curriculum}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Type</p>
-                <p className="font-semibold">{school.type}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Location</p>
-                <p className="font-semibold">{school.location}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Contact</p>
-                <p className="font-semibold">{school.contact.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Address</p>
-                <p className="font-semibold">{school.contact.address}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section 
-        ref={statsRef}
-        className={`py-12 bg-muted/30 transition-all duration-1000 ${
-          statsInView ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <div className="container mx-auto px-4">
-          <SchoolStats 
-            studentCount={school.studentCount}
-            teacherCount={school.teacherCount}
-            activeUsers={school.activeUsers}
-            isInView={statsInView}
-          />
-        </div>
-      </section>
-
-      {/* Gallery */}
-      <section 
-        ref={galleryRef}
-        className={`py-12 transition-all duration-1000 ${
-          galleryInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-        }`}
-      >
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold mb-8">School Gallery</h2>
-          <SchoolGallery images={school.gallery} />
-        </div>
-      </section>
-
-      {/* Hall of Fame */}
-      <section 
-        ref={fameRef}
-        className={`py-12 bg-muted/30 transition-all duration-1000 ${
-          fameInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-        }`}
-      >
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold mb-8">Hall of Fame</h2>
-          <SchoolHallOfFame members={school.hallOfFame} isInView={fameInView} />
-        </div>
-      </section>
-
-      {/* Yearbooks */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold mb-8">Yearbook Collection</h2>
-          <SchoolYearbook yearbooks={school.yearbooks} />
-        </div>
-      </section>
-
-      <Footer />
+        )}
+      </main>
     </div>
   );
 };

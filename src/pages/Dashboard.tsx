@@ -1,57 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
 import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const navigate = useNavigate();
+  const { profile, loading, signOut, user } = useAuth();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      setProfile(profileData);
-      setLoading(false);
-    };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!loading && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [loading, navigate, user]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     toast({
       title: "Signed out",
-      description: "You have been signed out successfully"
+      description: "You have been signed out successfully",
     });
   };
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
