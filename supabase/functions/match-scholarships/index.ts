@@ -19,13 +19,26 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Get user from auth header
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      console.error('Auth error:', userError);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+
+    console.log(`Matching scholarships for user ${user.id}`);
 
     // Fetch user profile and achievements
     const { data: profile } = await supabase
@@ -51,22 +64,22 @@ serve(async (req) => {
       });
     }
 
-    // Create context for AI matching
+    // Create context for AI matching (sanitized and length-limited)
     const userContext = `
 Student Profile:
-- Grade Level: ${profile?.grade_level || 'Not specified'}
+- Grade Level: ${(profile?.grade_level || 'Not specified').substring(0, 50)}
 - Achievements: ${achievements?.length || 0} total
-- Categories: ${[...new Set(achievements?.map(a => a.category))].join(', ') || 'None'}
+- Categories: ${[...new Set(achievements?.map(a => a.category))].join(', ').substring(0, 200) || 'None'}
 
-Available Scholarships:
-${scholarships.map(s => `
-- ${s.title} (${s.organization})
+Available Scholarships (${scholarships.length}):
+${scholarships.slice(0, 20).map(s => `
+- ${s.title.substring(0, 100)} (${(s.organization || '').substring(0, 100)})
   Amount: $${s.amount || 'Varies'}
   Deadline: ${s.deadline}
-  Grade Levels: ${s.grade_levels?.join(', ') || 'All'}
-  Requirements: ${s.requirements?.join(', ') || 'See application'}
+  Grade Levels: ${s.grade_levels?.join(', ').substring(0, 100) || 'All'}
+  Requirements: ${s.requirements?.join(', ').substring(0, 200) || 'See application'}
 `).join('\n')}
-    `;
+    `.substring(0, 5000); // Limit total context size
 
     // Call Lovable AI for matching
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -119,7 +132,10 @@ ${scholarships.map(s => `
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('AI API Error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      return new Response(JSON.stringify({ error: 'Failed to match scholarships' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const aiData = await aiResponse.json();
@@ -136,13 +152,15 @@ ${scholarships.map(s => `
       };
     }).filter(Boolean);
 
+    console.log(`Found ${matches.length} scholarship matches for user ${user.id}`);
+
     return new Response(JSON.stringify({ matches }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in match-scholarships:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'An error occurred while matching scholarships' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -19,13 +19,26 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Get user from auth header
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      console.error('Auth error:', userError);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+
+    console.log(`Generating recommendations for user ${user.id}`);
 
     // Fetch user profile, achievements, and projects
     const { data: profile } = await supabase
@@ -48,19 +61,19 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    // Create context for AI
+    // Create context for AI (sanitized and length-limited)
     const userContext = `
 Student Profile:
-- Name: ${profile?.full_name}
-- Grade Level: ${profile?.grade_level || 'Not specified'}
-- Bio: ${profile?.bio || 'Not specified'}
+- Name: ${(profile?.full_name || 'Not specified').substring(0, 100)}
+- Grade Level: ${(profile?.grade_level || 'Not specified').substring(0, 50)}
+- Bio: ${(profile?.bio || 'Not specified').substring(0, 500)}
 
 Recent Achievements (${achievements?.length || 0}):
-${achievements?.map(a => `- ${a.title}: ${a.description}`).join('\n') || 'None yet'}
+${achievements?.slice(0, 10).map(a => `- ${a.title.substring(0, 100)}: ${(a.description || '').substring(0, 200)}`).join('\n') || 'None yet'}
 
 Active Projects (${projects?.length || 0}):
-${projects?.map(p => `- ${p.title}: ${p.description}`).join('\n') || 'None yet'}
-    `;
+${projects?.slice(0, 5).map(p => `- ${p.title.substring(0, 100)}: ${(p.description || '').substring(0, 200)}`).join('\n') || 'None yet'}
+    `.substring(0, 3000); // Limit total context size
 
     // Call Lovable AI for recommendations
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -114,12 +127,17 @@ ${projects?.map(p => `- ${p.title}: ${p.description}`).join('\n') || 'None yet'}
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('AI API Error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      return new Response(JSON.stringify({ error: 'Failed to generate recommendations' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices[0].message.tool_calls?.[0];
     const recommendations = JSON.parse(toolCall.function.arguments).recommendations;
+
+    console.log(`Generated ${recommendations.length} recommendations for user ${user.id}`);
 
     return new Response(JSON.stringify({ recommendations }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -127,7 +145,7 @@ ${projects?.map(p => `- ${p.title}: ${p.description}`).join('\n') || 'None yet'}
   } catch (error) {
     console.error('Error in generate-recommendations:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'An error occurred while generating recommendations' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
