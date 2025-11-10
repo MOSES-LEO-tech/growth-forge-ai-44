@@ -15,7 +15,9 @@ const Schools = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const { ref, isInView } = useInView({ threshold: 0.1 });
+  const [country, setCountry] = useState<string>("");
+  const [type, setType] = useState<string>("");
+  const { ref, inView } = useInView({ threshold: 0.1 });
 
   useEffect(() => {
     const load = async () => {
@@ -39,10 +41,12 @@ const Schools = () => {
       const matchesQuery = !q ||
         (s.name || "").toLowerCase().includes(q) ||
         (s.location || "").toLowerCase().includes(q) ||
-        (s.description || "").toLowerCase().includes(q);
-      return matchesQuery;
+        (s.tagline || "").toLowerCase().includes(q);
+      const matchesCountry = !country || (s.country || "").toLowerCase() === country.toLowerCase();
+      const matchesType = !type || (s.type || "").toLowerCase() === type.toLowerCase();
+      return matchesQuery && matchesCountry && matchesType;
     });
-  }, [schools, query]);
+  }, [schools, query, country, type]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,12 +56,24 @@ const Schools = () => {
           <h1 className="text-3xl font-bold mb-2">Schools</h1>
           <p className="text-muted-foreground">Discover schools and view their profiles and galleries.</p>
         </section>
-        <section className="mb-6">
+        <section className="mb-6 grid gap-3 grid-cols-1 md:grid-cols-3">
           <input
-            className="border rounded px-3 py-2 w-full"
-            placeholder="Search by name, location, description"
+            className="border rounded px-3 py-2"
+            placeholder="Search by name, location, tagline"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+          />
+          <input
+            className="border rounded px-3 py-2"
+            placeholder="Filter by country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+          />
+          <input
+            className="border rounded px-3 py-2"
+            placeholder="Filter by type"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
           />
         </section>
         {loading ? (
@@ -75,8 +91,9 @@ const Schools = () => {
                   logoUrl: s.logo_url || undefined,
                   location: s.location || "",
                   studentCount: s.student_count || 0,
-                  tagline: s.description || "",
-                  type: "School",
+                  tagline: s.tagline || "",
+                  type: s.type || "",
+                  country: s.country || "",
                 }}
               />
             ))}

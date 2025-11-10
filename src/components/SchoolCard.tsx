@@ -5,7 +5,7 @@ import { Users, MapPin } from "lucide-react";
 interface School {
   id: string;
   name: string;
-  logoUrl?: string;
+  logoUrl: string;
   location: string;
   studentCount: number;
   tagline: string;
@@ -25,17 +25,11 @@ const SchoolCard = ({ school }: SchoolCardProps) => {
       onClick={() => navigate(`/schools/${school.id}`)}
     >
       <div className="relative h-48 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
-        {school.logoUrl ? (
-          <img 
-            src={school.logoUrl} 
-            alt={school.name} 
-            className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-lg group-hover:scale-110 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center text-4xl font-bold text-muted-foreground border-4 border-background shadow-lg">
-            {school.name.charAt(0)}
-          </div>
-        )}
+        <img 
+          src={school.logoUrl} 
+          alt={school.name} 
+          className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-lg group-hover:scale-110 transition-transform duration-300"
+        />
       </div>
       
       <CardContent className="p-6">

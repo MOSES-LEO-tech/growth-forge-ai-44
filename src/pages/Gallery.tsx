@@ -12,12 +12,11 @@ import { useParams } from "react-router-dom";
 
 interface Event {
   id: string;
-  title: string;
-  description: string | null;
-  event_date: string;
-  location: string | null;
-  verified: boolean;
-  created_by: string | null;
+  name: string;
+  date: string;
+  location: string;
+  cover_image_url: string;
+  type: string;
 }
 
 const Gallery = () => {

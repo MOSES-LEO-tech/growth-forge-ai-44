@@ -60,13 +60,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "achievements_media_id_fkey"
-            columns: ["media_id"]
-            isOneToOne: false
-            referencedRelation: "media_items_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "achievements_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -196,13 +189,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "media_items_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
             referencedColumns: ["id"]
           },
           {
@@ -344,13 +330,6 @@ export type Database = {
             columns: ["media_id"]
             isOneToOne: false
             referencedRelation: "media_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_media_id_fkey"
-            columns: ["media_id"]
-            isOneToOne: false
-            referencedRelation: "media_items_public"
             referencedColumns: ["id"]
           },
           {
@@ -499,70 +478,6 @@ export type Database = {
         }
         Relationships: []
       }
-      students: {
-        Row: {
-          created_at: string
-          enrollment_date: string
-          grade_level: string | null
-          graduation_year: number | null
-          id: string
-          is_active: boolean | null
-          major_interest: string | null
-          profile_id: string | null
-          school_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          enrollment_date?: string
-          grade_level?: string | null
-          graduation_year?: number | null
-          id?: string
-          is_active?: boolean | null
-          major_interest?: string | null
-          profile_id?: string | null
-          school_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          enrollment_date?: string
-          grade_level?: string | null
-          graduation_year?: number | null
-          id?: string
-          is_active?: boolean | null
-          major_interest?: string | null
-          profile_id?: string | null
-          school_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "students_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools_public"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -586,140 +501,7 @@ export type Database = {
       }
     }
     Views: {
-      events_public: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          event_date: string | null
-          id: string | null
-          location: string | null
-          title: string | null
-          updated_at: string | null
-          verified: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          event_date?: string | null
-          id?: string | null
-          location?: string | null
-          title?: string | null
-          updated_at?: string | null
-          verified?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          event_date?: string | null
-          id?: string | null
-          location?: string | null
-          title?: string | null
-          updated_at?: string | null
-          verified?: boolean | null
-        }
-        Relationships: []
-      }
-      media_items_public: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          event_id: string | null
-          id: string | null
-          media_type: string | null
-          media_url: string | null
-          tags: string[] | null
-          title: string | null
-          verified: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          event_id?: string | null
-          id?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          tags?: string[] | null
-          title?: string | null
-          verified?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          event_id?: string | null
-          id?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          tags?: string[] | null
-          title?: string | null
-          verified?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "media_items_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "media_items_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schools_public: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          established_year: number | null
-          id: string | null
-          location: string | null
-          logo_url: string | null
-          name: string | null
-          student_count: number | null
-          updated_at: string | null
-          verified: boolean | null
-          website_url: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          established_year?: number | null
-          id?: string | null
-          location?: string | null
-          logo_url?: string | null
-          name?: string | null
-          student_count?: number | null
-          updated_at?: string | null
-          verified?: boolean | null
-          website_url?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          established_year?: number | null
-          id?: string | null
-          location?: string | null
-          logo_url?: string | null
-          name?: string | null
-          student_count?: number | null
-          updated_at?: string | null
-          verified?: boolean | null
-          website_url?: string | null
-        }
-        Relationships: []
-      }
-      student_counts: {
-        Row: {
-          active_students: number | null
-          inactive_students: number | null
-          total_students: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {
