@@ -23,11 +23,10 @@ const SchoolProfile = () => {
     const load = async () => {
       setLoading(true);
       setError(null);
-      const schoolQuery = supabase.from("schools").select("*").eq("id", id).single();
+      const schoolQuery = supabase.from("schools").select("*").eq("id", id).maybeSingle();
       const galleryQuery = supabase
         .from("media_items")
         .select("*")
-        .eq("school_id", id)
         .order("created_at", { ascending: false })
         .limit(30);
       const [{ data: s, error: se }, { data: g, error: ge }] = await Promise.all([
@@ -72,7 +71,7 @@ const SchoolProfile = () => {
                     {school.name}
                   </CardTitle>
                   <div className="text-muted-foreground">
-                    {school.location} • {school.country}
+                    {school.location}
                   </div>
                 </div>
                 {isSchoolAdmin ? (
@@ -80,11 +79,10 @@ const SchoolProfile = () => {
                 ) : null}
               </CardHeader>
               <CardContent>
-                {school.tagline ? (
-                  <p className="mb-2">{school.tagline}</p>
+                {school.description ? (
+                  <p className="mb-2">{school.description}</p>
                 ) : null}
                 <div className="flex flex-wrap gap-2">
-                  {school.type ? <Badge variant="secondary">{school.type}</Badge> : null}
                   <Badge variant="outline">Students: {school.student_count ?? 0}</Badge>
                 </div>
               </CardContent>
