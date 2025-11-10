@@ -16,7 +16,7 @@ const signUpSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   fullName: z.string().min(2, "Name must be at least 2 characters"),
-  role: z.enum(["student", "parent", "teacher", "admin"])
+  role: z.enum(["student", "parent", "teacher"])
 });
 
 const Auth = () => {
@@ -28,7 +28,7 @@ const Auth = () => {
     email: "",
     password: "",
     fullName: "",
-    role: "student" as "student" | "parent" | "teacher" | "admin"
+    role: "student" as "student" | "parent" | "teacher"
   });
 
   useEffect(() => {
@@ -212,7 +212,6 @@ const Auth = () => {
                       <SelectItem value="student">Student</SelectItem>
                       <SelectItem value="parent">Parent</SelectItem>
                       <SelectItem value="teacher">Teacher</SelectItem>
-                      <SelectItem value="admin">School Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
