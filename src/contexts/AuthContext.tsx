@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -29,54 +28,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setProfile(data as Profile);
-    } catch (error) {
-      console.error("Error loading profile:", error);
-      setProfile(null);
-    }
+  const loadProfile = useCallback(async (_userId: string) => {
+    // Auth disabled: provide a default guest profile
+    const now = new Date().toISOString();
+    const guest: Profile = {
+      id: "00000000-0000-0000-0000-000000000000" as any,
+      role: "student" as any,
+      full_name: "Guest",
+      age: null as any,
+      grade_level: null as any,
+      school_id: null as any,
+      avatar_url: null as any,
+      bio: null as any,
+      created_at: now as any,
+      updated_at: now as any,
+    };
+    setProfile(guest);
   }, []);
 
   const initialize = useCallback(async () => {
+    // Auth disabled: set guest profile and no session/user
     setLoading(true);
-    try {
-      const {
-        data: { session: currentSession },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error) {
-        throw error;
-      }
-
-      setSession(currentSession);
-      const currentUser = currentSession?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        await loadProfile(currentUser.id);
-      } else {
-        setProfile(null);
-      }
-    } catch (error) {
-      console.error("Auth initialization error:", error);
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
+    setSession(null);
+    setUser(null);
+    await loadProfile("guest");
+    setLoading(false);
   }, [loadProfile]);
 
   useEffect(() => {
@@ -89,54 +65,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     run();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (!isMounted) return;
-
-      setSession(nextSession);
-      const nextUser = nextSession?.user ?? null;
-      setUser(nextUser);
-
-      if (nextUser) {
-        await loadProfile(nextUser.id);
-      } else {
-        setProfile(null);
-      }
-
-      setLoading(false);
-    });
-
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
     };
   }, [initialize, loadProfile]);
 
   const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    await loadProfile(user.id);
-  }, [loadProfile, user]);
+    await loadProfile("guest");
+  }, [loadProfile]);
 
   const signOut = useCallback(async () => {
-    try {
-      await supabase.auth.signOut({ scope: "local" });
-    } catch (error) {
-      console.error("Supabase signOut error (continuing with cleanup):", error);
-    } finally {
-      try {
-        Object.keys(localStorage)
-          .filter((key) => key.startsWith("sb-") || key.includes("supabase"))
-          .forEach((key) => localStorage.removeItem(key));
-      } catch {
-        // Ignore storage errors (Safari private mode, etc.)
-      }
-
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-    }
-  }, []);
+    // Auth disabled: reset to guest profile
+    setUser(null);
+    setSession(null);
+    await loadProfile("guest");
+  }, [loadProfile]);
 
   const value = useMemo<AuthContextType>(
     () => ({ user, session, profile, loading, signOut, refreshProfile }),

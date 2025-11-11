@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
@@ -9,14 +8,11 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { profile, loading, signOut, user } = useAuth();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth", { replace: true });
-    }
-  }, [loading, navigate, user]);
+    // Auth disabled: do not redirect unauthenticated users
+  }, [loading, user]);
 
   const handleSignOut = async () => {
     await signOut();
