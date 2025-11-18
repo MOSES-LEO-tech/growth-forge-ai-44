@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -7,28 +8,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 import EventTile from "@/components/EventTile";
 import { useInView } from "@/hooks/useInView";
-import { useParams } from "react-router-dom";
-
-interface Event {
-  id: string;
-  name: string;
-  date: string;
-  location: string;
-  cover_image_url: string;
-  type: string;
-}
 
 const Gallery = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
-  const { userId } = useParams();
 
   const { data: events, isLoading } = useQuery({
-    queryKey: ["events", userId],
+    queryKey: ["events"],
     queryFn: async () => {
-      // Backend removed: return empty list in guest mode
-      return [] as any[];
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("verified", true)
+        .order("event_date", { ascending: false });
+      
+      if (error) throw error;
+      return data;
     },
   });
 

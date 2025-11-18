@@ -254,7 +254,7 @@ const SmartBuddy = () => {
   const currentPersonality = personalities.find(p => p.id === personality) || personalities[0];
 
   return (
-    <Card className="min-h-[600px] flex flex-col">
+    <Card className="h-[600px] flex flex-col">
       <CardHeader className="border-b bg-gradient-to-r from-primary/10 to-secondary/10">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -299,7 +299,7 @@ const SmartBuddy = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 p-4 h-[500px] overflow-y-auto" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((message, index) => (
               <div

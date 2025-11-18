@@ -6,9 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-// Backend removed: simulate project creation in guest mode
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import UploadPanel from "@/components/UploadPanel";
 
 interface AddProjectModalProps {
   userId: string;
@@ -26,8 +25,6 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     start_date: "",
     status: "pending" as "pending" | "ongoing" | "complete"
   });
-  
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -38,14 +35,24 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     setLoading(true);
 
     try {
-      // No backend: simulate success without persistence
+      const { error } = await supabase
+        .from("projects")
+        .insert([{
+          owner_id: userId,
+          title: form.title,
+          description: form.description,
+          start_date: form.start_date,
+          status: form.status
+        }]);
+
+      if (error) throw error;
+
       toast({
         title: "Success!",
-        description: "Project added (demo mode)"
+        description: "Project added successfully"
       });
 
       setForm({ title: "", description: "", start_date: "", status: "pending" });
-      setSelectedFiles([]);
       setOpen(false);
       onProjectAdded?.();
     } catch (error) {
@@ -114,13 +121,6 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
                 <SelectItem value="complete">Completed</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label htmlFor="files" className="mb-2 block">Project Files</Label>
-            <UploadPanel 
-              onFilesSelected={setSelectedFiles} 
-              selectedFiles={selectedFiles} 
-            />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

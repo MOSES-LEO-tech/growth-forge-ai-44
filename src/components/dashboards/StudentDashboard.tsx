@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,28 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // TODO: Fetch data from the new API
+  const fetchData = async () => {
+    const { data: achievementsData } = await supabase
+      .from("achievements")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("date_earned", { ascending: false })
+      .limit(5);
+
+    const { data: projectsData } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("owner_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    setAchievements(achievementsData || []);
+    setProjects(projectsData || []);
     setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [profile.id]);
 
   return (

@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
 
 interface Event {
   id: string;
@@ -12,7 +11,6 @@ interface Event {
   event_date: string;
   location: string | null;
   verified: boolean;
-  media_url?: string;
 }
 
 interface EventTileProps {
@@ -21,36 +19,15 @@ interface EventTileProps {
 
 const EventTile = ({ event }: EventTileProps) => {
   const navigate = useNavigate();
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    // If there's already a media_url, use it
-    if (event.media_url) {
-      setMediaUrl(event.media_url);
-      return;
-    }
-  }, [event.media_url]);
-
-  const handleNavigation = () => {
-    navigate(`/events/${event.id}`);
-  }
 
   return (
     <Card 
       className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
       onClick={() => navigate(`/gallery/${event.id}`)}
     >
-      {/* Cover Image */}
+      {/* Cover Image Placeholder */}
       <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-        {mediaUrl ? (
-          <img 
-            src={mediaUrl} 
-            alt={event.title} 
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <ImageIcon className="w-16 h-16 text-primary/40" />
-        )}
+        <ImageIcon className="w-16 h-16 text-primary/40" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
       </div>
 

@@ -1,10 +1,9 @@
-import { Calendar, Users, TrendingUp, Paperclip, FileText, FileVideo, Image } from "lucide-react";
+import { Calendar, Users, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
 
 interface Project {
   id: string;
@@ -15,19 +14,6 @@ interface Project {
   end_date: string | null;
   collaborators: string[] | null;
   skills_tracked: any;
-  owner_id?: string;
-}
-
-interface ProjectFile {
-  name: string;
-  url: string;
-  type: 'image' | 'video' | 'document';
-}
-
-interface ProjectFile {
-  name: string;
-  url: string;
-  type: 'image' | 'video' | 'document';
 }
 
 interface ProjectCardProps {
@@ -36,13 +22,6 @@ interface ProjectCardProps {
 
 const ProjectCard = ({ project }: ProjectCardProps) => {
   const navigate = useNavigate();
-  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
-
-  // Fetch project files
-  useEffect(() => {
-    // Backend removed: no storage, keep files empty
-    setProjectFiles([]);
-  }, [project.id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -102,38 +81,6 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
           </div>
           <Progress value={progress} className="h-2" />
         </div>
-
-        {/* File Previews */}
-        {projectFiles.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Paperclip className="w-3 h-3" />
-              <span>{projectFiles.length} file{projectFiles.length !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {projectFiles.slice(0, 3).map((file, index) => (
-                <div 
-                  key={index} 
-                  className="w-12 h-12 rounded-md overflow-hidden border flex items-center justify-center bg-muted"
-                  title={file.name}
-                >
-                  {file.type === 'image' ? (
-                    <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
-                  ) : file.type === 'video' ? (
-                    <FileVideo className="w-6 h-6 text-muted-foreground" />
-                  ) : (
-                    <FileText className="w-6 h-6 text-muted-foreground" />
-                  )}
-                </div>
-              ))}
-              {projectFiles.length > 3 && (
-                <div className="w-12 h-12 rounded-md border flex items-center justify-center bg-muted">
-                  <span className="text-xs text-muted-foreground">+{projectFiles.length - 3}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Details */}
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

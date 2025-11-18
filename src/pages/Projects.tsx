@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,40 +9,28 @@ import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
 import { useInView } from "@/hooks/useInView";
-import { useNavigate, useParams } from "react-router-dom";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  start_date: string;
-  end_date: string | null;
-  collaborators: string[] | null;
-  skills_tracked: any;
-  owner_id?: string;
-}
 
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const navigate = useNavigate();
-  const { userId } = useParams();
 
-  useEffect(() => {
-    // Backend removed: operate in guest mode without auth/session
-    setUser({ id: "guest" });
-  }, []);
+  const { data: projects, isLoading } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-  useEffect(() => {
-    // Backend removed: no projects available in guest mode
-    setProjects([]);
-    setLoading(false);
-  }, [userId]);
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .or(`owner_id.eq.${user.id},collaborators.cs.{${user.id}}`)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const filteredProjects = projects?.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,11 +91,11 @@ const Projects = () => {
               </TabsList>
               
               <TabsContent value="all" className="mt-8">
-                <div
+                <div 
                   ref={gridRef}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
-                  {loading ? (
+                  {isLoading ? (
                     <div className="col-span-full text-center py-16">
                       <p className="text-muted-foreground">Loading projects...</p>
                     </div>

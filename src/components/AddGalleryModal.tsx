@@ -6,9 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImagePlus } from "lucide-react";
-// Backend removed: simulate gallery item creation in guest mode
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import UploadPanel from "@/components/UploadPanel";
 
 interface AddGalleryModalProps {
   userId: string;
@@ -27,8 +26,6 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     media_url: "",
     event_date: ""
   });
-  
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -39,21 +36,47 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     setLoading(true);
 
     try {
-      // No backend: simulate success without persistence
+      // First create an event
+      const { data: eventData, error: eventError } = await supabase
+        .from("events")
+        .insert([{
+          title: form.title,
+          description: form.description,
+          event_date: form.event_date,
+          created_by: userId
+        }])
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Then add media item linked to the event
+      const { error: mediaError } = await supabase
+        .from("media_items")
+        .insert([{
+          title: form.title,
+          description: form.description,
+          media_type: form.media_type,
+          media_url: form.media_url,
+          event_id: eventData.id,
+          uploaded_by: userId
+        }]);
+
+      if (mediaError) throw mediaError;
+
       toast({
         title: "Success!",
-        description: "Gallery item added (demo mode)",
+        description: "Gallery item added successfully"
       });
 
       setForm({ title: "", description: "", media_type: "photo", media_url: "", event_date: "" });
-      setSelectedFiles([]);
       setOpen(false);
       onItemAdded?.();
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to add gallery item",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -106,19 +129,13 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
             </Select>
           </div>
           <div>
-            <Label htmlFor="media_url">Media URL (Optional if uploading files)</Label>
+            <Label htmlFor="media_url">Media URL</Label>
             <Input
               id="media_url"
               value={form.media_url}
               onChange={(e) => handleChange("media_url", e.target.value)}
               placeholder="https://example.com/image.jpg"
-            />
-          </div>
-          <div>
-            <Label htmlFor="files" className="mb-2 block">Upload Media</Label>
-            <UploadPanel 
-              onFilesSelected={setSelectedFiles} 
-              selectedFiles={selectedFiles} 
+              required
             />
           </div>
           <div>

@@ -75,33 +75,6 @@ export type Database = {
           },
         ]
       }
-      ai_response_cache: {
-        Row: {
-          cache_key: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          response_data: Json
-          user_id: string | null
-        }
-        Insert: {
-          cache_key: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          response_data: Json
-          user_id?: string | null
-        }
-        Update: {
-          cache_key?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          response_data?: Json
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       events: {
         Row: {
           created_at: string
@@ -427,54 +400,6 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      schools: {
-        Row: {
-          contact_email: string | null
-          contact_phone: string | null
-          created_at: string
-          description: string | null
-          established_year: number | null
-          id: string
-          location: string | null
-          logo_url: string | null
-          name: string
-          student_count: number | null
-          updated_at: string
-          verified: boolean | null
-          website_url: string | null
-        }
-        Insert: {
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          description?: string | null
-          established_year?: number | null
-          id?: string
-          location?: string | null
-          logo_url?: string | null
-          name: string
-          student_count?: number | null
-          updated_at?: string
-          verified?: boolean | null
-          website_url?: string | null
-        }
-        Update: {
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          description?: string | null
-          established_year?: number | null
-          id?: string
-          location?: string | null
-          logo_url?: string | null
-          name?: string
-          student_count?: number | null
-          updated_at?: string
-          verified?: boolean | null
-          website_url?: string | null
         }
         Relationships: []
       }
