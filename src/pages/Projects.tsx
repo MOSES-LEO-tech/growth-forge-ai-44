@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,36 +33,15 @@ const Projects = () => {
   const { userId } = useParams();
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-    };
-    getSession();
-  }, [navigate]);
+    // Backend removed: operate in guest mode without auth/session
+    setUser({ id: "guest" });
+  }, []);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      if (user) {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('owner_id', userId || user.id);
-
-        if (error) {
-          console.error("Error fetching projects:", error);
-        } else {
-          setProjects(data);
-        }
-        setLoading(false);
-      }
-    };
-
-    fetchProjects();
-  }, [user, userId]);
+    // Backend removed: no projects available in guest mode
+    setProjects([]);
+    setLoading(false);
+  }, [userId]);
 
   const filteredProjects = projects?.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

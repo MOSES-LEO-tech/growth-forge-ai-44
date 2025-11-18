@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+// Backend removed: operate in guest mode without Supabase
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,12 +9,32 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import type { Tables } from "@/integrations/supabase/types";
-
-type Profile = Tables<"profiles">;
-type Achievement = Tables<"achievements">;
-type Project = Tables<"projects">;
-type MediaItem = Tables<"media_items">;
+interface Profile {
+  id: string;
+  full_name?: string | null;
+  role: "student" | "parent" | "teacher" | "admin";
+  school_id?: string | null;
+}
+interface Achievement {
+  id: string;
+  title?: string | null;
+  user_id: string;
+  category?: string | null;
+  verified?: boolean;
+  verified_by?: string | null;
+}
+interface Project {
+  id: string;
+  title?: string | null;
+  owner_id: string;
+  status: "pending" | "ongoing" | "complete";
+  verified?: boolean;
+}
+interface MediaItem {
+  id: string;
+  uploaded_by: string;
+  verified?: boolean;
+}
 
 const AdminPanel = () => {
   const { user, profile } = useAuth();
@@ -40,70 +60,25 @@ const AdminPanel = () => {
   const [schoolMemberIds, setSchoolMemberIds] = useState<string[]>([]);
 
   const loadSchoolMembers = async () => {
-    if (!schoolId) {
-      setSchoolMemberIds([]);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("school_id", schoolId)
-      .limit(500);
-    if (!error && data) {
-      setSchoolMemberIds((data as { id: string }[]).map((d) => d.id));
-    }
+    // No backend: no scoped member data available
+    setSchoolMemberIds([]);
   };
 
   const loadUsers = async () => {
-    let query = supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (isScopedToSchool && schoolId) {
-      query = query.eq("school_id", schoolId);
-    }
-    const { data, error } = await query;
-    if (!error && data) setUsers(data as Profile[]);
+    // No backend: show empty list
+    setUsers([]);
   };
 
   const loadAchievements = async () => {
-    let query = supabase
-      .from("achievements")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (isScopedToSchool && schoolMemberIds.length > 0) {
-      query = query.in("user_id", schoolMemberIds);
-    }
-    const { data, error } = await query;
-    if (!error && data) setAchievements(data as Achievement[]);
+    setAchievements([]);
   };
 
   const loadProjects = async () => {
-    let query = supabase
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (isScopedToSchool && schoolMemberIds.length > 0) {
-      query = query.in("owner_id", schoolMemberIds);
-    }
-    const { data, error } = await query;
-    if (!error && data) setProjects(data as Project[]);
+    setProjects([]);
   };
 
   const loadMedia = async () => {
-    let query = supabase
-      .from("media_items")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (isScopedToSchool && schoolMemberIds.length > 0) {
-      query = query.in("uploaded_by", schoolMemberIds);
-    }
-    const { data, error } = await query;
-    if (!error && data) setMediaItems(data as MediaItem[]);
+    setMediaItems([]);
   };
 
   useEffect(() => {
@@ -117,38 +92,31 @@ const AdminPanel = () => {
   }, [schoolId]);
 
   const changeUserRole = async (id: string, role: Profile["role"]) => {
-    const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
-    if (!error) loadUsers();
+    // No backend: update local state for demo purposes
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
   };
 
   const verifyAchievement = async (id: string, verified: boolean) => {
-    const payload: Partial<Achievement> = { verified } as any;
-    if (verified && adminId) {
-      (payload as any).verified_by = adminId;
-    }
-    const { error } = await supabase.from("achievements").update(payload).eq("id", id);
-    if (!error) loadAchievements();
+    setAchievements((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, verified, verified_by: verified ? adminId ?? null : null } : a))
+    );
   };
 
   const approveProject = async (id: string, verified: boolean) => {
-    const { error } = await supabase.from("projects").update({ verified }).eq("id", id);
-    if (!error) loadProjects();
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, verified } : p)));
   };
 
   const updateProjectStatus = async (id: string, status: Project["status"]) => {
-    const { error } = await supabase.from("projects").update({ status }).eq("id", id);
-    if (!error) loadProjects();
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
   };
 
   const moderateMedia = async (id: string, action: "verify" | "unverify" | "delete") => {
     if (action === "delete") {
-      const { error } = await supabase.from("media_items").delete().eq("id", id);
-      if (!error) loadMedia();
+      setMediaItems((prev) => prev.filter((m) => m.id !== id));
       return;
     }
     const verified = action === "verify";
-    const { error } = await supabase.from("media_items").update({ verified }).eq("id", id);
-    if (!error) loadMedia();
+    setMediaItems((prev) => prev.map((m) => (m.id === id ? { ...m, verified } : m)));
   };
 
   const filteredUsers = users.filter((u) => {

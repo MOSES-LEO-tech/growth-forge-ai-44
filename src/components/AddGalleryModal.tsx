@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImagePlus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Backend removed: simulate gallery item creation in guest mode
 import { useToast } from "@/hooks/use-toast";
 import UploadPanel from "@/components/UploadPanel";
 
@@ -39,74 +39,10 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     setLoading(true);
 
     try {
-      // First create an event
-      const { data: eventData, error: eventError } = await supabase
-        .from("events")
-        .insert([{
-          title: form.title,
-          description: form.description,
-          event_date: form.event_date,
-          created_by: userId
-        }])
-        .select()
-        .single();
-
-      if (eventError) throw eventError;
-
-      // Handle file uploads if any
-      let mediaUrl = form.media_url;
-      
-      if (selectedFiles.length > 0) {
-        const file = selectedFiles[0]; // Use the first file as the primary media
-        const filePath = `${userId}/${eventData.id}/${file.name}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('gallery-media')
-          .upload(filePath, file);
-          
-        if (uploadError) {
-          console.error('Error uploading file:', uploadError);
-        } else {
-          // Get public URL for the uploaded file
-          const { data: publicUrlData } = supabase.storage
-            .from('gallery-media')
-            .getPublicUrl(filePath);
-            
-          if (publicUrlData) {
-            mediaUrl = publicUrlData.publicUrl;
-          }
-        }
-        
-        // Upload any additional files
-        if (selectedFiles.length > 1) {
-          for (let i = 1; i < selectedFiles.length; i++) {
-            const additionalFile = selectedFiles[i];
-            const additionalFilePath = `${userId}/${eventData.id}/additional/${additionalFile.name}`;
-            
-            await supabase.storage
-              .from('gallery-media')
-              .upload(additionalFilePath, additionalFile);
-          }
-        }
-      }
-
-      // Then add media item linked to the event
-      const { error: mediaError } = await supabase
-        .from("media_items")
-        .insert([{
-          title: form.title,
-          description: form.description,
-          media_type: form.media_type,
-          media_url: mediaUrl,
-          event_id: eventData.id,
-          uploaded_by: userId
-        }]);
-
-      if (mediaError) throw mediaError;
-
+      // No backend: simulate success without persistence
       toast({
         title: "Success!",
-        description: "Gallery item added successfully"
+        description: "Gallery item added (demo mode)",
       });
 
       setForm({ title: "", description: "", media_type: "photo", media_url: "", event_date: "" });
@@ -117,7 +53,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
       toast({
         title: "Error",
         description: "Failed to add gallery item",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);

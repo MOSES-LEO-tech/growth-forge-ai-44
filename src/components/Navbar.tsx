@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "@/components/Logo";
+import { useTheme } from "@/contexts/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,16 +28,13 @@ const getInitials = (name?: string | null) => {
 };
 
 const Navbar = () => {
-  const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const { user, profile, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate("/auth", { replace: true });
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+    await signOut();
+    navigate("/");
   };
 
   return (
@@ -70,7 +68,6 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name ?? undefined} />
                     <AvatarFallback>
                       {getInitials(profile?.full_name ?? user.email)}
                     </AvatarFallback>
@@ -91,7 +88,7 @@ const Navbar = () => {
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   Dashboard
                 </DropdownMenuItem>
-                {profile?.role === "admin" && (
+                {(user.role === "school_admin" || user.role === "super_admin") && (
                   <DropdownMenuItem onClick={() => navigate("/admin")}>
                     <Shield className="mr-2 h-4 w-4" />
                     Admin Panel
@@ -112,6 +109,8 @@ const Navbar = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          ) : loading ? (
+            <p>Loading...</p>
           ) : (
             <>
               <Link to="/auth">

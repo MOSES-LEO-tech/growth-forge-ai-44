@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -8,7 +7,16 @@ import Footer from "@/components/Footer";
 import SchoolCard from "@/components/SchoolCard";
 import { useInView } from "@/hooks/useInView";
 
-type DbSchool = import("@/integrations/supabase/types").Tables<"schools">;
+type DbSchool = {
+  id: string | number;
+  name?: string | null;
+  logo_url?: string | null;
+  location?: string | null;
+  student_count?: number | null;
+  tagline?: string | null;
+  type?: string | null;
+  country?: string | null;
+};
 
 const Schools = () => {
   const [schools, setSchools] = useState<DbSchool[]>([]);
@@ -20,19 +28,11 @@ const Schools = () => {
   const { ref, inView } = useInView({ threshold: 0.1 });
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      const { data, error } = await supabase
-        .from("schools")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) setError(error.message);
-      else setSchools((data ?? []) as DbSchool[]);
-      setLoading(false);
-    };
-    load();
+    // Backend removed: show empty list in guest mode
+    setLoading(true);
+    setError(null);
+    setSchools([]);
+    setLoading(false);
   }, []);
 
   const filtered = useMemo(() => {

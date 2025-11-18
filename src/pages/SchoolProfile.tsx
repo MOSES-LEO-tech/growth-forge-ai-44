@@ -1,50 +1,26 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-type DbSchool = import("@/integrations/supabase/types").Tables<"schools">;
-type MediaItem = import("@/integrations/supabase/types").Tables<"media_items">;
-
 const SchoolProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const [school, setSchool] = useState<DbSchool | null>(null);
-  const [gallery, setGallery] = useState<MediaItem[]>([]);
+  const [school, setSchool] = useState<any | null>(null);
+  const [gallery, setGallery] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      const schoolQuery = supabase.from("schools").select("*").eq("id", id).single();
-      const galleryQuery = supabase
-        .from("media_items")
-        .select("*")
-        .eq("school_id", id)
-        .order("created_at", { ascending: false })
-        .limit(30);
-      const [{ data: s, error: se }, { data: g, error: ge }] = await Promise.all([
-        schoolQuery,
-        galleryQuery,
-      ]);
-      if (se) setError(se.message);
-      else setSchool(s as DbSchool);
-      if (!ge && g) setGallery(g as MediaItem[]);
-      setLoading(false);
-    };
-    if (id) load();
+    // TODO: Load school and gallery data from the new API
+    setLoading(false);
   }, [id]);
 
-  const isSchoolAdmin = Boolean(
-    profile?.role === "admin" && school && profile?.school_id && String(profile.school_id) === String(school.id)
-  );
+  const isSchoolAdmin = false; // Placeholder
 
   const goToAdmin = () => {
     if (school) navigate(`/admin?schoolId=${school.id}`);

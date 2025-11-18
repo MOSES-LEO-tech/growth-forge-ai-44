@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Event {
   id: string;
@@ -25,38 +24,16 @@ const EventTile = ({ event }: EventTileProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEventMedia = async () => {
-      try {
-        // If there's already a media_url, use it
-        if (event.media_url) {
-          setMediaUrl(event.media_url);
-          return;
-        }
+    // If there's already a media_url, use it
+    if (event.media_url) {
+      setMediaUrl(event.media_url);
+      return;
+    }
+  }, [event.media_url]);
 
-        // Fetch media items from the database
-        const { data, error } = await supabase
-          .from('media_items')
-          .select('media_url')
-          .eq('event_id', event.id)
-          .eq('verified', true)
-          .limit(1)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching event media:', error);
-          return;
-        }
-
-        if (data?.media_url) {
-          setMediaUrl(data.media_url);
-        }
-      } catch (error) {
-        console.error('Error processing event media:', error);
-      }
-    };
-
-    fetchEventMedia();
-  }, [event.id, event.media_url]);
+  const handleNavigation = () => {
+    navigate(`/events/${event.id}`);
+  }
 
   return (
     <Card 

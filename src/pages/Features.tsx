@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -46,27 +45,11 @@ const Features = () => {
   const { ref: tabsRef, isInView: tabsInView } = useInView({ threshold: 0.1, triggerOnce: true });
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        
-        setUserRole(profileData?.role || null);
-      }
-      
-      setLoading(false);
-    };
-
-    checkUser();
+    // TODO: Get user role from the new auth context
+    setLoading(false);
   }, []);
 
   const allFeatures: Feature[] = [
-    // Student Features
     {
       title: "Digital Portfolio",
       description: "Build a comprehensive digital portfolio showcasing your academic achievements, extracurricular activities, and personal projects.",

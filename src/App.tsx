@@ -19,7 +19,6 @@ import Projects from "./pages/Projects";
 import HowItWorks from "./pages/HowItWorks";
 import Contact from "./pages/Contact";
 import Features from "./pages/Features";
-import ResetPassword from "./pages/ResetPassword";
 import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
@@ -35,7 +34,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/dashboard"
                 element={(

@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -26,28 +25,16 @@ const EventGallery = () => {
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ["event", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      // Backend removed: no event data available
+      return null as any;
     },
   });
 
   const { data: media, isLoading: mediaLoading } = useQuery({
     queryKey: ["event-media", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("media_items")
-        .select("*")
-        .eq("event_id", id)
-        .eq("verified", true);
-      
-      if (error) throw error;
-      return data;
+      // Backend removed: no media available
+      return [] as any[];
     },
   });
 

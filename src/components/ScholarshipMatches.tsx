@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, ExternalLink, Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Backend removed: find local demo matches
 import { useToast } from "@/hooks/use-toast";
 
 interface ScholarshipMatch {
@@ -27,20 +27,42 @@ const ScholarshipMatches = () => {
   const findMatches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('match-scholarships');
-      
-      if (error) throw error;
-      
-      setMatches(data.matches);
+      const demo: ScholarshipMatch[] = [
+        {
+          id: "demo-1",
+          title: "Community Impact Scholarship",
+          description: "For students leading local community projects.",
+          amount: 2000,
+          deadline: new Date().toISOString(),
+          organization: "Impact Foundation",
+          application_url: "https://example.org/apply",
+          match_score: "high",
+          match_reason: "Matches your community project involvement and leadership.",
+          requirements: ["Essay", "Recommendation letter"],
+        },
+        {
+          id: "demo-2",
+          title: "STEM Explorers Grant",
+          description: "Supports early-stage engineering projects.",
+          amount: 1000,
+          deadline: new Date().toISOString(),
+          organization: "STEM Alliance",
+          application_url: "https://example.org/stem",
+          match_score: "medium",
+          match_reason: "Aligned with your recent coding activities.",
+          requirements: ["Portfolio link"],
+        },
+      ];
+      setMatches(demo);
       toast({
         title: "Scholarships matched",
-        description: `Found ${data.matches.length} matching scholarships for you!`,
+        description: `Loaded ${demo.length} demo matches (no backend).`,
       });
     } catch (error) {
-      console.error('Error matching scholarships:', error);
+      console.error("Error matching scholarships:", error);
       toast({
         title: "Error",
-        description: "Failed to find scholarship matches. Please try again.",
+        description: "Failed to find scholarship matches.",
         variant: "destructive",
       });
     } finally {

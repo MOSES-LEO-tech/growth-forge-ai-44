@@ -5,7 +5,6 @@ import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
   id: string;
@@ -41,48 +40,8 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
 
   // Fetch project files
   useEffect(() => {
-    const fetchProjectFiles = async () => {
-      try {
-        // List all files in the project's folder
-        const { data, error } = await supabase.storage
-          .from('project-files')
-          .list(`${project.id}`);
-
-        if (error) {
-          console.error('Error fetching project files:', error);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          // Process each file
-          const files = await Promise.all(data.map(async (file) => {
-            // Get public URL for the file
-            const { data: urlData } = await supabase.storage
-              .from('project-files')
-              .getPublicUrl(`${project.id}/${file.name}`);
-
-            // Determine file type
-            const fileType = file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
-              ? 'image'
-              : file.name.match(/\.(mp4|webm|mov|avi)$/i)
-                ? 'video'
-                : 'document';
-
-            return {
-              name: file.name,
-              url: urlData.publicUrl,
-              type: fileType as 'image' | 'video' | 'document'
-            };
-          }));
-
-          setProjectFiles(files);
-        }
-      } catch (error) {
-        console.error('Error processing project files:', error);
-      }
-    };
-
-    fetchProjectFiles();
+    // Backend removed: no storage, keep files empty
+    setProjectFiles([]);
   }, [project.id]);
 
   const getStatusColor = (status: string) => {

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -28,19 +27,8 @@ const Gallery = () => {
   const { data: events, isLoading } = useQuery({
     queryKey: ["events", userId],
     queryFn: async () => {
-      let query = supabase
-        .from("events")
-        .select("*")
-        .eq("verified", true)
-        .order("event_date", { ascending: false });
-
-      if (userId) {
-        query = query.eq("created_by", userId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      // Backend removed: return empty list in guest mode
+      return [] as any[];
     },
   });
 

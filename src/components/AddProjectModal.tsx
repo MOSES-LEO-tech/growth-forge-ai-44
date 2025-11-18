@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Backend removed: simulate project creation in guest mode
 import { useToast } from "@/hooks/use-toast";
 import UploadPanel from "@/components/UploadPanel";
 
@@ -38,39 +38,10 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     setLoading(true);
 
     try {
-      // Insert project data
-      const { data: projectData, error } = await supabase
-        .from("projects")
-        .insert([{
-          owner_id: userId,
-          title: form.title,
-          description: form.description,
-          start_date: form.start_date,
-          status: form.status
-        }])
-        .select();
-
-      if (error) throw error;
-      
-      // Upload files if any are selected
-      if (selectedFiles.length > 0 && projectData) {
-        const projectId = projectData[0].id;
-        
-        for (const file of selectedFiles) {
-          const filePath = `${userId}/${projectId}/${file.name}`;
-          const { error: uploadError } = await supabase.storage
-            .from('project-files')
-            .upload(filePath, file);
-            
-          if (uploadError) {
-            console.error('Error uploading file:', uploadError);
-          }
-        }
-      }
-
+      // No backend: simulate success without persistence
       toast({
         title: "Success!",
-        description: "Project added successfully"
+        description: "Project added (demo mode)"
       });
 
       setForm({ title: "", description: "", start_date: "", status: "pending" });

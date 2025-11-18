@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Lightbulb, Sparkles, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Backend removed: generate local demo recommendations
 import { useToast } from "@/hooks/use-toast";
 
 interface Recommendation {
@@ -21,20 +21,36 @@ const Recommendations = () => {
   const generateRecommendations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-recommendations');
-      
-      if (error) throw error;
-      
-      setRecommendations(data.recommendations);
+      const demo: Recommendation[] = [
+        {
+          title: "Build a community garden app",
+          description: "Create a simple app to organize local garden volunteers and track plant care schedules.",
+          category: "project",
+          priority: "high",
+        },
+        {
+          title: "Learn TypeScript fundamentals",
+          description: "Strengthen your typing skills to improve reliability and developer experience.",
+          category: "skill",
+          priority: "medium",
+        },
+        {
+          title: "Volunteer at weekend coding club",
+          description: "Mentor younger students and document activities for your portfolio.",
+          category: "activity",
+          priority: "low",
+        },
+      ];
+      setRecommendations(demo);
       toast({
         title: "Recommendations generated",
-        description: "Here are personalized suggestions for you!",
+        description: "Demo suggestions loaded (no backend).",
       });
     } catch (error) {
-      console.error('Error generating recommendations:', error);
+      console.error("Error generating recommendations:", error);
       toast({
         title: "Error",
-        description: "Failed to generate recommendations. Please try again.",
+        description: "Failed to generate recommendations.",
         variant: "destructive",
       });
     } finally {
