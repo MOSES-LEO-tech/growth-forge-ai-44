@@ -115,3 +115,19 @@ export const googleAuth = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+export const getProfile = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id;
+        const user = await pool.query('SELECT id, email, full_name, role, avatar_url FROM users WHERE id = $1', [userId]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(user.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

@@ -21,6 +21,7 @@ export const auth = {
     register: (data: any) => api.post('/auth/register', data),
     login: (data: any) => api.post('/auth/login', data),
     google: (data: any) => api.post('/auth/google', data),
+    getProfile: () => api.get('/auth/me'),
 };
 
 export default api;

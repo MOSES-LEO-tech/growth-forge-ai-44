@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
@@ -15,40 +15,35 @@ const Dashboard = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate("/auth");
+          return;
+        }
+
+        const response = await auth.getProfile();
+        setProfile(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate("/auth");
-        return;
       }
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      setProfile(profileData);
-      setLoading(false);
     };
 
     checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     toast({
       title: "Signed out",
       description: "You have been signed out successfully"
     });
+    navigate("/auth");
   };
 
   if (loading) {
