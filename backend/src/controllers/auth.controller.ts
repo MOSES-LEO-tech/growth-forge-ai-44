@@ -131,3 +131,24 @@ export const getProfile = async (req: any, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+export const updateProfile = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id;
+        const { fullName, avatarUrl } = req.body;
+
+        const updatedUser = await pool.query(
+            'UPDATE users SET full_name = $1, avatar_url = $2 WHERE id = $3 RETURNING id, email, full_name, role, avatar_url',
+            [fullName, avatarUrl, userId]
+        );
+
+        if (updatedUser.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(updatedUser.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

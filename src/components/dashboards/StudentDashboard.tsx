@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { dashboard } from "@/services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -16,23 +16,19 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
-    const { data: achievementsData } = await supabase
-      .from("achievements")
-      .select("*")
-      .eq("user_id", profile.id)
-      .order("date_earned", { ascending: false })
-      .limit(5);
+    try {
+      const [achievementsRes, projectsRes] = await Promise.all([
+        dashboard.getAchievements(),
+        dashboard.getProjects()
+      ]);
 
-    const { data: projectsData } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("owner_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    setAchievements(achievementsData || []);
-    setProjects(projectsData || []);
-    setLoading(false);
+      setAchievements(achievementsRes.data || []);
+      setProjects(projectsRes.data || []);
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -117,10 +113,10 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
                   <div key={project.id} className="p-3 rounded-lg bg-muted/50">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h4 className="font-semibold">{project.title}</h4>
-                      <Badge 
+                      <Badge
                         variant={
                           project.status === "complete" ? "default" :
-                          project.status === "ongoing" ? "secondary" : "outline"
+                            project.status === "ongoing" ? "secondary" : "outline"
                         }
                       >
                         {project.status}

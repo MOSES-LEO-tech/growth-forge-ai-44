@@ -22,6 +22,13 @@ export const auth = {
     login: (data: any) => api.post('/auth/login', data),
     google: (data: any) => api.post('/auth/google', data),
     getProfile: () => api.get('/auth/me'),
+    updateProfile: (data: any) => api.put('/auth/profile', data),
+};
+
+export const dashboard = {
+    getStats: () => api.get('/dashboard/stats'),
+    getAchievements: () => api.get('/dashboard/achievements'),
+    getProjects: () => api.get('/dashboard/projects'),
 };
 
 export default api;

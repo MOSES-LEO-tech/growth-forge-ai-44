@@ -12,15 +12,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import ProfileSettingsModal from "./ProfileSettingsModal";
 
 interface DashboardHeaderProps {
   profile: any;
   onSignOut: () => void;
+  onProfileUpdated?: () => void;
 }
 
-export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderProps) {
+export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }: DashboardHeaderProps) {
   const location = useLocation();
-  
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -40,20 +42,20 @@ export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderP
 
         {/* Center: Navigation Links */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link 
-            to="/dashboard" 
+          <Link
+            to="/dashboard"
             className={`hover:text-primary transition-colors ${isActive('/dashboard') ? 'text-primary font-medium' : ''}`}
           >
             Dashboard
           </Link>
-          <Link 
-            to="/gallery" 
+          <Link
+            to="/gallery"
             className={`hover:text-primary transition-colors ${isActive('/gallery') ? 'text-primary font-medium' : ''}`}
           >
             Gallery
           </Link>
-          <Link 
-            to="/projects" 
+          <Link
+            to="/projects"
             className={`hover:text-primary transition-colors ${isActive('/projects') ? 'text-primary font-medium' : ''}`}
           >
             Projects
@@ -63,7 +65,7 @@ export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderP
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -84,6 +86,9 @@ export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderP
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <ProfileSettingsModal profile={profile} onProfileUpdated={onProfileUpdated || (() => window.location.reload())} />
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sign out</span>

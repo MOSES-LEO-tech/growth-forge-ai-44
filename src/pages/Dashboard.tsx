@@ -36,6 +36,15 @@ const Dashboard = () => {
     checkUser();
   }, [navigate]);
 
+  const refreshProfile = async () => {
+    try {
+      const response = await auth.getProfile();
+      setProfile(response.data);
+    } catch (error) {
+      console.error("Failed to refresh profile:", error);
+    }
+  };
+
   const handleSignOut = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -73,7 +82,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader profile={profile} onSignOut={handleSignOut} />
+      <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
       {renderDashboard()}
     </div>
   );
