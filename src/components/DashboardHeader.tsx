@@ -35,28 +35,42 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="w-full bg-background/70 backdrop-blur-md border-b sticky top-0 z-50 transition-colors duration-500">
+    <header
+      className="w-full bg-background/70 backdrop-blur-md border-b sticky top-0 z-50 transition-all duration-300"
+      role="banner"
+    >
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+      >
+        Skip to main content
+      </a>
+
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Left: Logo */}
         <Logo />
 
         {/* Center: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
           <Link
             to="/dashboard"
-            className={`hover:text-primary transition-colors ${isActive('/dashboard') ? 'text-primary font-medium' : ''}`}
+            className={`hover:text-primary transition-colors focus-ring rounded px-2 py-1 ${isActive('/dashboard') ? 'text-primary font-medium' : ''}`}
+            aria-current={isActive('/dashboard') ? 'page' : undefined}
           >
             Dashboard
           </Link>
           <Link
             to="/gallery"
-            className={`hover:text-primary transition-colors ${isActive('/gallery') ? 'text-primary font-medium' : ''}`}
+            className={`hover:text-primary transition-colors focus-ring rounded px-2 py-1 ${isActive('/gallery') ? 'text-primary font-medium' : ''}`}
+            aria-current={isActive('/gallery') ? 'page' : undefined}
           >
             Gallery
           </Link>
           <Link
             to="/projects"
-            className={`hover:text-primary transition-colors ${isActive('/projects') ? 'text-primary font-medium' : ''}`}
+            className={`hover:text-primary transition-colors focus-ring rounded px-2 py-1 ${isActive('/projects') ? 'text-primary font-medium' : ''}`}
+            aria-current={isActive('/projects') ? 'page' : undefined}
           >
             Projects
           </Link>
@@ -68,7 +82,11 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button
+                variant="ghost"
+                className="relative h-10 w-10 rounded-full focus-ring"
+                aria-label={`User menu for ${profile?.full_name || 'User'}`}
+              >
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground">
                     {profile?.full_name ? getInitials(profile.full_name) : <User className="h-5 w-5" />}
@@ -89,8 +107,12 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <ProfileSettingsModal profile={profile} onProfileUpdated={onProfileUpdated || (() => window.location.reload())} />
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuItem
+                onClick={onSignOut}
+                className="cursor-pointer focus-ring"
+                aria-label="Sign out of your account"
+              >
+                <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                 <span>Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

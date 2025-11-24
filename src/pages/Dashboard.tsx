@@ -6,12 +6,15 @@ import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
 import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
+import { QuickActions } from "@/components/QuickActions";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -25,6 +28,12 @@ const Dashboard = () => {
         const response = await auth.getProfile();
         setProfile(response.data);
         setLoading(false);
+
+        // Show onboarding for first-time users
+        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+        if (!hasSeenOnboarding) {
+          setShowOnboarding(true);
+        }
       } catch (error) {
         console.error("Failed to fetch profile:", error);
         localStorage.removeItem('token');
@@ -55,6 +64,11 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
+  const handleOnboardingClose = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('hasSeenOnboarding', 'true');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -83,7 +97,20 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
-      {renderDashboard()}
+
+      <main id="main-content" role="main">
+        {renderDashboard()}
+      </main>
+
+      {/* Quick Actions FAB */}
+      <QuickActions
+        onAddAchievement={() => toast({ title: "Add Achievement", description: "Feature coming soon!" })}
+        onAddProject={() => toast({ title: "Add Project", description: "Feature coming soon!" })}
+        onAddEvent={() => toast({ title: "Add Event", description: "Feature coming soon!" })}
+      />
+
+      {/* Onboarding Modal */}
+      <OnboardingModal isOpen={showOnboarding} onClose={handleOnboardingClose} />
     </div>
   );
 };

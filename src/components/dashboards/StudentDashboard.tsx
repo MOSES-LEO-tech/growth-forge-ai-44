@@ -1,19 +1,30 @@
 import { useEffect, useState } from "react";
-import { dashboard } from "@/services/api";
+import { dashboard, projects as projectsApi } from "@/services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award } from "lucide-react";
+import { Award, Edit, Trash2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import Recommendations from "@/components/Recommendations";
 import ScholarshipMatches from "@/components/ScholarshipMatches";
 import SmartBuddy from "@/components/SmartBuddy";
 import DashboardStats from "@/components/DashboardStats";
 import AddProjectModal from "@/components/AddProjectModal";
 import AddGalleryModal from "@/components/AddGalleryModal";
+import EditProjectModal from "@/components/EditProjectModal";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import ProjectDetailsModal from "@/components/ProjectDetailsModal";
 
 const StudentDashboard = ({ profile }: { profile: any }) => {
   const [achievements, setAchievements] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Modal states
+  const [editProject, setEditProject] = useState<any>(null);
+  const [deleteProject, setDeleteProject] = useState<any>(null);
+  const [viewProject, setViewProject] = useState<any>(null);
 
   const fetchData = async () => {
     try {
@@ -28,6 +39,30 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deleteProject) return;
+
+    try {
+      await projectsApi.delete(deleteProject.id);
+
+      toast({
+        title: "Success!",
+        description: "Project deleted successfully",
+        className: "bg-green-500 text-white"
+      });
+
+      setDeleteProject(null);
+      fetchData();
+    } catch (error: any) {
+      console.error("Delete project error:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to delete project",
+        variant: "destructive"
+      });
     }
   };
 
@@ -110,21 +145,24 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
             ) : (
               <div className="space-y-4">
                 {projects.map((project: any) => (
-                  <div key={project.id} className="p-3 rounded-lg bg-muted/50">
+                  <div key={project.id} className="p-4 rounded-lg bg-gradient-to-br from-blue-50/50 to-cyan-50/50 border border-blue-100 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="font-semibold">{project.title}</h4>
+                      <h4 className="font-semibold text-lg">{project.title}</h4>
                       <Badge
                         variant={
                           project.status === "complete" ? "default" :
                             project.status === "ongoing" ? "secondary" : "outline"
                         }
                       >
-                        {project.status}
+                        {project.status === "complete" ? "✅ Complete" :
+                          project.status === "ongoing" ? "🚀 In Progress" : "📋 Pending"}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
+                    {project.description && (
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{project.description}</p>
+                    )}
                     {project.skills_tracked && Object.keys(project.skills_tracked).length > 0 && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 mb-3">
                         {Object.entries(project.skills_tracked).map(([skill, level]: [string, any]) => (
                           <Badge key={skill} variant="outline" className="text-xs">
                             {skill}: {level}/5
@@ -132,6 +170,35 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
                         ))}
                       </div>
                     )}
+                    <div className="flex gap-2 mt-3 pt-3 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setViewProject(project)}
+                        className="flex-1"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditProject(project)}
+                        className="flex-1"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setDeleteProject(project)}
+                        className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -165,6 +232,35 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
       <div className="mb-6">
         <SmartBuddy />
       </div>
+
+      {/* Project Modals */}
+      {editProject && (
+        <EditProjectModal
+          project={editProject}
+          open={!!editProject}
+          onOpenChange={(open) => !open && setEditProject(null)}
+          onProjectUpdated={fetchData}
+        />
+      )}
+
+      {deleteProject && (
+        <DeleteConfirmDialog
+          open={!!deleteProject}
+          onOpenChange={(open) => !open && setDeleteProject(null)}
+          onConfirm={handleDeleteProject}
+          itemName={deleteProject.title}
+          title="Delete Project?"
+          description={`This will permanently delete "${deleteProject.title}" and all associated data. This action cannot be undone.`}
+        />
+      )}
+
+      {viewProject && (
+        <ProjectDetailsModal
+          project={viewProject}
+          open={!!viewProject}
+          onOpenChange={(open) => !open && setViewProject(null)}
+        />
+      )}
     </div>
   );
 };

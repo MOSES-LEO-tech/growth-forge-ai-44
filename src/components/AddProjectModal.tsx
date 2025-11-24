@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Plus, Loader2 } from "lucide-react";
+import { projects } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddProjectModalProps {
@@ -18,7 +18,7 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -35,30 +35,27 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("projects")
-        .insert([{
-          owner_id: userId,
-          title: form.title,
-          description: form.description,
-          start_date: form.start_date,
-          status: form.status
-        }]);
-
-      if (error) throw error;
+      await projects.create({
+        title: form.title,
+        description: form.description,
+        start_date: form.start_date,
+        status: form.status
+      });
 
       toast({
         title: "Success!",
-        description: "Project added successfully"
+        description: "Project added successfully",
+        className: "bg-green-500 text-white"
       });
 
       setForm({ title: "", description: "", start_date: "", status: "pending" });
       setOpen(false);
       onProjectAdded?.();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Project creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to add project",
+        description: error.response?.data?.message || "Failed to add project",
         variant: "destructive"
       });
     } finally {
@@ -69,65 +66,86 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
           <Plus className="w-4 h-4" />
           New Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Add New Project</DialogTitle>
+          <DialogTitle className="text-2xl">Create New Project</DialogTitle>
+          <DialogDescription>
+            Track your work, showcase your skills, and demonstrate growth
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Project Title</Label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="title">Project Title *</Label>
             <Input
               id="title"
               value={form.title}
               onChange={(e) => handleChange("title", e.target.value)}
-              placeholder="Enter project title"
+              placeholder="My Awesome Project"
               required
+              className="text-base"
             />
           </div>
-          <div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={form.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Describe your project..."
+              placeholder="Describe your project goals, technologies used, and what you learned..."
               rows={4}
+              className="resize-none"
             />
           </div>
-          <div>
-            <Label htmlFor="start_date">Start Date</Label>
-            <Input
-              id="start_date"
-              type="date"
-              value={form.start_date}
-              onChange={(e) => handleChange("start_date", e.target.value)}
-              required
-            />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Start Date *</Label>
+              <Input
+                id="start_date"
+                type="date"
+                value={form.start_date}
+                onChange={(e) => handleChange("start_date", e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={form.status} onValueChange={(value) => handleChange("status", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">📋 Pending</SelectItem>
+                  <SelectItem value="ongoing">🚀 In Progress</SelectItem>
+                  <SelectItem value="complete">✅ Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select value={form.status} onValueChange={(value) => handleChange("status", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="ongoing">In Progress</SelectItem>
-                <SelectItem value="complete">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Adding..." : "Add Project"}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Project"
+              )}
             </Button>
           </div>
         </form>
