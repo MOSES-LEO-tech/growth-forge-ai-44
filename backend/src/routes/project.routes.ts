@@ -7,6 +7,8 @@ import {
     deleteProject
 } from '../controllers/project.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
+import { validate } from '../middleware/validation.middleware';
+import { projectSchema } from '../utils/schemas';
 
 const router = Router();
 
@@ -20,10 +22,10 @@ router.get('/', getProjects);
 router.get('/:id', getProject);
 
 // Create new project
-router.post('/', createProject);
+router.post('/', validate(projectSchema), createProject);
 
 // Update project
-router.put('/:id', updateProject);
+router.put('/:id', validate(projectSchema.partial()), updateProject);
 
 // Delete project
 router.delete('/:id', deleteProject);

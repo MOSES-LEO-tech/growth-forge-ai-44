@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = 'http://localhost:3000/api';
+
 
 const api = axios.create({
     baseURL: API_URL,
@@ -73,6 +74,17 @@ export const projects = {
     create: (data: any) => api.post('/projects', data),
     update: (id: string, data: any) => api.put(`/projects/${id}`, data),
     delete: (id: string) => api.delete(`/projects/${id}`),
+};
+
+export const gallery = {
+    getPublicEvents: () => api.get('/gallery/public'),
+    getUserEvents: () => api.get('/gallery/my-events'),
+    createEvent: (data: any) => api.post('/gallery/events', data),
+    addMedia: (data: any) => api.post('/gallery/media', data),
+    getEvent: (id: string) => api.get(`/gallery/events/${id}`),
+    getEventMedia: (id: string) => api.get(`/gallery/events/${id}/media`),
+    deleteEvent: (id: string) => api.delete(`/gallery/events/${id}`),
+    deleteMedia: (id: string) => api.delete(`/gallery/media/${id}`),
 };
 
 export default api;

@@ -1,20 +1,22 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/database';
+import { ApiResponse } from '../utils/api.response';
 
 // Get all projects for authenticated user
 export const getProjects = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
+        console.log(`Fetching projects for user: ${userId}`);
 
         const result = await pool.query(
-            'SELECT * FROM projects WHERE owner_id = $1 ORDER BY created_at DESC',
+            'SELECT * FROM projects WHERE owner_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
             [userId]
         );
 
-        res.status(200).json({ projects: result.rows });
+        return ApiResponse.success(res, result.rows, 'Projects fetched successfully');
     } catch (error: any) {
         console.error('Get projects error:', error);
-        res.status(500).json({ message: 'Failed to fetch projects', error: error.message });
+        return ApiResponse.error(res, 'Failed to fetch projects', 500, error);
     }
 };
 
@@ -23,20 +25,21 @@ export const getProject = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
         const { id } = req.params;
+        console.log(`Fetching project ${id} for user: ${userId}`);
 
         const result = await pool.query(
-            'SELECT * FROM projects WHERE id = $1 AND owner_id = $2',
+            'SELECT * FROM projects WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL',
             [id, userId]
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Project not found' });
+            return ApiResponse.error(res, 'Project not found', 404);
         }
 
-        res.status(200).json({ project: result.rows[0] });
+        return ApiResponse.success(res, result.rows[0], 'Project fetched successfully');
     } catch (error: any) {
         console.error('Get project error:', error);
-        res.status(500).json({ message: 'Failed to fetch project', error: error.message });
+        return ApiResponse.error(res, 'Failed to fetch project', 500, error);
     }
 };
 
@@ -45,15 +48,16 @@ export const createProject = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
         const { title, description, start_date, end_date, status, skills } = req.body;
+        console.log(`Creating project for user ${userId}:`, { title, status });
 
         // Validation
         if (!title || !start_date) {
-            return res.status(400).json({ message: 'Title and start date are required' });
+            return ApiResponse.error(res, 'Title and start date are required', 400);
         }
 
         const validStatuses = ['pending', 'ongoing', 'complete'];
         if (status && !validStatuses.includes(status)) {
-            return res.status(400).json({ message: 'Invalid status value' });
+            return ApiResponse.error(res, 'Invalid status value', 400);
         }
 
         const result = await pool.query(
@@ -63,13 +67,10 @@ export const createProject = async (req: Request, res: Response) => {
             [userId, title, description || null, start_date, end_date || null, status || 'pending', skills || null]
         );
 
-        res.status(201).json({
-            message: 'Project created successfully',
-            project: result.rows[0]
-        });
+        return ApiResponse.success(res, result.rows[0], 'Project created successfully', 201);
     } catch (error: any) {
         console.error('Create project error:', error);
-        res.status(500).json({ message: 'Failed to create project', error: error.message });
+        return ApiResponse.error(res, 'Failed to create project', 500, error);
     }
 };
 
@@ -79,6 +80,7 @@ export const updateProject = async (req: Request, res: Response) => {
         const userId = (req as any).user.id;
         const { id } = req.params;
         const { title, description, start_date, end_date, status, skills } = req.body;
+        console.log(`Updating project ${id} for user ${userId}`);
 
         // Check if project exists and belongs to user
         const checkResult = await pool.query(
@@ -87,14 +89,14 @@ export const updateProject = async (req: Request, res: Response) => {
         );
 
         if (checkResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Project not found or unauthorized' });
+            return ApiResponse.error(res, 'Project not found or unauthorized', 404);
         }
 
         // Validation
         if (status) {
             const validStatuses = ['pending', 'ongoing', 'complete'];
             if (!validStatuses.includes(status)) {
-                return res.status(400).json({ message: 'Invalid status value' });
+                return ApiResponse.error(res, 'Invalid status value', 400);
             }
         }
 
@@ -112,13 +114,10 @@ export const updateProject = async (req: Request, res: Response) => {
             [title, description, start_date, end_date, status, skills, id, userId]
         );
 
-        res.status(200).json({
-            message: 'Project updated successfully',
-            project: result.rows[0]
-        });
+        return ApiResponse.success(res, result.rows[0], 'Project updated successfully');
     } catch (error: any) {
         console.error('Update project error:', error);
-        res.status(500).json({ message: 'Failed to update project', error: error.message });
+        return ApiResponse.error(res, 'Failed to update project', 500, error);
     }
 };
 
@@ -127,6 +126,7 @@ export const deleteProject = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
         const { id } = req.params;
+        console.log(`Deleting project ${id} for user ${userId}`);
 
         // Check if project exists and belongs to user
         const checkResult = await pool.query(
@@ -135,17 +135,18 @@ export const deleteProject = async (req: Request, res: Response) => {
         );
 
         if (checkResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Project not found or unauthorized' });
+            return ApiResponse.error(res, 'Project not found or unauthorized', 404);
         }
 
+        // Soft delete
         await pool.query(
-            'DELETE FROM projects WHERE id = $1 AND owner_id = $2',
+            'UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND owner_id = $2',
             [id, userId]
         );
 
-        res.status(200).json({ message: 'Project deleted successfully' });
+        return ApiResponse.success(res, null, 'Project deleted successfully');
     } catch (error: any) {
         console.error('Delete project error:', error);
-        res.status(500).json({ message: 'Failed to delete project', error: error.message });
+        return ApiResponse.error(res, 'Failed to delete project', 500, error);
     }
 };

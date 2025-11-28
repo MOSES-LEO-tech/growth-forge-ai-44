@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { projects as projectsApi } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client"; // Keep for auth check if needed, or remove if unused
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,50 +10,53 @@ import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
 import { useInView } from "@/hooks/useInView";
+import { useToast } from "@/hooks/use-toast";
 
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
+  const { toast } = useToast();
 
-  const { data: projects, isLoading } = useQuery({
+  const { data: projects, isLoading, isError, error } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .or(`owner_id.eq.${user.id},collaborators.cs.{${user.id}}`)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      const response = await projectsApi.getAll();
+      return response.data.data;
     },
   });
 
-  const filteredProjects = projects?.filter(project =>
+  useEffect(() => {
+    if (isError) {
+      toast({
+        title: "Error",
+        description: "Failed to load projects. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Projects fetch error:", error);
+    }
+  }, [isError, error, toast]);
+
+  const filteredProjects = projects?.filter((project: any) =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const newProjects = filteredProjects?.filter(p => p.status === 'pending');
-  const ongoingProjects = filteredProjects?.filter(p => p.status === 'ongoing');
-  const completedProjects = filteredProjects?.filter(p => p.status === 'complete');
+  const newProjects = filteredProjects?.filter((p: any) => p.status === 'pending');
+  const ongoingProjects = filteredProjects?.filter((p: any) => p.status === 'ongoing');
+  const completedProjects = filteredProjects?.filter((p: any) => p.status === 'complete');
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4">
-          <div 
+          <div
             ref={heroRef}
-            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${
-              heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
+            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
           >
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               Project
@@ -89,9 +93,9 @@ const Projects = () => {
                 <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="all" className="mt-8">
-                <div 
+                <div
                   ref={gridRef}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
@@ -103,12 +107,11 @@ const Projects = () => {
                     filteredProjects.map((project, index) => (
                       <div
                         key={project.id}
-                        className={`transition-all duration-700 ${
-                          gridInView 
-                            ? 'opacity-100 translate-y-0' 
-                            : 'opacity-0 translate-y-8'
-                        }`}
-                        style={{ 
+                        className={`transition-all duration-700 ${gridInView
+                          ? 'opacity-100 translate-y-0'
+                          : 'opacity-0 translate-y-8'
+                          }`}
+                        style={{
                           transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
                         }}
                       >
@@ -122,7 +125,7 @@ const Projects = () => {
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="new" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {newProjects?.map((project) => (
@@ -130,7 +133,7 @@ const Projects = () => {
                   ))}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="ongoing" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {ongoingProjects?.map((project) => (
@@ -138,7 +141,7 @@ const Projects = () => {
                   ))}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="completed" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {completedProjects?.map((project) => (

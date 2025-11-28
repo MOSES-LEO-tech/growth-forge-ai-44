@@ -8,6 +8,8 @@ import dashboardRoutes from './routes/dashboard.routes';
 import uploadRoutes from './routes/upload.routes';
 import projectRoutes from './routes/project.routes';
 
+import galleryRoutes from './routes/gallery.routes';
+
 dotenv.config();
 
 const app = express();
@@ -33,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/gallery', galleryRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

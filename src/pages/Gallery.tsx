@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,8 @@ const Gallery = () => {
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("verified", true)
-        .order("event_date", { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      const response = await api.get("/gallery/public");
+      return response.data;
     },
   });
 
@@ -36,15 +30,14 @@ const Gallery = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4">
-          <div 
+          <div
             ref={heroRef}
-            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${
-              heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
+            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
           >
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               Event
@@ -74,9 +67,9 @@ const Gallery = () => {
                 <TabsTrigger value="photos">Photos</TabsTrigger>
                 <TabsTrigger value="videos">Videos</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="all" className="mt-8">
-                <div 
+                <div
                   ref={gridRef}
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
@@ -88,12 +81,11 @@ const Gallery = () => {
                     filteredEvents.map((event, index) => (
                       <div
                         key={event.id}
-                        className={`transition-all duration-700 ${
-                          gridInView 
-                            ? 'opacity-100 translate-y-0' 
-                            : 'opacity-0 translate-y-8'
-                        }`}
-                        style={{ 
+                        className={`transition-all duration-700 ${gridInView
+                          ? 'opacity-100 translate-y-0'
+                          : 'opacity-0 translate-y-8'
+                          }`}
+                        style={{
                           transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
                         }}
                       >
@@ -107,11 +99,11 @@ const Gallery = () => {
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="photos" className="mt-8">
                 <p className="text-center text-muted-foreground">Photo filtering coming soon!</p>
               </TabsContent>
-              
+
               <TabsContent value="videos" className="mt-8">
                 <p className="text-center text-muted-foreground">Video filtering coming soon!</p>
               </TabsContent>

@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { gallery as galleryApi } from "@/services/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,40 +9,42 @@ import { ArrowLeft, Calendar, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import SchoolGallery from "@/components/SchoolGallery";
 import { useInView } from "@/hooks/useInView";
+import { useToast } from "@/hooks/use-toast";
 
 const EventGallery = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { ref: headerRef, isInView: headerInView } = useInView({ threshold: 0.2 });
   const { ref: galleryRef, isInView: galleryInView } = useInView({ threshold: 0.1 });
+  const { toast } = useToast();
 
-  const { data: event, isLoading: eventLoading } = useQuery({
+  const { data: event, isLoading: eventLoading, isError: eventError } = useQuery({
     queryKey: ["event", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      if (!id) throw new Error("Event ID is required");
+      const response = await galleryApi.getEvent(id);
+      return response.data.data;
     },
   });
 
-  const { data: media, isLoading: mediaLoading } = useQuery({
+  const { data: media, isLoading: mediaLoading, isError: mediaError } = useQuery({
     queryKey: ["event-media", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("media_items")
-        .select("*")
-        .eq("event_id", id)
-        .eq("verified", true);
-      
-      if (error) throw error;
-      return data;
+      if (!id) return [];
+      const response = await galleryApi.getEventMedia(id);
+      return response.data.data;
     },
   });
+
+  useEffect(() => {
+    if (eventError || mediaError) {
+      toast({
+        title: "Error",
+        description: "Failed to load event details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [eventError, mediaError, toast]);
 
   if (eventLoading) {
     return (
@@ -73,7 +76,7 @@ const EventGallery = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      
+
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           {/* Back Button */}
@@ -87,11 +90,10 @@ const EventGallery = () => {
           </Button>
 
           {/* Event Header */}
-          <div 
+          <div
             ref={headerRef}
-            className={`mb-12 transition-all duration-1000 ${
-              headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
+            className={`mb-12 transition-all duration-1000 ${headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
           >
             <h1 className="text-4xl md:text-5xl font-bold mb-4">{event.title}</h1>
             {event.description && (
@@ -112,11 +114,10 @@ const EventGallery = () => {
           </div>
 
           {/* Media Gallery */}
-          <div 
+          <div
             ref={galleryRef}
-            className={`transition-all duration-1000 ${
-              galleryInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
+            className={`transition-all duration-1000 ${galleryInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
           >
             {mediaLoading ? (
               <p className="text-center">Loading media...</p>
