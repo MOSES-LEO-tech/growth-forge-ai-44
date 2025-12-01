@@ -1,0 +1,21 @@
+
+{
+  "tech_stack": {
+    "frontend": "React, TypeScript, Vite, Tailwind CSS",
+    "backend": "Node.js, Express, PostgreSQL, JWT",
+    "testing": "Playwright, Jest",
+    "devops": "Docker, GitHub Actions"
+  },
+  "features": [
+    "User authentication (sign-up, sign-in, sign-out)",
+    "Google OAuth (partially implemented)",
+    "Dashboard for authenticated users",
+    "User profile management",
+    "Project management (CRUD)",
+    "Image and video gallery",
+    "School profiles",
+    "Role-based access control (RBAC)",
+    "File uploads",
+    "Supabase integration"
+  ]
+}
