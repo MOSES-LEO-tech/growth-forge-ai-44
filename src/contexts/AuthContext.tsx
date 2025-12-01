@@ -1,0 +1,103 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { auth } from '@/services/api';
+
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'student' | 'parent' | 'teacher' | 'admin';
+  avatarUrl?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (data: { email: string; password: string; fullName: string; role: string }) => Promise<void>;
+  signOut: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check for existing session on mount
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      // Verify token is still valid
+      refreshUser().catch(() => {
+        // Token expired, clear session
+        signOut();
+      });
+    }
+    setLoading(false);
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    const response = await auth.login({ email, password });
+    const { token: newToken, user: userData } = response.data;
+    
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setToken(newToken);
+    setUser(userData);
+  };
+
+  const signUp = async (data: { email: string; password: string; fullName: string; role: string }) => {
+    const response = await auth.register(data);
+    const { token: newToken, user: userData } = response.data;
+    
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setToken(newToken);
+    setUser(userData);
+  };
+
+  const signOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const response = await auth.getProfile();
+      const userData = {
+        id: response.data.id,
+        email: response.data.email,
+        fullName: response.data.full_name,
+        role: response.data.role,
+        avatarUrl: response.data.avatar_url,
+      };
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, loading, signIn, signUp, signOut, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

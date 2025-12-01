@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api';
+// Docker backend runs on port 3001 (mapped from internal 3000)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 
 const api = axios.create({
