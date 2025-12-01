@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -46,17 +45,16 @@ const Features = () => {
   const { ref: tabsRef, isInView: tabsInView } = useInView({ threshold: 0.1, triggerOnce: true });
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const checkUser = () => {
+      const storedUser = localStorage.getItem('user');
       
-      if (session) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        
-        setUserRole(profileData?.role || null);
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUserRole(userData.role || null);
+        } catch {
+          setUserRole(null);
+        }
       }
       
       setLoading(false);
