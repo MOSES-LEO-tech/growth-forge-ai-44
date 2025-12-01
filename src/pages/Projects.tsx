@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { projects as projectsApi } from "@/services/api";
-import { supabase } from "@/integrations/supabase/client"; // Keep for auth check if needed, or remove if unused
+// Supabase import removed; authentication handled via backend API
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
+// Duplicate imports removed
 import { useInView } from "@/hooks/useInView";
 import { useToast } from "@/hooks/use-toast";
 
@@ -55,8 +56,7 @@ const Projects = () => {
         <div className="container mx-auto px-4">
           <div
             ref={heroRef}
-            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
+            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
           >
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               Project
@@ -107,10 +107,7 @@ const Projects = () => {
                     filteredProjects.map((project, index) => (
                       <div
                         key={project.id}
-                        className={`transition-all duration-700 ${gridInView
-                          ? 'opacity-100 translate-y-0'
-                          : 'opacity-0 translate-y-8'
-                          }`}
+                        className={`transition-all duration-700 ${gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                         style={{
                           transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
                         }}

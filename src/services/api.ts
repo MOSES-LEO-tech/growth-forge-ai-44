@@ -88,4 +88,16 @@ export const gallery = {
     deleteMedia: (id: string) => api.delete(`/gallery/media/${id}`),
 };
 
+export const scholarship = {
+    match: () => api.get('/scholarship/match'),
+};
+
+export const recommendations = {
+    generate: () => api.get('/recommendations/generate'),
+};
+
+export const ai = {
+    chat: (messages: any[], personality: string) => api.post('/ai/chat', { messages, personality }),
+};
+
 export default api;

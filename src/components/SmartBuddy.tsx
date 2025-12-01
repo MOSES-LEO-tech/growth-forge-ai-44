@@ -109,17 +109,17 @@ const SmartBuddy = () => {
   }, [messages]);
 
   const streamChat = async (userMessages: Message[]) => {
-    const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/smartbuddy-chat`;
-    
+    const CHAT_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/chat`;
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         messages: userMessages,
-        personality: personality 
+        personality: personality
       }),
     });
 
@@ -208,7 +208,7 @@ const SmartBuddy = () => {
               return [...prev, { role: "assistant", content: assistantContent }];
             });
           }
-        } catch {}
+        } catch { }
       }
     }
   };
@@ -307,11 +307,10 @@ const SmartBuddy = () => {
                 className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.role === "user"
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
-                  }`}
+                    }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 </div>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, ExternalLink, Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { scholarship } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface ScholarshipMatch {
@@ -27,10 +27,9 @@ const ScholarshipMatches = () => {
   const findMatches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('match-scholarships');
-      
-      if (error) throw error;
-      
+      const response = await scholarship.match();
+      const data = response.data;
+
       setMatches(data.matches);
       toast({
         title: "Scholarships matched",
@@ -80,8 +79,8 @@ const ScholarshipMatches = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <Button 
-              onClick={findMatches} 
+            <Button
+              onClick={findMatches}
               disabled={loading}
               variant="outline"
               size="sm"
@@ -105,9 +104,9 @@ const ScholarshipMatches = () => {
                       {scholarship.match_score} match
                     </Badge>
                   </div>
-                  
+
                   <p className="text-sm">{scholarship.description}</p>
-                  
+
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     {scholarship.amount && (
                       <span className="font-semibold text-primary">
@@ -136,9 +135,9 @@ const ScholarshipMatches = () => {
                   )}
 
                   {scholarship.application_url && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                       onClick={() => window.open(scholarship.application_url, '_blank')}
                     >

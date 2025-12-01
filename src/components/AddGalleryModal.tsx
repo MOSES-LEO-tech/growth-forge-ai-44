@@ -6,10 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImagePlus, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/FileUpload";
-import { upload } from "@/services/api";
+import { upload, gallery } from "@/services/api";
 import { Progress } from "@/components/ui/progress";
 
 interface AddGalleryModalProps {
@@ -82,33 +81,25 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
         setUploading(false);
       }
 
-      // First create an event
-      const { data: eventData, error: eventError } = await supabase
-        .from("events")
-        .insert([{
-          title: form.title,
-          description: form.description,
-          event_date: form.event_date,
-          created_by: userId
-        }])
-        .select()
-        .single();
+      // Create event with media via local API
+      const eventResponse = await gallery.createEvent({
+        title: form.title,
+        description: form.description,
+        event_date: form.event_date,
+        created_by: userId
+      });
 
-      if (eventError) throw eventError;
+      const eventId = eventResponse.data.id;
 
-      // Then add media item linked to the event
-      const { error: mediaError } = await supabase
-        .from("media_items")
-        .insert([{
-          title: form.title,
-          description: form.description,
-          media_type: form.media_type,
-          media_url: mediaUrl,
-          event_id: eventData.id,
-          uploaded_by: userId
-        }]);
-
-      if (mediaError) throw mediaError;
+      // Add media item linked to the event
+      await gallery.addMedia({
+        title: form.title,
+        description: form.description,
+        media_type: form.media_type,
+        media_url: mediaUrl,
+        event_id: eventId,
+        uploaded_by: userId
+      });
 
       toast({
         title: "Success!",
