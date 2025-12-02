@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ThemeToggle from "@/components/ThemeToggle";
+import ThemeSelector from "@/components/ThemeSelector";
 import Logo from "@/components/Logo";
 
 const Navbar = () => {
@@ -25,6 +26,7 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeSelector />
           <ThemeToggle />
           <Link to="/auth">
             <Button variant="ghost">Sign In</Button>
