@@ -1,5 +1,5 @@
-import { GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
+import logoImage from "@/assets/logo.png";
 
 export default function Logo() {
   return (
@@ -7,9 +7,7 @@ export default function Logo() {
       to="/" 
       className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-300"
     >
-      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-        <GraduationCap className="w-6 h-6 text-primary-foreground" />
-      </div>
+      <img src={logoImage} alt="Milestone Logo" className="w-10 h-10 rounded-lg" />
       <span className="font-bold text-xl">MILESTONE</span>
     </Link>
   );
