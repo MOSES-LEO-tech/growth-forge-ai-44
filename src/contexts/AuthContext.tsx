@@ -7,6 +7,7 @@ export interface User {
   fullName: string;
   role: 'student' | 'parent' | 'teacher' | 'admin';
   avatarUrl?: string;
+  schoolId?: number;
 }
 
 interface AuthContextType {
@@ -14,7 +15,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (data: { email: string; password: string; fullName: string; role: string }) => Promise<void>;
+  signUp: (data: { email: string; password: string; fullName: string; role: string; schoolId?: number }) => Promise<void>;
   signOut: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session on mount
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    
+
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
@@ -46,17 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const response = await auth.login({ email, password });
     const { token: newToken, user: userData } = response.data;
-    
+
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
   };
 
-  const signUp = async (data: { email: string; password: string; fullName: string; role: string }) => {
+  const signUp = async (data: { email: string; password: string; fullName: string; role: string; schoolId?: number }) => {
     const response = await auth.register(data);
     const { token: newToken, user: userData } = response.data;
-    
+
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: response.data.full_name,
         role: response.data.role,
         avatarUrl: response.data.avatar_url,
+        schoolId: response.data.school_id,
       };
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -101,3 +103,4 @@ export function useAuth() {
   }
   return context;
 }
+

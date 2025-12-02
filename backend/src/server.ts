@@ -9,6 +9,9 @@ import uploadRoutes from './routes/upload.routes';
 import projectRoutes from './routes/project.routes';
 
 import galleryRoutes from './routes/gallery.routes';
+import scholarshipRoutes from './routes/scholarship.routes';
+import recommendationsRoutes from './routes/recommendations.routes';
+import aiRoutes from './routes/ai.routes';
 
 dotenv.config();
 
@@ -36,6 +39,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/gallery', galleryRoutes);
+app.use('/api/scholarship', scholarshipRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

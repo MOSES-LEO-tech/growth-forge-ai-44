@@ -10,9 +10,15 @@ const generateToken = (userId: number, role: string) => {
 };
 
 export const register = async (req: Request, res: Response) => {
-    const { email, password, fullName, role } = req.body;
+    const { email, password, fullName, role, schoolId } = req.body;
 
     try {
+        // Validate role
+        const validRoles = ['student', 'parent', 'teacher', 'admin', 'school_admin'];
+        if (role && !validRoles.includes(role)) {
+            return res.status(400).json({ message: 'Invalid role' });
+        }
+
         const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userExists.rows.length > 0) {
             return res.status(400).json({ message: 'User already exists' });
@@ -22,8 +28,8 @@ export const register = async (req: Request, res: Response) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = await pool.query(
-            'INSERT INTO users (email, password, full_name, role) VALUES ($1, $2, $3, $4) RETURNING *',
-            [email, hashedPassword, fullName, role || 'student']
+            'INSERT INTO users (email, password, full_name, role, school_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [email, hashedPassword, fullName, role || 'student', schoolId || null]
         );
 
         const token = generateToken(newUser.rows[0].id, newUser.rows[0].role);
@@ -35,6 +41,7 @@ export const register = async (req: Request, res: Response) => {
                 email: newUser.rows[0].email,
                 fullName: newUser.rows[0].full_name,
                 role: newUser.rows[0].role,
+                schoolId: newUser.rows[0].school_id,
             },
         });
     } catch (error) {

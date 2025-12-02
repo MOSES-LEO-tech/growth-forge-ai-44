@@ -42,12 +42,13 @@ const Auth = () => {
     email: "",
     password: "",
     fullName: "",
-    role: "student" as "student" | "parent" | "teacher" | "admin"
+    role: "student" as "student" | "parent" | "teacher" | "admin",
+    schoolId: ""
   });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [networkError, setNetworkError] = useState<string | null>(null);
-  
+
   const { executeWithRetry, isRetrying, retryCount } = useApiWithRetry({
     maxRetries: 3,
     retryDelay: 1000,
@@ -105,7 +106,12 @@ const Auth = () => {
     setTouched({ email: true, password: true, fullName: true });
 
     try {
-      const validated = signUpSchema.parse(formData);
+      const validated = signUpSchema.parse({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        role: formData.role
+      });
 
       // Check password strength
       const { strength } = calculatePasswordStrength(validated.password);
@@ -125,7 +131,8 @@ const Auth = () => {
           email: validated.email,
           password: validated.password,
           fullName: validated.fullName,
-          role: validated.role
+          role: validated.role,
+          schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined
         }),
         (attempt, maxAttempts) => {
           toast({
@@ -271,7 +278,7 @@ const Auth = () => {
               </AlertDescription>
             </Alert>
           )}
-          
+
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -455,6 +462,24 @@ const Auth = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {(formData.role === "student" || formData.role === "teacher") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="schoolId">School ID (Optional)</Label>
+                    <Input
+                      id="schoolId"
+                      type="number"
+                      placeholder="Enter School ID"
+                      value={formData.schoolId}
+                      onChange={(e) => handleChange("schoolId", e.target.value)}
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter the ID of the school you want to join.
+                    </p>
+                  </div>
+                )}
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>

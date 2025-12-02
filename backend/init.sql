@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS schools (
   deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );
 
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
@@ -231,4 +232,65 @@ CREATE INDEX IF NOT EXISTS idx_recommendations_user ON recommendations(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);
 CREATE INDEX IF NOT EXISTS idx_project_collaborators_project ON project_collaborators(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_feedback_project ON project_feedback(project_id);
+
+-- Extended student profile fields
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subjects JSONB;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS intended_course VARCHAR(255);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gpa NUMERIC(3,2);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS location VARCHAR(255);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS graduation_year INTEGER;
+
+-- Additional indexes for filtering
+CREATE INDEX IF NOT EXISTS idx_profiles_graduation_year ON profiles(graduation_year);
+CREATE INDEX IF NOT EXISTS idx_profiles_intended_course ON profiles(intended_course);
+CREATE INDEX IF NOT EXISTS idx_scholarships_deadline ON scholarships(deadline);
+
+-- Seed demo data (idempotent)
+INSERT INTO users (email, password, full_name, role)
+VALUES ('demo@student.local', '', 'Demo Student', 'student')
+ON CONFLICT (email) DO NOTHING;
+
+WITH u AS (SELECT id FROM users WHERE email = 'demo@student.local')
+INSERT INTO profiles (user_id, intended_course, subjects, gpa, location, graduation_year)
+SELECT u.id, 'computer science', '["mathematics","computer science"]'::jsonb, 3.7, 'Kenya', 2026 FROM u
+ON CONFLICT (user_id) DO NOTHING;
+
+WITH u AS (SELECT id FROM users WHERE email = 'demo@student.local')
+INSERT INTO events (title, description, event_date, type, created_by, location)
+SELECT 'Coding Club', 'Weekly coding club participation', CURRENT_TIMESTAMP, 'code', u.id, 'Nairobi' FROM u;
+
+WITH u AS (SELECT id FROM users WHERE email = 'demo@student.local')
+INSERT INTO achievements (user_id, title, description, date_earned)
+SELECT u.id, 'Hackathon Finalist', 'Reached finals in school hackathon', CURRENT_DATE - INTERVAL '30 days' FROM u;
+
+WITH u AS (SELECT id FROM users WHERE email = 'demo@student.local')
+INSERT INTO projects (owner_id, title, description, start_date, status, skills, verified)
+SELECT u.id, 'Portfolio Website', 'React + TypeScript site', CURRENT_DATE - INTERVAL '90 days', 'ongoing', '["react","typescript","javascript"]'::jsonb, true FROM u;
+
+-- Scholarships
+INSERT INTO scholarships (title, description, organization, amount, deadline, application_url, requirements, eligibility_criteria)
+VALUES (
+  'Kenya CS Excellence Scholarship',
+  'For high-achieving CS-intent students in Kenya with math strength',
+  'TechOrg Kenya',
+  1500.00,
+  CURRENT_DATE + INTERVAL '120 days',
+  'https://example.org/apply/cs-excellence',
+  '{"skills": ["react","typescript"]}',
+  '{"majors": ["computer science"], "subjects": ["mathematics"], "gpa_min": 3.5, "location": ["kenya"], "event_types": ["code"], "graduation_year": 2026}'
+)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO scholarships (title, description, organization, amount, deadline, application_url, requirements, eligibility_criteria)
+VALUES (
+  'Debate & Leadership Award',
+  'Supports student leaders with debate participation',
+  'Leaders Fund',
+  1000.00,
+  CURRENT_DATE + INTERVAL '90 days',
+  'https://example.org/apply/debate-leadership',
+  '{"skills": ["communication"]}',
+  '{"event_types": ["debate"], "gpa_min": 3.0}'
+)
+ON CONFLICT DO NOTHING;
 

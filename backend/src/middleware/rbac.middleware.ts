@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/api.response';
 
-export const requireRole = (allowedRoles: string[]) => {
+
+export const authorize = (allowedRoles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
         // @ts-ignore
         const userRole = req.user?.role;
@@ -40,8 +41,13 @@ export const requireSchoolMember = async (req: Request, res: Response, next: Nex
             return next();
         }
 
-        // Check if user belongs to the school
-        if (!userSchoolId || userSchoolId.toString() !== schoolId) {
+        // Check if user belongs to a school
+        if (!userSchoolId) {
+            return ApiResponse.error(res, 'Forbidden - User is not a member of any school', 403);
+        }
+
+        // If route has schoolId param, ensure user belongs to that school
+        if (schoolId && userSchoolId.toString() !== schoolId) {
             return ApiResponse.error(res, 'Forbidden - Not a member of this school', 403);
         }
 
