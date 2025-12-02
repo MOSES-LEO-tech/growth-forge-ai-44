@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Settings, Moon, Sun, Monitor, Check } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
-import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeProvider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,9 +10,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import ProfileSettingsModal from "./ProfileSettingsModal";
+
+const colorThemes = [
+  { name: "Default", value: "default", colors: ["#4338ca", "#c084fc"] },
+  { name: "Ocean", value: "ocean", colors: ["#0ea5e9", "#06b6d4"] },
+  { name: "Forest", value: "forest", colors: ["#16a34a", "#22c55e"] },
+  { name: "Sunset", value: "sunset", colors: ["#f97316", "#ec4899"] },
+  { name: "Rose", value: "rose", colors: ["#e11d48", "#db2777"] },
+] as const;
+
+const modeOptions = [
+  { name: "Light", value: "light", icon: Sun },
+  { name: "Dark", value: "dark", icon: Moon },
+  { name: "System", value: "system", icon: Monitor },
+] as const;
 
 interface DashboardHeaderProps {
   profile: any;
@@ -22,6 +40,7 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }: DashboardHeaderProps) {
   const location = useLocation();
+  const { theme, setTheme, colorTheme, setColorTheme } = useTheme();
 
   const getInitials = (name: string) => {
     return name
@@ -78,8 +97,6 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
-          <ThemeToggle />
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -107,6 +124,57 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <ProfileSettingsModal profile={profile} onProfileUpdated={onProfileUpdated || (() => window.location.reload())} />
               </DropdownMenuItem>
+              
+              {/* Appearance Settings Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Appearance</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-48">
+                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Mode</DropdownMenuLabel>
+                    {modeOptions.map((mode) => (
+                      <DropdownMenuItem
+                        key={mode.value}
+                        onClick={() => setTheme(mode.value)}
+                        className="flex items-center gap-3 cursor-pointer"
+                      >
+                        <mode.icon className="h-4 w-4" />
+                        <span>{mode.name}</span>
+                        {theme === mode.value && (
+                          <Check className="ml-auto h-4 w-4 text-primary" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Color Theme</DropdownMenuLabel>
+                    {colorThemes.map((themeOption) => (
+                      <DropdownMenuItem
+                        key={themeOption.value}
+                        onClick={() => setColorTheme(themeOption.value)}
+                        className="flex items-center gap-3 cursor-pointer"
+                      >
+                        <div className="flex gap-1">
+                          {themeOption.colors.map((color, i) => (
+                            <div
+                              key={i}
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                        <span>{themeOption.name}</span>
+                        {colorTheme === themeOption.value && (
+                          <Check className="ml-auto h-4 w-4 text-primary" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={onSignOut}
                 className="cursor-pointer focus-ring"

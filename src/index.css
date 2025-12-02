@@ -207,24 +207,44 @@ All colors MUST be HSL.
 
   /* Ocean Theme */
   .theme-ocean {
+    --background: 200 30% 98%;
+    --foreground: 200 50% 10%;
+    --card: 200 25% 97%;
+    --card-foreground: 200 50% 10%;
+    --popover: 200 25% 97%;
+    --popover-foreground: 200 50% 10%;
     --primary: 199 89% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 70% 55%;
     --secondary-foreground: 0 0% 100%;
+    --muted: 200 20% 94%;
+    --muted-foreground: 200 15% 45%;
     --accent: 187 85% 43%;
     --accent-foreground: 0 0% 100%;
+    --border: 200 20% 88%;
+    --input: 200 20% 88%;
     --ring: 199 89% 48%;
     --gradient-hero: linear-gradient(135deg, hsl(210 70% 45%) 0%, hsl(187 85% 50%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(199 89% 48% / 0.05), hsl(187 85% 43% / 0.05));
     --gradient-achievement: linear-gradient(135deg, hsl(187 85% 43%) 0%, hsl(199 89% 48%) 100%);
   }
   .dark.theme-ocean {
+    --background: 200 50% 8%;
+    --foreground: 200 20% 95%;
+    --card: 200 45% 12%;
+    --card-foreground: 200 20% 95%;
+    --popover: 200 45% 12%;
+    --popover-foreground: 200 20% 95%;
     --primary: 187 85% 50%;
     --primary-foreground: 210 40% 10%;
     --secondary: 199 89% 40%;
     --secondary-foreground: 210 40% 98%;
+    --muted: 200 30% 18%;
+    --muted-foreground: 200 15% 60%;
     --accent: 187 85% 50%;
     --accent-foreground: 210 40% 10%;
+    --border: 200 30% 22%;
+    --input: 200 30% 22%;
     --ring: 187 85% 50%;
     --gradient-hero: linear-gradient(135deg, hsl(210 70% 35%) 0%, hsl(187 85% 40%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(199 89% 40% / 0.1), hsl(187 85% 43% / 0.1));
@@ -232,24 +252,44 @@ All colors MUST be HSL.
 
   /* Forest Theme */
   .theme-forest {
+    --background: 140 25% 97%;
+    --foreground: 140 40% 10%;
+    --card: 140 20% 96%;
+    --card-foreground: 140 40% 10%;
+    --popover: 140 20% 96%;
+    --popover-foreground: 140 40% 10%;
     --primary: 142 71% 35%;
     --primary-foreground: 0 0% 100%;
     --secondary: 160 60% 45%;
     --secondary-foreground: 0 0% 100%;
+    --muted: 140 15% 92%;
+    --muted-foreground: 140 12% 45%;
     --accent: 84 60% 50%;
     --accent-foreground: 0 0% 100%;
+    --border: 140 15% 86%;
+    --input: 140 15% 86%;
     --ring: 142 71% 35%;
     --gradient-hero: linear-gradient(135deg, hsl(142 71% 35%) 0%, hsl(160 60% 45%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(142 71% 35% / 0.05), hsl(160 60% 45% / 0.05));
     --gradient-achievement: linear-gradient(135deg, hsl(84 60% 50%) 0%, hsl(142 71% 35%) 100%);
   }
   .dark.theme-forest {
+    --background: 140 40% 7%;
+    --foreground: 140 15% 95%;
+    --card: 140 35% 11%;
+    --card-foreground: 140 15% 95%;
+    --popover: 140 35% 11%;
+    --popover-foreground: 140 15% 95%;
     --primary: 142 71% 50%;
     --primary-foreground: 142 71% 10%;
     --secondary: 160 60% 35%;
     --secondary-foreground: 210 40% 98%;
+    --muted: 140 25% 16%;
+    --muted-foreground: 140 12% 58%;
     --accent: 84 60% 55%;
     --accent-foreground: 84 60% 10%;
+    --border: 140 25% 20%;
+    --input: 140 25% 20%;
     --ring: 142 71% 50%;
     --gradient-hero: linear-gradient(135deg, hsl(142 71% 30%) 0%, hsl(160 60% 35%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(142 71% 35% / 0.1), hsl(160 60% 35% / 0.1));
@@ -257,24 +297,44 @@ All colors MUST be HSL.
 
   /* Sunset Theme */
   .theme-sunset {
+    --background: 30 40% 98%;
+    --foreground: 20 50% 10%;
+    --card: 30 35% 96%;
+    --card-foreground: 20 50% 10%;
+    --popover: 30 35% 96%;
+    --popover-foreground: 20 50% 10%;
     --primary: 24 95% 53%;
     --primary-foreground: 0 0% 100%;
     --secondary: 340 82% 52%;
     --secondary-foreground: 0 0% 100%;
+    --muted: 30 25% 92%;
+    --muted-foreground: 30 15% 45%;
     --accent: 45 93% 47%;
     --accent-foreground: 45 93% 10%;
+    --border: 30 25% 86%;
+    --input: 30 25% 86%;
     --ring: 24 95% 53%;
     --gradient-hero: linear-gradient(135deg, hsl(340 82% 52%) 0%, hsl(24 95% 53%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(24 95% 53% / 0.05), hsl(340 82% 52% / 0.05));
     --gradient-achievement: linear-gradient(135deg, hsl(45 93% 47%) 0%, hsl(24 95% 53%) 100%);
   }
   .dark.theme-sunset {
+    --background: 20 45% 8%;
+    --foreground: 30 20% 95%;
+    --card: 20 40% 12%;
+    --card-foreground: 30 20% 95%;
+    --popover: 20 40% 12%;
+    --popover-foreground: 30 20% 95%;
     --primary: 24 95% 60%;
     --primary-foreground: 24 95% 10%;
     --secondary: 340 82% 45%;
     --secondary-foreground: 210 40% 98%;
+    --muted: 20 30% 17%;
+    --muted-foreground: 30 15% 58%;
     --accent: 45 93% 55%;
     --accent-foreground: 45 93% 10%;
+    --border: 20 30% 22%;
+    --input: 20 30% 22%;
     --ring: 24 95% 60%;
     --gradient-hero: linear-gradient(135deg, hsl(340 82% 40%) 0%, hsl(24 95% 45%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(24 95% 45% / 0.1), hsl(340 82% 45% / 0.1));
@@ -282,24 +342,44 @@ All colors MUST be HSL.
 
   /* Rose Theme */
   .theme-rose {
+    --background: 340 30% 98%;
+    --foreground: 340 50% 10%;
+    --card: 340 25% 97%;
+    --card-foreground: 340 50% 10%;
+    --popover: 340 25% 97%;
+    --popover-foreground: 340 50% 10%;
     --primary: 346 77% 50%;
     --primary-foreground: 0 0% 100%;
     --secondary: 320 65% 52%;
     --secondary-foreground: 0 0% 100%;
+    --muted: 340 20% 93%;
+    --muted-foreground: 340 15% 45%;
     --accent: 280 65% 60%;
     --accent-foreground: 0 0% 100%;
+    --border: 340 20% 87%;
+    --input: 340 20% 87%;
     --ring: 346 77% 50%;
     --gradient-hero: linear-gradient(135deg, hsl(346 77% 50%) 0%, hsl(320 65% 52%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(346 77% 50% / 0.05), hsl(320 65% 52% / 0.05));
     --gradient-achievement: linear-gradient(135deg, hsl(280 65% 60%) 0%, hsl(346 77% 50%) 100%);
   }
   .dark.theme-rose {
+    --background: 340 45% 8%;
+    --foreground: 340 15% 95%;
+    --card: 340 40% 12%;
+    --card-foreground: 340 15% 95%;
+    --popover: 340 40% 12%;
+    --popover-foreground: 340 15% 95%;
     --primary: 346 77% 60%;
     --primary-foreground: 346 77% 10%;
     --secondary: 320 65% 45%;
     --secondary-foreground: 210 40% 98%;
+    --muted: 340 28% 17%;
+    --muted-foreground: 340 12% 58%;
     --accent: 280 65% 65%;
     --accent-foreground: 280 65% 10%;
+    --border: 340 28% 22%;
+    --input: 340 28% 22%;
     --ring: 346 77% 60%;
     --gradient-hero: linear-gradient(135deg, hsl(346 77% 40%) 0%, hsl(320 65% 40%) 100%);
     --gradient-card: linear-gradient(to bottom right, hsl(346 77% 45% / 0.1), hsl(320 65% 40% / 0.1));
