@@ -100,4 +100,11 @@ export const ai = {
     chat: (messages: any[], personality: string) => api.post('/ai/chat', { messages, personality }),
 };
 
+export const profile = {
+    getMe: () => api.get('/profile/me'),
+    updateMe: (data: any) => api.put('/profile/me', data),
+    getPublicProfile: (id: string) => api.get(`/profile/${id}`),
+    linkParent: (data: { parentEmail: string; relationship?: string }) => api.post('/profile/link-parent', data),
+};
+
 export default api;
