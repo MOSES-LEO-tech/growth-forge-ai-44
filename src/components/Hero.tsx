@@ -3,21 +3,42 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import heroBackground from "@/assets/hero-background.jpg";
 import { useInView } from "@/hooks/useInView";
+import { useHeroVideo } from "@/hooks/useHeroVideo";
 
 const Hero = () => {
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: statsRef, isInView: statsInView } = useInView({ threshold: 0.3 });
+  const { videoUrl } = useHeroVideo();
 
   return (
     <section 
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{
-        background: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${heroBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
     >
-      <div className="absolute inset-0 bg-[var(--gradient-hero)] opacity-80" />
+      {/* Video or Image Background */}
+      {videoUrl ? (
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src={videoUrl} type="video/mp4" />
+        </video>
+      ) : (
+        <div 
+          className="absolute inset-0 w-full h-full"
+          style={{
+            backgroundImage: `url(${heroBackground})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+      )}
+      
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-[var(--gradient-hero)] opacity-70" />
       
       <div 
         ref={heroRef}
