@@ -13,6 +13,7 @@ import scholarshipRoutes from './routes/scholarship.routes';
 import recommendationsRoutes from './routes/recommendations.routes';
 import aiRoutes from './routes/ai.routes';
 import profileRoutes from './routes/profile.routes';
+import settingsRoutes from './routes/settings.routes';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use('/api/scholarship', scholarshipRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

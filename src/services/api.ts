@@ -107,4 +107,10 @@ export const profile = {
     linkParent: (data: { parentEmail: string; relationship?: string }) => api.post('/profile/link-parent', data),
 };
 
+export const settings = {
+    get: (key: string) => api.get(`/settings/${key}`),
+    update: (key: string, value: string | null) => api.put(`/settings/${key}`, { value }),
+    getAll: () => api.get('/settings'),
+};
+
 export default api;
