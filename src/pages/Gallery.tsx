@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { gallery } from "@/services/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,8 @@ const Gallery = () => {
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const response = await api.get("/gallery/public");
-      return response.data;
+      const response = await gallery.getPublicEvents();
+      return response.data?.data || response.data || [];
     },
   });
 
