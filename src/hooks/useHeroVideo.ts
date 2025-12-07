@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { settings } from "@/services/api";
+import api from "@/services/api";
 
 export function useHeroVideo() {
   const queryClient = useQueryClient();
@@ -8,73 +9,49 @@ export function useHeroVideo() {
   const { data: videoUrl, isLoading } = useQuery({
     queryKey: ["hero-video"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "hero_video_url")
-        .single();
-      
-      if (error) throw error;
-      return data?.value || null;
+      const response = await settings.get("hero_video_url");
+      return response.data?.data?.value || null;
     },
   });
 
   const uploadVideo = useMutation({
     mutationFn: async (file: File) => {
-      // Upload to storage
-      const fileName = `hero-video-${Date.now()}.${file.name.split('.').pop()}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("hero-media")
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("hero-media")
-        .getPublicUrl(fileName);
-
-      // Update site settings
-      const { error: updateError } = await supabase
-        .from("site_settings")
-        .update({ value: urlData.publicUrl, updated_at: new Date().toISOString() })
-        .eq("key", "hero_video_url");
-
-      if (updateError) throw updateError;
-
-      return urlData.publicUrl;
+      // Upload to local backend
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const uploadResponse = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      const fileUrl = uploadResponse.data?.data?.url || uploadResponse.data?.url;
+      
+      // Update site settings with the video URL
+      await settings.update("hero_video_url", fileUrl);
+      
+      return fileUrl;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hero-video"] });
-      toast.success("Hero video updated successfully!");
+      toast.success("Hero video uploaded successfully!");
     },
-    onError: (error) => {
-      toast.error("Failed to upload video: " + error.message);
+    onError: (error: any) => {
+      toast.error("Failed to upload video: " + (error.response?.data?.message || error.message));
     },
   });
 
   const removeVideo = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("site_settings")
-        .update({ value: null, updated_at: new Date().toISOString() })
-        .eq("key", "hero_video_url");
-
-      if (error) throw error;
+      await settings.update("hero_video_url", null);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hero-video"] });
       toast.success("Hero video removed");
     },
-    onError: (error) => {
-      toast.error("Failed to remove video: " + error.message);
+    onError: (error: any) => {
+      toast.error("Failed to remove video: " + (error.response?.data?.message || error.message));
     },
   });
 
-  return {
-    videoUrl,
-    isLoading,
-    uploadVideo,
-    removeVideo,
-  };
+  return { videoUrl, isLoading, uploadVideo, removeVideo };
 }
