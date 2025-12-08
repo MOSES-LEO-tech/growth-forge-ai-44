@@ -89,7 +89,10 @@ export const gallery = {
 };
 
 export const scholarship = {
-    match: () => api.get('/scholarship/match'),
+    getAll: (params?: { limit?: number; offset?: number }) => 
+        api.get('/scholarship', { params }),
+    getOne: (id: string) => api.get(`/scholarship/${id}`),
+    match: (limit?: number) => api.get('/scholarship/match', { params: { limit } }),
 };
 
 export const recommendations = {
@@ -97,7 +100,84 @@ export const recommendations = {
 };
 
 export const ai = {
-    chat: (messages: any[], personality: string) => api.post('/ai/chat', { messages, personality }),
+    // Streaming chat - returns EventSource URL info
+    chatStream: async (message: string, onToken: (text: string) => void, onMatches?: (matches: any[]) => void, onRecos?: (recos: any) => void) => {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/ai/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Chat request failed');
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            let currentEvent = '';
+            for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                    currentEvent = line.slice(7).trim();
+                } else if (line.startsWith('data: ')) {
+                    const data = line.slice(6).trim();
+                    if (data === '[DONE]') continue;
+                    
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (currentEvent === 'token' && parsed.text) {
+                            onToken(parsed.text);
+                        } else if (currentEvent === 'matches' && onMatches) {
+                            onMatches(parsed);
+                        } else if (currentEvent === 'recommendations' && onRecos) {
+                            onRecos(parsed);
+                        } else if (parsed.error) {
+                            throw new Error(parsed.error);
+                        }
+                    } catch (e) {
+                        // Skip parse errors
+                    }
+                }
+            }
+        }
+    },
+    // Legacy non-streaming
+    chat: (messages: any[], personality: string) => api.post('/ai/chat/legacy', { messages, personality }),
+};
+
+export const achievements = {
+    getAll: () => api.get('/achievements'),
+    getOne: (id: string) => api.get(`/achievements/${id}`),
+    create: (data: { title: string; description?: string; date_earned?: string; certificate_url?: string }) => 
+        api.post('/achievements', data),
+    update: (id: string, data: { title?: string; description?: string; date_earned?: string; certificate_url?: string }) => 
+        api.put(`/achievements/${id}`, data),
+    delete: (id: string) => api.delete(`/achievements/${id}`),
+};
+
+export const personalGallery = {
+    getAll: () => api.get('/personal-gallery'),
+    getOne: (id: string) => api.get(`/personal-gallery/${id}`),
+    create: (data: { title?: string; description?: string; media_type?: string; media_url: string; thumbnail_url?: string; visibility?: string }) => 
+        api.post('/personal-gallery', data),
+    update: (id: string, data: { title?: string; description?: string; media_type?: string; media_url?: string; thumbnail_url?: string; visibility?: string }) => 
+        api.put(`/personal-gallery/${id}`, data),
+    delete: (id: string) => api.delete(`/personal-gallery/${id}`),
 };
 
 export const profile = {

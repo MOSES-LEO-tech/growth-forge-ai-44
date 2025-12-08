@@ -7,13 +7,14 @@ import authRoutes from './routes/auth.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import uploadRoutes from './routes/upload.routes';
 import projectRoutes from './routes/project.routes';
-
 import galleryRoutes from './routes/gallery.routes';
 import scholarshipRoutes from './routes/scholarship.routes';
 import recommendationsRoutes from './routes/recommendations.routes';
 import aiRoutes from './routes/ai.routes';
 import profileRoutes from './routes/profile.routes';
 import settingsRoutes from './routes/settings.routes';
+import achievementsRoutes from './routes/achievements.routes';
+import personalGalleryRoutes from './routes/personal-gallery.routes';
 
 dotenv.config();
 
@@ -46,6 +47,8 @@ app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/achievements', achievementsRoutes);
+app.use('/api/personal-gallery', personalGalleryRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);
