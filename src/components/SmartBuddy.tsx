@@ -108,22 +108,29 @@ const SmartBuddy = () => {
     }
   }, [messages]);
 
-  const streamChat = async (userMessages: Message[]) => {
-    const CHAT_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/chat`;
+  const streamChat = async (userMessage: string) => {
+    const CHAT_URL = `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/ai/chat`;
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      toast.error("Please log in to use SmartBuddy");
+      throw new Error("Not authenticated");
+    }
 
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        messages: userMessages,
-        personality: personality
-      }),
+      body: JSON.stringify({ message: userMessage }),
     });
 
     if (!resp.ok) {
+      if (resp.status === 401) {
+        toast.error("Please log in to use SmartBuddy");
+        throw new Error("Unauthorized");
+      }
       if (resp.status === 429) {
         toast.error("Rate limits exceeded, please try again later.");
         throw new Error("Rate limit exceeded");
@@ -139,94 +146,110 @@ const SmartBuddy = () => {
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
-    let textBuffer = "";
-    let streamDone = false;
+    let buffer = "";
     let assistantContent = "";
+    let currentEvent = "";
 
-    while (!streamDone) {
+    // Add placeholder for assistant message
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+    while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      textBuffer += decoder.decode(value, { stream: true });
 
-      let newlineIndex: number;
-      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-        let line = textBuffer.slice(0, newlineIndex);
-        textBuffer = textBuffer.slice(newlineIndex + 1);
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
 
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine.startsWith("event: ")) {
+          currentEvent = trimmedLine.slice(7);
+        } else if (trimmedLine.startsWith("data: ")) {
+          const dataStr = trimmedLine.slice(6);
+          
+          if (dataStr === "[DONE]") continue;
 
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") {
-          streamDone = true;
-          break;
-        }
+          try {
+            const parsed = JSON.parse(dataStr);
 
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) {
-            assistantContent += content;
-            setMessages((prev) => {
-              const last = prev[prev.length - 1];
-              if (last?.role === "assistant" && prev.length > 1) {
-                return prev.map((m, i) =>
-                  i === prev.length - 1 ? { ...m, content: assistantContent } : m
-                );
-              }
-              return [...prev, { role: "assistant", content: assistantContent }];
-            });
+            if (currentEvent === "token" && parsed.text) {
+              assistantContent += parsed.text;
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === "assistant") {
+                  newMessages[newMessages.length - 1] = {
+                    ...newMessages[newMessages.length - 1],
+                    content: assistantContent,
+                  };
+                }
+                return newMessages;
+              });
+            } else if (parsed.error) {
+              toast.error(parsed.error);
+              throw new Error(parsed.error);
+            }
+          } catch (e) {
+            // Skip parse errors for incomplete JSON
           }
-        } catch {
-          textBuffer = line + "\n" + textBuffer;
-          break;
         }
       }
     }
 
-    if (textBuffer.trim()) {
-      for (let raw of textBuffer.split("\n")) {
-        if (!raw) continue;
-        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-        if (raw.startsWith(":") || raw.trim() === "") continue;
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) {
-            assistantContent += content;
-            setMessages((prev) => {
-              const last = prev[prev.length - 1];
-              if (last?.role === "assistant") {
-                return prev.map((m, i) =>
-                  i === prev.length - 1 ? { ...m, content: assistantContent } : m
-                );
-              }
-              return [...prev, { role: "assistant", content: assistantContent }];
-            });
+    // Handle any remaining buffer
+    if (buffer.trim()) {
+      const lines = buffer.split("\n");
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith("event: ")) {
+          currentEvent = trimmedLine.slice(7);
+        } else if (trimmedLine.startsWith("data: ") && trimmedLine.slice(6) !== "[DONE]") {
+          try {
+            const parsed = JSON.parse(trimmedLine.slice(6));
+            if (currentEvent === "token" && parsed.text) {
+              assistantContent += parsed.text;
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === "assistant") {
+                  newMessages[newMessages.length - 1] = {
+                    ...newMessages[newMessages.length - 1],
+                    content: assistantContent,
+                  };
+                }
+                return newMessages;
+              });
+            }
+          } catch {
+            // Skip
           }
-        } catch { }
+        }
       }
     }
+
+    return assistantContent;
   };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, userMessage]);
+    const messageText = input;
     setInput("");
     setIsLoading(true);
 
     try {
-      await streamChat(newMessages);
+      await streamChat(messageText);
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages((prev) => prev.slice(0, -1));
+      // Remove the failed assistant message if any
+      setMessages((prev) => {
+        if (prev.length > 0 && prev[prev.length - 1].role === "assistant" && prev[prev.length - 1].content === "") {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
     } finally {
       setIsLoading(false);
     }
