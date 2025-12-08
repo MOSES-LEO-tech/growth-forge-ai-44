@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { authenticateToken } from '../middleware/auth.middleware';
 import { generateRecommendations } from '../controllers/recommendations.controller';
 
 const router = Router();
 
-router.get('/generate', generateRecommendations);
+// Authenticated - personalized recommendations
+router.get('/generate', authenticateToken, generateRecommendations);
 
 export default router;

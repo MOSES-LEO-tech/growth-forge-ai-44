@@ -1,8 +1,13 @@
 import { Router } from 'express';
-import { chat } from '../controllers/ai.controller';
+import { authenticateToken } from '../middleware/auth.middleware';
+import { chat, chatLegacy } from '../controllers/ai.controller';
 
 const router = Router();
 
-router.post('/chat', chat);
+// Authenticated streaming chat with real LLM
+router.post('/chat', authenticateToken, chat);
+
+// Legacy endpoint (backward compatibility)
+router.post('/chat/legacy', chatLegacy);
 
 export default router;

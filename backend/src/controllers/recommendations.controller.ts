@@ -1,12 +1,15 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { ApiResponse } from '../utils/api.response';
 import { generateRecommendationsForStudent } from '../services/recommendations.service';
 
-export const generateRecommendations = async (req: Request, res: Response) => {
+// Authenticated endpoint - uses logged-in user
+export const generateRecommendations = async (req: AuthRequest, res: Response) => {
   try {
-    const studentId = parseInt(String(req.query.studentId || '0'), 10);
-    if (!studentId || Number.isNaN(studentId)) return ApiResponse.error(res, 'studentId is required', 400);
-    const data = await generateRecommendationsForStudent(studentId);
+    const userId = req.user?.id;
+    if (!userId) return ApiResponse.error(res, 'Unauthorized', 401);
+
+    const data = await generateRecommendationsForStudent(userId);
     return ApiResponse.success(res, data);
   } catch (error: any) {
     return ApiResponse.error(res, 'Server error', 500, error);
