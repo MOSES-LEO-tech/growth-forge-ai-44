@@ -4,7 +4,10 @@ import {
     getProject,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    addMedia,
+    verifyProject,
+    addFeedback
 } from '../controllers/project.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { authorize, requireSchoolMember } from '../middleware/rbac.middleware';
@@ -31,5 +34,14 @@ router.put('/:id', authorize(['student', 'teacher', 'admin']), validate(projectS
 
 // Delete project (students, teachers, admins only)
 router.delete('/:id', authorize(['student', 'teacher', 'admin']), deleteProject);
+
+// Add Media (Owner/Student mainly, but Teachers too?)
+router.post('/:id/media', authorize(['student', 'teacher', 'admin']), addMedia);
+
+// Verify Project (Teacher/Admin only)
+router.post('/:id/verify', authorize(['teacher', 'admin']), verifyProject);
+
+// Add Feedback (Teacher, Parent, Admin)
+router.post('/:id/feedback', authorize(['teacher', 'parent', 'admin']), addFeedback);
 
 export default router;

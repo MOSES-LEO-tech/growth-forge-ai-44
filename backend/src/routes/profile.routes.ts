@@ -1,23 +1,19 @@
 import { Router } from 'express';
-import { getProfile, updateProfile, getPublicProfile, linkParent } from '../controllers/profile.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
-import { authorize } from '../middleware/rbac.middleware';
+import {
+    getProfile,
+    updateProfile,
+    getPublicProfile,
+    linkParent,
+    getChildren
+} from '../controllers/profile.controller';
 
 const router = Router();
 
-// All routes require authentication
-router.use(authenticateToken);
-
-// Get own profile
-router.get('/me', getProfile);
-
-// Update own profile
-router.put('/me', updateProfile);
-
-// Link parent (Student only)
-router.post('/link-parent', authorize(['student']), linkParent);
-
-// Get public profile (must be last to avoid conflict with specific paths)
-router.get('/:id', getPublicProfile);
+router.get('/me', authenticateToken, getProfile);
+router.put('/me', authenticateToken, updateProfile);
+router.get('/children', authenticateToken, getChildren);
+router.get('/:id', authenticateToken, getPublicProfile);
+router.post('/link-parent', authenticateToken, linkParent);
 
 export default router;

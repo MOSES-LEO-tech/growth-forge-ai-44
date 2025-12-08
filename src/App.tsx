@@ -18,6 +18,11 @@ import HowItWorks from "./pages/HowItWorks";
 import Contact from "./pages/Contact";
 import Features from "./pages/Features";
 import Profile from "./pages/Profile";
+import StudentGallery from "./pages/StudentGallery";
+import ProjectDetails from "./pages/ProjectDetails";
+import SchoolGallery from "./pages/SchoolGallery";
+import Achievements from "./pages/Achievements";
+import SmartBuddy from "./pages/SmartBuddy";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +44,13 @@ const App = () => (
               <Route path="/schools/:id" element={<SchoolProfile />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/gallery/:id" element={<EventGallery />} />
+              <Route path="/gallery/personal" element={<StudentGallery />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:id" element={<ProjectDetails />} />
+              <Route path="/school/gallery" element={<SchoolGallery />} />
+              <Route path="/school/gallery/:id" element={<EventGallery />} />
+              <Route path="/achievements" element={<Achievements />} />
+              <Route path="/buddy" element={<SmartBuddy />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/contact" element={<Contact />} />

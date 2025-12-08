@@ -1,138 +1,181 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { gallery as galleryApi } from "@/services/api";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, MapPin } from "lucide-react";
-import { format } from "date-fns";
-import SchoolGallery from "@/components/SchoolGallery";
-import { useInView } from "@/hooks/useInView";
-import { useToast } from "@/hooks/use-toast";
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { schoolGallery, upload } from '../services/api';
+import { useToast } from '../components/ui/use-toast';
+import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { ArrowLeft, Calendar, MapPin, Plus, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
+import { Card, CardContent } from '../components/ui/card';
+
+interface EventMedia {
+  id: number;
+  title: string;
+  description: string;
+  media_type: 'image' | 'video';
+  media_url: string;
+  uploaded_by: number;
+}
+
+interface SchoolEventDetails {
+  id: number;
+  title: string;
+  description: string;
+  event_date: string;
+  location: string;
+  school_name: string;
+  media: EventMedia[];
+}
 
 const EventGallery = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { ref: headerRef, isInView: headerInView } = useInView({ threshold: 0.2 });
-  const { ref: galleryRef, isInView: galleryInView } = useInView({ threshold: 0.1 });
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: event, isLoading: eventLoading, isError: eventError } = useQuery({
-    queryKey: ["event", id],
-    queryFn: async () => {
-      if (!id) throw new Error("Event ID is required");
-      const response = await galleryApi.getEvent(id);
-      return response.data.data;
-    },
-  });
+  const [event, setEvent] = useState<SchoolEventDetails | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const { data: media, isLoading: mediaLoading, isError: mediaError } = useQuery({
-    queryKey: ["event-media", id],
-    queryFn: async () => {
-      if (!id) return [];
-      const response = await galleryApi.getEventMedia(id);
-      return response.data.data;
-    },
-  });
+  // Upload State
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (eventError || mediaError) {
-      toast({
-        title: "Error",
-        description: "Failed to load event details. Please try again.",
-        variant: "destructive",
-      });
+    if (id) fetchEventDetails();
+  }, [id]);
+
+  const fetchEventDetails = async () => {
+    try {
+      if (!id) return;
+      const response = await schoolGallery.getOne(id);
+      setEvent(response.data);
+    } catch (error) {
+      console.error('Fetch event details error:', error);
+      toast({ title: "Error", description: "Failed to load event details", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-  }, [eventError, mediaError, toast]);
+  };
 
-  if (eventLoading) {
-    return (
-      <div className="min-h-screen">
-        <Navbar />
-        <div className="pt-32 pb-16 container mx-auto px-4">
-          <p className="text-center">Loading event...</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile || !id) return;
 
-  if (!event) {
-    return (
-      <div className="min-h-screen">
-        <Navbar />
-        <div className="pt-32 pb-16 container mx-auto px-4 text-center">
-          <p className="mb-4">Event not found</p>
-          <Button onClick={() => navigate("/gallery")}>Back to Gallery</Button>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+    setUploading(true);
+    try {
+      // 1. Upload to generic storage
+      const uploadRes = await upload.uploadFile(uploadFile);
+      const { url, mimetype } = uploadRes.data;
 
-  const mediaUrls = media?.map(m => m.media_url) || [];
+      // Determine type if not manually set (simple check)
+      const type = mimetype.startsWith('video/') ? 'video' : 'image';
+
+      // 2. Link to Event
+      await schoolGallery.addMedia(id, {
+        mediaType: type,
+        mediaUrl: url,
+        title: uploadFile.name,
+        description: 'Event media'
+      });
+
+      toast({ title: "Success", description: "Media added to event" });
+      setIsUploadOpen(false);
+      setUploadFile(null);
+      fetchEventDetails();
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({ title: "Error", description: "Failed to upload media", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const canUpload = user?.role === 'teacher' || user?.role === 'admin';
+
+  if (loading) return <div className="text-center py-20">Loading...</div>;
+  if (!event) return <div className="text-center py-20">Event not found</div>;
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <div className="container mx-auto py-8">
+      <Button variant="ghost" className="mb-6" onClick={() => navigate('/school/gallery')}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Gallery
+      </Button>
 
-      <div className="pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          {/* Back Button */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/gallery")}
-            className="mb-6"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Gallery
-          </Button>
-
-          {/* Event Header */}
-          <div
-            ref={headerRef}
-            className={`mb-12 transition-all duration-1000 ${headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{event.title}</h1>
-            {event.description && (
-              <p className="text-lg text-muted-foreground mb-4">{event.description}</p>
-            )}
-            <div className="flex flex-wrap gap-4 text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>{format(new Date(event.event_date), "MMMM dd, yyyy")}</span>
-              </div>
-              {event.location && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>{event.location}</span>
-                </div>
-              )}
+      <div className="bg-card rounded-xl p-8 shadow-sm border mb-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
+            <div className="flex items-center gap-4 text-muted-foreground mb-4">
+              <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {new Date(event.event_date).toLocaleDateString()}</span>
+              {event.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {event.location}</span>}
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-sm font-medium">{event.school_name}</span>
             </div>
-          </div>
-
-          {/* Media Gallery */}
-          <div
-            ref={galleryRef}
-            className={`transition-all duration-1000 ${galleryInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-          >
-            {mediaLoading ? (
-              <p className="text-center">Loading media...</p>
-            ) : mediaUrls.length > 0 ? (
-              <SchoolGallery images={mediaUrls} />
-            ) : (
-              <div className="text-center py-16 bg-muted/30 rounded-lg">
-                <p className="text-muted-foreground">No media available for this event yet.</p>
-              </div>
-            )}
+            <p className="text-lg">{event.description}</p>
           </div>
         </div>
       </div>
 
-      <Footer />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Event Media</h2>
+        {canUpload && (
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Add Photos/Videos
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Upload Media</DialogTitle></DialogHeader>
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Select File</Label>
+                  <Input
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={e => setUploadFile(e.target.files?.[0] || null)}
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? 'Uploading...' : 'Upload'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {event.media && event.media.length > 0 ? (
+          event.media.map((item) => (
+            <Card key={item.id} className="overflow-hidden group relative aspect-square bg-muted">
+              {item.media_type === 'video' ? (
+                <video src={item.media_url} controls className="w-full h-full object-cover" />
+              ) : (
+                <img
+                  src={item.media_url}
+                  alt={item.title}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                <p className="text-white text-sm truncate w-full">{item.title}</p>
+              </div>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+            <ImageIcon className="mx-auto h-12 w-12 opacity-20 mb-2" />
+            <p>No media uploaded yet.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

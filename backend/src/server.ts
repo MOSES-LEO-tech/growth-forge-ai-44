@@ -15,6 +15,7 @@ import profileRoutes from './routes/profile.routes';
 import settingsRoutes from './routes/settings.routes';
 import achievementsRoutes from './routes/achievements.routes';
 import personalGalleryRoutes from './routes/personal-gallery.routes';
+import schoolGalleryRoutes from './routes/school-gallery.routes';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/achievements', achievementsRoutes);
 app.use('/api/personal-gallery', personalGalleryRoutes);
+app.use('/api/school-gallery', schoolGalleryRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

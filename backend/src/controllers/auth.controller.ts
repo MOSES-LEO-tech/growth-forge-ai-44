@@ -82,27 +82,38 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const googleAuth = async (req: Request, res: Response) => {
-    const { email, googleId, fullName, avatarUrl } = req.body;
-
     try {
+        const { idToken } = req.body;
+        if (!idToken) return res.status(400).json({ message: 'Missing idToken' });
+
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        if (!verifyRes.ok) return res.status(401).json({ message: 'Invalid Google token' });
+        const payload = await verifyRes.json() as any;
+
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+        if (clientId && payload.aud !== clientId) {
+            return res.status(401).json({ message: 'Token audience mismatch' });
+        }
+
+        const email = payload.email;
+        const googleId = payload.sub;
+        const fullName = payload.name || payload.given_name || '';
+        const avatarUrl = payload.picture || null;
+
         let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
         if (user.rows.length === 0) {
-            // Create new user
             const newUser = await pool.query(
-                'INSERT INTO users (email, google_id, full_name, avatar_url) VALUES ($1, $2, $3, $4) RETURNING *',
-                [email, googleId, fullName, avatarUrl]
+                'INSERT INTO users (email, google_id, full_name, avatar_url, role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+                [email, googleId, fullName, avatarUrl, 'student']
             );
             user = newUser;
         } else {
-            // Update existing user with google_id if not present
-            if (!user.rows[0].google_id) {
-                const updatedUser = await pool.query(
-                    'UPDATE users SET google_id = $1, avatar_url = $2 WHERE email = $3 RETURNING *',
-                    [googleId, avatarUrl, email]
-                );
-                user = updatedUser;
-            }
+            const updatedUser = await pool.query(
+                'UPDATE users SET google_id = COALESCE(google_id, $1), avatar_url = COALESCE($2, avatar_url) WHERE email = $3 RETURNING *',
+                [googleId, avatarUrl, email]
+            );
+            user = updatedUser;
         }
 
         const token = generateToken(user.rows[0].id, user.rows[0].role);

@@ -70,11 +70,14 @@ export const upload = {
 };
 
 export const projects = {
-    getAll: () => api.get('/projects'),
+    getAll: (pending?: boolean) => api.get(`/projects${pending ? '?pending=true' : ''}`),
     getOne: (id: string) => api.get(`/projects/${id}`),
     create: (data: any) => api.post('/projects', data),
     update: (id: string, data: any) => api.put(`/projects/${id}`, data),
     delete: (id: string) => api.delete(`/projects/${id}`),
+    addMedia: (id: string, data: any) => api.post(`/projects/${id}/media`, data),
+    verify: (id: string) => api.post(`/projects/${id}/verify`),
+    addFeedback: (id: string, data: any) => api.post(`/projects/${id}/feedback`, data),
 };
 
 export const gallery = {
@@ -89,7 +92,7 @@ export const gallery = {
 };
 
 export const scholarship = {
-    getAll: (params?: { limit?: number; offset?: number }) => 
+    getAll: (params?: { limit?: number; offset?: number }) =>
         api.get('/scholarship', { params }),
     getOne: (id: string) => api.get(`/scholarship/${id}`),
     match: (limit?: number) => api.get('/scholarship/match', { params: { limit } }),
@@ -137,7 +140,7 @@ export const ai = {
                 } else if (line.startsWith('data: ')) {
                     const data = line.slice(6).trim();
                     if (data === '[DONE]') continue;
-                    
+
                     try {
                         const parsed = JSON.parse(data);
                         if (currentEvent === 'token' && parsed.text) {
@@ -161,36 +164,46 @@ export const ai = {
 };
 
 export const achievements = {
-    getAll: () => api.get('/achievements'),
+    getAll: (pending?: boolean) => api.get(`/achievements${pending ? '?pending=true' : ''}`),
     getOne: (id: string) => api.get(`/achievements/${id}`),
-    create: (data: { title: string; description?: string; date_earned?: string; certificate_url?: string }) => 
+    create: (data: { title: string; description?: string; date_earned?: string; certificate_url?: string }) =>
         api.post('/achievements', data),
-    update: (id: string, data: { title?: string; description?: string; date_earned?: string; certificate_url?: string }) => 
+    update: (id: string, data: { title?: string; description?: string; date_earned?: string; certificate_url?: string }) =>
         api.put(`/achievements/${id}`, data),
     delete: (id: string) => api.delete(`/achievements/${id}`),
+    verify: (id: string) => api.post(`/achievements/verify/${id}`),
 };
 
-export const personalGallery = {
-    getAll: () => api.get('/personal-gallery'),
-    getOne: (id: string) => api.get(`/personal-gallery/${id}`),
-    create: (data: { title?: string; description?: string; media_type?: string; media_url: string; thumbnail_url?: string; visibility?: string }) => 
-        api.post('/personal-gallery', data),
-    update: (id: string, data: { title?: string; description?: string; media_type?: string; media_url?: string; thumbnail_url?: string; visibility?: string }) => 
-        api.put(`/personal-gallery/${id}`, data),
-    delete: (id: string) => api.delete(`/personal-gallery/${id}`),
-};
+
 
 export const profile = {
     getMe: () => api.get('/profile/me'),
     updateMe: (data: any) => api.put('/profile/me', data),
     getPublicProfile: (id: string) => api.get(`/profile/${id}`),
     linkParent: (data: { parentEmail: string; relationship?: string }) => api.post('/profile/link-parent', data),
+    getChildren: () => api.get('/profile/children'),
 };
 
 export const settings = {
     get: (key: string) => api.get(`/settings/${key}`),
     update: (key: string, value: string | null) => api.put(`/settings/${key}`, { value }),
     getAll: () => api.get('/settings'),
+};
+
+export const personalGallery = {
+    createItem: (data: any) => api.post('/personal-gallery', data),
+    getMyItems: (page = 1, limit = 20) => api.get(`/personal-gallery?page=${page}&limit=${limit}`),
+    updateItem: (id: number, data: any) => api.put(`/personal-gallery/${id}`, data),
+    deleteItem: (id: number) => api.delete(`/personal-gallery/${id}`),
+    getStudentItems: (studentId: number, page = 1, limit = 20) => api.get(`/personal-gallery/student/${studentId}?page=${page}&limit=${limit}`),
+};
+
+export const schoolGallery = {
+    getAll: (schoolId?: number) => api.get(`/school-gallery${schoolId ? `?schoolId=${schoolId}` : ''}`),
+    getOne: (id: string) => api.get(`/school-gallery/${id}`),
+    create: (data: any) => api.post('/school-gallery', data),
+    addMedia: (id: string, data: any) => api.post(`/school-gallery/${id}/media`, data),
+    delete: (id: string) => api.delete(`/school-gallery/${id}`),
 };
 
 export default api;

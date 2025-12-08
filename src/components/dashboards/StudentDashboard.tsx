@@ -210,15 +210,20 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Event Gallery</CardTitle>
-                <CardDescription>Capture your journey</CardDescription>
+                <CardTitle>School Gallery</CardTitle>
+                <CardDescription>Latest school events and memories</CardDescription>
               </div>
-              <AddGalleryModal userId={profile.id} onItemAdded={fetchData} />
+              <Button variant="outline" size="sm" onClick={() => window.location.href = '/school/gallery'}>
+                View All
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              No events yet. Add your first gallery entry!
+            <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-4">
+              <p>Check out the latest photos and videos from school events!</p>
+              <Button onClick={() => window.location.href = '/school/gallery'} className="w-full sm:w-auto">
+                Browse Gallery
+              </Button>
             </div>
           </CardContent>
         </Card>

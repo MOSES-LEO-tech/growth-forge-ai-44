@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db';
+import { pool } from '../config/database';
 
 // Get current user profile
 export const getProfile = async (req: Request, res: Response) => {
@@ -133,6 +133,33 @@ export const linkParent = async (req: Request, res: Response) => {
         res.json({ message: 'Parent linked successfully' });
     } catch (error) {
         console.error('Error linking parent:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get linked children for parent
+export const getChildren = async (req: Request, res: Response) => {
+    try {
+        const parentId = (req as any).user.id;
+        const userRole = (req as any).user.role;
+
+        if (userRole !== 'parent') {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const result = await pool.query(
+            `SELECT u.id, u.full_name, u.email, u.grade, u.avatar_url, p.gpa, p.intended_course,
+             (SELECT COUNT(*) FROM achievements WHERE user_id = u.id AND verified = true) as achievement_count
+             FROM parent_student_links psl
+             JOIN users u ON psl.student_id = u.id
+             LEFT JOIN profiles p ON u.id = p.user_id
+             WHERE psl.parent_id = $1`,
+            [parentId]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching children:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

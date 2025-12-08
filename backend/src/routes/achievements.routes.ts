@@ -5,7 +5,8 @@ import {
   getAchievementById,
   createAchievement,
   updateAchievement,
-  deleteAchievement
+  deleteAchievement,
+  verifyAchievement
 } from '../controllers/achievements.controller';
 
 const router = Router();
@@ -15,5 +16,8 @@ router.get('/:id', authenticateToken, getAchievementById);
 router.post('/', authenticateToken, createAchievement);
 router.put('/:id', authenticateToken, updateAchievement);
 router.delete('/:id', authenticateToken, deleteAchievement);
+
+// Verify (Teacher only)
+router.post('/verify/:id', authenticateToken, verifyAchievement);
 
 export default router;

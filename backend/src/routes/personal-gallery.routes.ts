@@ -1,19 +1,19 @@
 import { Router } from 'express';
+import { createItem, getMyItems, updateItem, deleteItem, getStudentItems } from '../controllers/personal-gallery.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
-import {
-  getGalleryItems,
-  getGalleryItemById,
-  createGalleryItem,
-  updateGalleryItem,
-  deleteGalleryItem
-} from '../controllers/personal-gallery.controller';
+import { authorize } from '../middleware/rbac.middleware';
 
 const router = Router();
 
-router.get('/', authenticateToken, getGalleryItems);
-router.get('/:id', authenticateToken, getGalleryItemById);
-router.post('/', authenticateToken, createGalleryItem);
-router.put('/:id', authenticateToken, updateGalleryItem);
-router.delete('/:id', authenticateToken, deleteGalleryItem);
+router.use(authenticateToken);
+
+// Student routes
+router.post('/', authorize(['student']), createItem);
+router.get('/', authorize(['student']), getMyItems);
+router.put('/:id', authorize(['student']), updateItem);
+router.delete('/:id', authorize(['student']), deleteItem);
+
+// Parent routes
+router.get('/student/:studentId', authorize(['parent']), getStudentItems);
 
 export default router;
