@@ -22,6 +22,12 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Logging middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -32,9 +38,14 @@ app.use(express.json());
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check with DB status
+app.get('/health', async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+    } catch (error) {
+        res.status(500).json({ status: 'error', database: 'disconnected', timestamp: new Date().toISOString() });
+    }
 });
 
 // Routes
@@ -52,13 +63,53 @@ app.use('/api/achievements', achievementsRoutes);
 app.use('/api/personal-gallery', personalGalleryRoutes);
 app.use('/api/school-gallery', schoolGalleryRoutes);
 
-app.listen(port, async () => {
-    console.log(`Server running on port ${port}`);
-    try {
-        const client = await pool.connect();
-        console.log('Connected to PostgreSQL database');
-        client.release();
-    } catch (err) {
-        console.error('Failed to connect to database:', err);
-    }
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
 });
+
+const connectWithRetry = async (retries = 5, delay = 5000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            await pool.connect();
+            console.log('Successfully connected to PostgreSQL database');
+            return;
+        } catch (err) {
+            console.error(`Database connection attempt ${i + 1} failed:`, err);
+            if (i < retries - 1) {
+                console.log(`Retrying in ${delay / 1000} seconds...`);
+                await new Promise(res => setTimeout(res, delay));
+            }
+        }
+    }
+    console.error('Failed to connect to database after multiple attempts. Exiting...');
+    process.exit(1); // Exit with error code to let Docker restart
+};
+
+const startServer = async () => {
+    await connectWithRetry();
+
+    const server = app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+
+    const shutdown = async () => {
+        console.log('Shutting down server...');
+        server.close(() => {
+            console.log('HTTP server closed');
+            pool.end(() => {
+                console.log('Database pool closed');
+                process.exit(0);
+            });
+        });
+    };
+
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
+};
+
+startServer();
