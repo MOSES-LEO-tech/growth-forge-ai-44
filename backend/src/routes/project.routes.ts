@@ -10,15 +10,14 @@ import {
     addFeedback
 } from '../controllers/project.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
-import { authorize, requireSchoolMember } from '../middleware/rbac.middleware';
+import { authorize } from '../middleware/rbac.middleware';
 import { validate } from '../middleware/validation.middleware';
 import { projectSchema } from '../utils/schemas';
 
 const router = Router();
 
-// All project routes require authentication and school membership
+// All project routes require authentication
 router.use(authenticateToken);
-router.use(requireSchoolMember);
 
 // Get all projects for user (accessible to all roles)
 router.get('/', getProjects);

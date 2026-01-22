@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,13 +18,6 @@ const signUpSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   role: z.enum(["student", "parent", "teacher", "admin"])
 });
-
-declare global {
-  interface Window { google?: any }
-}
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -46,25 +40,25 @@ const Auth = () => {
       const validated = signUpSchema.parse(formData);
       setLoading(true);
 
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: validated.email,
-          password: validated.password,
-          fullName: validated.fullName,
-          role: validated.role
-        })
+      const { data, error } = await supabase.auth.signUp({
+        email: validated.email,
+        password: validated.password,
+        options: {
+          data: {
+            full_name: validated.fullName,
+            role: validated.role
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create account");
 
-      if (data.token) localStorage.setItem("token", data.token);
+      if (error) throw error;
 
       toast({
         title: "Account created!",
         description: "Welcome to MILESTONE. Redirecting to your dashboard..."
       });
+      
       navigate("/dashboard");
     } catch (error: any) {
       toast({
@@ -82,20 +76,18 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, password: formData.password })
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to sign in");
 
-      if (data.token) localStorage.setItem("token", data.token);
+      if (error) throw error;
 
       toast({
         title: "Welcome back!",
         description: "Redirecting to your dashboard..."
       });
+      
       navigate("/dashboard");
     } catch (error: any) {
       toast({
@@ -108,39 +100,6 @@ const Auth = () => {
     }
   };
 
-  const handleGoogleCredential = async (response: any) => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE}/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken: response.credential })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Google sign-in failed');
-      if (data.token) localStorage.setItem('token', data.token);
-      toast({ title: 'Welcome!', description: 'Signed in with Google' });
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Google sign-in failed', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (window.google && GOOGLE_CLIENT_ID) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredential
-      });
-      const el = document.getElementById('googleSignInDiv');
-      if (el) {
-        window.google.accounts.id.renderButton(el, { theme: 'outline', size: 'large' });
-      }
-    }
-  }, []);
-  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <Card 
@@ -193,8 +152,6 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
-                <div className="my-4 text-center text-sm text-muted-foreground">or</div>
-                <div id="googleSignInDiv" className="flex justify-center"></div>
               </form>
             </TabsContent>
             

@@ -11,6 +11,7 @@ import { useInView } from "@/hooks/useInView";
 
 const Gallery = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(9);
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
 
@@ -26,6 +27,8 @@ const Gallery = () => {
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const visibleEvents = filteredEvents?.slice(0, visibleCount) || [];
 
   return (
     <div className="min-h-screen">
@@ -77,8 +80,8 @@ const Gallery = () => {
                     <div className="col-span-full text-center py-16">
                       <p className="text-muted-foreground">Loading events...</p>
                     </div>
-                  ) : filteredEvents && filteredEvents.length > 0 ? (
-                    filteredEvents.map((event, index) => (
+                  ) : visibleEvents && visibleEvents.length > 0 ? (
+                    visibleEvents.map((event, index) => (
                       <div
                         key={event.id}
                         className={`transition-all duration-700 ${gridInView
@@ -98,6 +101,16 @@ const Gallery = () => {
                     </div>
                   )}
                 </div>
+                {filteredEvents && filteredEvents.length > visibleCount && (
+                  <div className="flex justify-center mt-8">
+                    <button
+                      onClick={() => setVisibleCount(c => c + 9)}
+                      className="px-4 py-2 rounded bg-primary text-primary-foreground"
+                    >
+                      Load more
+                    </button>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="photos" className="mt-8">

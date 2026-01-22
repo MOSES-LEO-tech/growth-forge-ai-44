@@ -10,5 +10,5 @@
         "forceConsistentCasingInFileNames": true
     },
     "include": ["src"],
-    "exclude": ["__tests__", "coverage", "node_modules"]
+    "exclude": ["dist", "__tests__", "scripts"]
 }

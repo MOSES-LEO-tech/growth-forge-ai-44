@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   backend-test:
-    build: ./backend
+    build:
+      context: ./backend
+      target: dev
     ports:
       - "3002:3002"
       - "9230:9229"

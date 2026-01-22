@@ -23,6 +23,9 @@ export const authorize = (allowedRoles: string[]) => {
     };
 };
 
+// Alias to satisfy tests expecting requireRole
+export const requireRole = (roles: string[]) => authorize(roles);
+
 export const requireSchoolMember = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // @ts-ignore

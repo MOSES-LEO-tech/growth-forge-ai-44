@@ -10,8 +10,28 @@ import SchoolHallOfFame from "@/components/SchoolHallOfFame";
 import SchoolYearbook from "@/components/SchoolYearbook";
 import { useInView } from "@/hooks/useInView";
 
-// Mock data - replace with API call
-const schoolData: any = {
+type SchoolData = {
+  id: string;
+  name: string;
+  logoUrl: string;
+  bannerUrl: string;
+  location: string;
+  studentCount: number;
+  teacherCount: number;
+  activeUsers: number;
+  tagline: string;
+  type: string;
+  level: string;
+  curriculum: string;
+  description: string;
+  contact: { email: string; phone: string; address: string };
+  colors: { primary: string; secondary: string };
+  gallery: string[];
+  hallOfFame: { name: string; role: string; image: string; bio: string }[];
+  yearbooks: { year: number; coverUrl: string }[];
+};
+
+const schoolData: Record<string, SchoolData> = {
   "1": {
     id: "1",
     name: "Greenfield International Academy",

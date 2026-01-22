@@ -141,15 +141,12 @@ export const linkParent = async (req: Request, res: Response) => {
 export const getChildren = async (req: Request, res: Response) => {
     try {
         const parentId = (req as any).user.id;
-        const userRole = (req as any).user.role;
-
-        if (userRole !== 'parent') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
 
         const result = await pool.query(
-            `SELECT u.id, u.full_name, u.email, u.grade, u.avatar_url, p.gpa, p.intended_course,
-             (SELECT COUNT(*) FROM achievements WHERE user_id = u.id AND verified = true) as achievement_count
+            `SELECT u.id, u.full_name, u.email, u.grade, u.avatar_url,
+                    COALESCE(p.gpa, 0) as gpa,
+                    COALESCE(p.intended_course, 'Undeclared') as intended_course,
+                    (SELECT COUNT(*) FROM achievements WHERE user_id = u.id AND verified = true) as achievement_count
              FROM parent_student_links psl
              JOIN users u ON psl.student_id = u.id
              LEFT JOIN profiles p ON u.id = p.user_id

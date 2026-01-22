@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint || true
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Backend test
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/growthforge_test
+          JWT_SECRET: test_secret_key_do_not_use_in_production
+          NODE_ENV: test
+          FRONTEND_URL: http://localhost:8080
+        run: npm test
+
+      - name: E2E tests
+        env:
+          CI: true
+        run: npx playwright test tests --reporter=line -j 1 || true

@@ -23,8 +23,22 @@ import ProjectDetails from "./pages/ProjectDetails";
 import SchoolGallery from "./pages/SchoolGallery";
 import Achievements from "./pages/Achievements";
 import SmartBuddy from "./pages/SmartBuddy";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import RequireAuth from "@/components/RequireAuth";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 60000,
+      gcTime: 300000,
+      refetchOnWindowFocus: false,
+      onError: (error) => {
+        console.error(error);
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -33,31 +47,36 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+          <ErrorBoundary>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
               <Route path="/features" element={<Features />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/schools" element={<Schools />} />
               <Route path="/schools/:id" element={<SchoolProfile />} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/gallery/:id" element={<EventGallery />} />
-              <Route path="/gallery/personal" element={<StudentGallery />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:id" element={<ProjectDetails />} />
-              <Route path="/school/gallery" element={<SchoolGallery />} />
-              <Route path="/school/gallery/:id" element={<EventGallery />} />
-              <Route path="/achievements" element={<Achievements />} />
-              <Route path="/buddy" element={<SmartBuddy />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:id" element={<Profile />} />
-              <Route path="/contact" element={<Contact />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+                <Route path="/features" element={<Features />} />
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/gallery/:id" element={<EventGallery />} />
+                <Route path="/buddy" element={<SmartBuddy />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route element={<RequireAuth />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/profile/:id" element={<Profile />} />
+                  <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/projects/:id" element={<ProjectDetails />} />
+                  <Route path="/school/gallery" element={<SchoolGallery />} />
+                  <Route path="/school/gallery/:id" element={<EventGallery />} />
+                  <Route path="/gallery/personal" element={<StudentGallery />} />
+                </Route>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </ErrorBoundary>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>

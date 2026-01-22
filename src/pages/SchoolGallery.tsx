@@ -10,6 +10,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Calendar, MapPin, Plus, School } from 'lucide-react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 interface SchoolEvent {
     id: number;
@@ -27,8 +28,18 @@ const SchoolGallery = () => {
     const { user } = useAuth();
     const { toast } = useToast();
 
-    const [events, setEvents] = useState<SchoolEvent[]>([]);
-    const [loading, setLoading] = useState(true);
+    const limit = 12;
+    const { data, isLoading, fetchNextPage, hasNextPage, refetch, isFetchingNextPage } = useInfiniteQuery({
+        queryKey: ['school-gallery', user?.schoolId, limit],
+        initialPageParam: 1,
+        queryFn: async ({ pageParam }) => {
+            const res = await schoolGallery.getAll(undefined, pageParam as number, limit);
+            return res.data as SchoolEvent[];
+        },
+        getNextPageParam: (lastPage, allPages) => {
+            return lastPage.length >= limit ? allPages.length + 1 : undefined;
+        },
+    });
 
     // Create Event State
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -41,20 +52,8 @@ const SchoolGallery = () => {
     const [creating, setCreating] = useState(false);
 
     useEffect(() => {
-        fetchEvents();
-    }, [user]);
-
-    const fetchEvents = async () => {
-        try {
-            const response = await schoolGallery.getAll();
-            setEvents(response.data);
-        } catch (error) {
-            console.error('Fetch events error:', error);
-            toast({ title: "Error", description: "Failed to load events", variant: "destructive" });
-        } finally {
-            setLoading(false);
-        }
-    };
+        refetch();
+    }, [user, refetch]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -64,7 +63,7 @@ const SchoolGallery = () => {
             toast({ title: "Success", description: "Event created successfully" });
             setIsCreateOpen(false);
             setFormData({ title: '', description: '', eventDate: '', location: '' });
-            fetchEvents();
+            refetch();
         } catch (error) {
             toast({ title: "Error", description: "Failed to create event", variant: "destructive" });
         } finally {
@@ -73,6 +72,8 @@ const SchoolGallery = () => {
     };
 
     const canCreate = user?.role === 'teacher' || user?.role === 'admin';
+
+    const events: SchoolEvent[] = data?.pages.flat() ?? [];
 
     return (
         <div className="container mx-auto py-8">
@@ -134,7 +135,7 @@ const SchoolGallery = () => {
                 )}
             </div>
 
-            {loading ? (
+            {isLoading ? (
                 <div className="text-center py-12">Loading events...</div>
             ) : events.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">No events found.</div>
@@ -144,7 +145,7 @@ const SchoolGallery = () => {
                         <Card key={event.id} className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden" onClick={() => navigate(`/school/gallery/${event.id}`)}>
                             <div className="h-48 bg-muted relative">
                                 {event.cover_image ? (
-                                    <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover" />
+                                    <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover" loading="lazy" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-secondary/20">
                                         <School className="h-12 w-12 text-muted-foreground/50" />
@@ -166,6 +167,13 @@ const SchoolGallery = () => {
                             </CardContent>
                         </Card>
                     ))}
+                    <div className="col-span-full flex justify-center mt-6">
+                        {hasNextPage && (
+                            <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

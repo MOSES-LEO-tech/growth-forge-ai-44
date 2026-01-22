@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { projects as projectsApi } from "@/services/api";
+import type { Project } from "@/services/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,11 +19,11 @@ const Projects = () => {
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
   const { toast } = useToast();
 
-  const { data: projects, isLoading, isError, error } = useQuery({
+  const { data: projects, isLoading, isError, error } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
       const response = await projectsApi.getAll();
-      return response.data.data;
+      return response.data.data as Project[];
     },
   });
 
@@ -37,14 +38,14 @@ const Projects = () => {
     }
   }, [isError, error, toast]);
 
-  const filteredProjects = projects?.filter((project: any) =>
+  const filteredProjects = projects?.filter((project: Project) =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const newProjects = filteredProjects?.filter((p: any) => p.status === 'pending');
-  const ongoingProjects = filteredProjects?.filter((p: any) => p.status === 'ongoing');
-  const completedProjects = filteredProjects?.filter((p: any) => p.status === 'complete');
+  const newProjects = filteredProjects?.filter((p: Project) => p.status === 'pending');
+  const ongoingProjects = filteredProjects?.filter((p: Project) => p.status === 'ongoing');
+  const completedProjects = filteredProjects?.filter((p: Project) => p.status === 'complete');
 
   return (
     <div className="min-h-screen">

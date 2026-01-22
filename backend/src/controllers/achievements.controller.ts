@@ -113,7 +113,7 @@ export const createAchievement = async (req: AuthRequest, res: Response) => {
       await updateStudentStats(targetUserId);
     }
 
-    return ApiResponse.success(res, result.rows[0], 201);
+    return ApiResponse.success(res, result.rows[0], 'Achievement created', 201);
   } catch (error: any) {
     console.error("Create achievement error:", error);
     return ApiResponse.error(res, 'Server error', 500, error);

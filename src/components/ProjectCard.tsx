@@ -4,17 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  start_date: string;
-  end_date: string | null;
-  collaborators: string[] | null;
-  skills_tracked: any;
-}
+import type { Project } from "@/services/api";
 
 interface ProjectCardProps {
   project: Project;
@@ -27,9 +17,9 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-500';
-      case 'in_progress':
+      case 'ongoing':
         return 'bg-blue-500';
-      case 'completed':
+      case 'complete':
         return 'bg-green-500';
       default:
         return 'bg-gray-500';
@@ -40,9 +30,9 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     switch (status) {
       case 'pending':
         return 'New';
-      case 'in_progress':
+      case 'ongoing':
         return 'Ongoing';
-      case 'completed':
+      case 'complete':
         return 'Completed';
       default:
         return status;
@@ -50,8 +40,8 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   };
 
   // Calculate mock progress based on status
-  const progress = project.status === 'completed' ? 100 : 
-                   project.status === 'in_progress' ? 60 : 10;
+  const progress = project.status === 'complete' ? 100 : 
+                   project.status === 'ongoing' ? 60 : 10;
 
   return (
     <Card 

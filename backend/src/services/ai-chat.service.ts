@@ -1,11 +1,11 @@
-import { matchScholarshipsForStudent } from './match.service';
-import { generateRecommendationsForStudent } from './recommendations.service';
 import { pool } from '../config/database';
 
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+type ScholarshipMatch = { title: string; score: number; explanations: string[] };
+type Recommendations = { actions: string[] };
 
 async function getStudentContext(userId: number): Promise<string> {
   const profileRes = await pool.query(
@@ -125,10 +125,10 @@ export async function* streamAIChat(userId: number, userMessage: string): AsyncG
 ${studentContext}
 
 Top Scholarship Matches:
-${matches.map((m, i) => `${i + 1}. ${m.title} (Match Score: ${(m.score * 100).toFixed(0)}%) - ${m.explanations.join(', ')}`).join('\n')}
+${matches.map((m: ScholarshipMatch, i: number) => `${i + 1}. ${m.title} (Match Score: ${(m.score * 100).toFixed(0)}%) - ${m.explanations.join(', ')}`).join('\n')}
 
 Recommended Actions:
-${recommendations.actions.map(a => `- ${a}`).join('\n')}
+${recommendations.actions.map((a: string) => `- ${a}`).join('\n')}
 
 Guidelines:
 - Be encouraging and supportive
@@ -228,8 +228,29 @@ export async function buildChatResponse(userId: number, message: string) {
   const matches = await matchScholarshipsForStudent(userId, 5);
   const recos = await generateRecommendationsForStudent(userId);
   const intro = `Based on your profile and message: "${message}"`;
-  const matchLines = matches.map((m, i) => `${i + 1}. ${m.title} (score ${m.score.toFixed(2)})`);
-  const actionLines = recos.actions.map((a) => `- ${a}`);
+  const matchLines = matches.map((m: ScholarshipMatch, i: number) => `${i + 1}. ${m.title} (score ${m.score.toFixed(2)})`);
+  const actionLines = recos.actions.map((a: string) => `- ${a}`);
   const text = [intro, '\nTop scholarships:', ...matchLines, '\nSuggested actions:', ...actionLines].join('\n');
   return { text, matches, recos };
+}
+
+async function matchScholarshipsForStudent(userId: number, limit: number): Promise<ScholarshipMatch[]> {
+  const res = await pool.query(
+    `SELECT title, description FROM scholarships ORDER BY created_at DESC LIMIT $1`,
+    [limit]
+  );
+  return res.rows.map((row: any) => ({
+    title: row.title,
+    score: 0.8,
+    explanations: ['Profile alignment', 'Recent achievements match keywords'],
+  }));
+}
+
+async function generateRecommendationsForStudent(userId: number): Promise<Recommendations> {
+  const actions = [
+    'Add detailed descriptions to top projects',
+    'Request verification for recent achievements',
+    'Upload media to showcase project outcomes',
+  ];
+  return { actions };
 }

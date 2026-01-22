@@ -1,10 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
-import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA } from "vite-plugin-pwa";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -12,37 +10,57 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'placeholder.svg'],
-      manifest: {
-        name: 'StudentHub - Next-Gen Portfolio',
-        short_name: 'StudentHub',
-        description: 'Track achievements, build portfolios, and unlock opportunities for growth.',
-        theme_color: '#ffffff',
-        display: 'standalone',
-        background_color: '#ffffff',
-        icons: [
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      workbox: {
+        navigateFallback: "index.html",
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
+        runtimeCaching: [
           {
-            src: '/placeholder.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            urlPattern: ({ url }) =>
+              url.origin === "http://localhost:3000" && url.pathname.startsWith("/api/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+            },
           },
           {
-            src: '/placeholder.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    })
-  ].filter(Boolean),
+            urlPattern: ({ request }) => request.destination === "image",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "image-cache",
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "page-cache",
+              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 30 },
+            },
+          },
+        ],
+      },
+      manifest: {
+        name: "Growth Forge AI",
+        short_name: "GrowthForge",
+        description: "Track achievements, projects, and opportunities with AI.",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#0f172a",
+        theme_color: "#0ea5e9",
+      },
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
 }));
+

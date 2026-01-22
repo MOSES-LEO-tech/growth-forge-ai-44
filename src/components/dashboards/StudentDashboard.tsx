@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { dashboard, projects as projectsApi } from "@/services/api";
+import type { Achievement, Project, Profile } from "@/services/api";
+import type { AxiosError } from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award, Edit, Trash2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -15,16 +17,16 @@ import EditProjectModal from "@/components/EditProjectModal";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import ProjectDetailsModal from "@/components/ProjectDetailsModal";
 
-const StudentDashboard = ({ profile }: { profile: any }) => {
-  const [achievements, setAchievements] = useState([]);
-  const [projects, setProjects] = useState([]);
+const StudentDashboard = ({ profile }: { profile: Profile }) => {
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // Modal states
-  const [editProject, setEditProject] = useState<any>(null);
-  const [deleteProject, setDeleteProject] = useState<any>(null);
-  const [viewProject, setViewProject] = useState<any>(null);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
+  const [viewProject, setViewProject] = useState<Project | null>(null);
 
   const fetchData = async () => {
     try {
@@ -56,11 +58,12 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
 
       setDeleteProject(null);
       fetchData();
-    } catch (error: any) {
-      console.error("Delete project error:", error);
+    } catch (error) {
+      const err = error as AxiosError<{ message?: string }>;
+      console.error("Delete project error:", err);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to delete project",
+        description: err.response?.data?.message || "Failed to delete project",
         variant: "destructive"
       });
     }
@@ -80,7 +83,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
       <div className="mb-8">
         <DashboardStats
           achievements={achievements.length}
-          projects={projects.filter((p: any) => p.status === "ongoing").length}
+          projects={projects.filter((p: Project) => p.status === "ongoing").length}
           events={12}
           growthScore={85}
         />
@@ -101,7 +104,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
               </div>
             ) : (
               <div className="space-y-4">
-                {achievements.map((achievement: any) => (
+                {achievements.map((achievement: Achievement) => (
                   <div key={achievement.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center flex-shrink-0">
                       <Award className="w-5 h-5 text-white" />
@@ -144,7 +147,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
               </div>
             ) : (
               <div className="space-y-4">
-                {projects.map((project: any) => (
+                {projects.map((project: Project) => (
                   <div key={project.id} className="p-4 rounded-lg bg-gradient-to-br from-blue-50/50 to-cyan-50/50 border border-blue-100 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h4 className="font-semibold text-lg">{project.title}</h4>
@@ -163,7 +166,7 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
                     )}
                     {project.skills_tracked && Object.keys(project.skills_tracked).length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {Object.entries(project.skills_tracked).map(([skill, level]: [string, any]) => (
+                        {Object.entries(project.skills_tracked).map(([skill, level]: [string, number]) => (
                           <Badge key={skill} variant="outline" className="text-xs">
                             {skill}: {level}/5
                           </Badge>

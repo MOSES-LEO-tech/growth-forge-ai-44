@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
@@ -23,32 +23,40 @@ const Dashboard = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         navigate("/auth");
         return;
       }
 
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) {
-        localStorage.removeItem("token");
-        navigate("/auth");
-        return;
-      }
-      const profileData = await res.json();
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
       setProfile(profileData);
       setLoading(false);
     };
 
     checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSignOut = async () => {
-    localStorage.removeItem("token");
-    toast({ title: "Signed out", description: "You have been signed out successfully" });
-    navigate("/auth");
+    await supabase.auth.signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully"
+    });
   };
 
   if (loading) {
