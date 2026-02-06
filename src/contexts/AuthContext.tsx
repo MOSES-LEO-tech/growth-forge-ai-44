@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { auth } from '@/services/api';
+import { auth, type User as ApiUser } from '@/services/api';
+
+type Role = 'student' | 'parent' | 'teacher' | 'admin';
 
 export interface User {
   id: string;
@@ -55,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (data: { email: string; password: string; fullName: string; role: string; schoolId?: number }) => {
-    const response = await auth.register(data);
+    const response = await auth.register(data as { email: string; password: string; fullName: string; role: Role; schoolId?: number });
     const { token: newToken, user: userData } = response.data;
 
     localStorage.setItem('token', newToken);

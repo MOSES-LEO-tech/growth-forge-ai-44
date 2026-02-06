@@ -72,7 +72,7 @@ const ProjectDetails = () => {
         try {
             if (!id) return;
             const response = await projects.getOne(id);
-            setProject(response.data);
+            setProject(response.data as any);
         } catch (error) {
             console.error('Error fetching project:', error);
             toast({ title: "Error", description: "Failed to load project", variant: "destructive" });
@@ -95,11 +95,8 @@ const ProjectDetails = () => {
             if (mimetype.includes('pdf')) mediaType = 'pdf';
 
             await projects.addMedia(id, {
-                mediaType,
-                mediaUrl: url,
-                fileName: originalName,
-                fileSize: size,
-                thumbnailUrl
+                media_type: mediaType as 'image' | 'video' | 'pdf',
+                media_url: url,
             });
 
             toast({ title: "Success", description: "Media added to project" });
@@ -133,7 +130,7 @@ const ProjectDetails = () => {
         if (!id) return;
         setSubmittingFeedback(true);
         try {
-            await projects.addFeedback(id, { comment, rating });
+            await projects.addFeedback(id, { text: comment, rating });
             toast({ title: "Feedback Added", description: "Thank you for your review" });
             setComment('');
             setRating(5);
