@@ -49,8 +49,9 @@ const Achievements = () => {
     const fetchData = async () => {
         try {
             const response = await achievements.getAll();
-            setList(response.data.achievements);
-            setStats(response.data.stats);
+            const data = response.data as any;
+            setList(Array.isArray(data) ? data : data.achievements || []);
+            if (data.stats) setStats(data.stats);
         } catch (error) {
             // Silent error or toast
         } finally {

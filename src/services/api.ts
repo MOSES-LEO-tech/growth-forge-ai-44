@@ -51,6 +51,7 @@ type ProjectCreateRequest = {
     description?: string;
     start_date?: string;
     end_date?: string;
+    status?: ProjectStatus;
     collaborators?: string[];
 };
 
@@ -64,7 +65,8 @@ type ProjectMediaRequest = {
 };
 
 type ProjectFeedbackRequest = {
-    text: string;
+    text?: string;
+    comment?: string;
     rating?: number;
 };
 
@@ -83,6 +85,7 @@ type GalleryEventCreateRequest = {
     event_date: string;
     type?: 'personal' | 'school';
     location?: string;
+    created_by?: string;
 };
 
 type GalleryMediaCreateRequest = {
