@@ -1,9 +1,0 @@
-{
-  "status": "commited",
-  "type": "backend",
-  "scope": "codebase",
-  "localEndpoint": "http://localhost:5173/8000",
-  "backendAuthType": "basic token",
-  "backendUsername": "marklot001@gmail.com",
-  "backendPassword": "mark003@"
-}

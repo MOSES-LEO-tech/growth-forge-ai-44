@@ -17,6 +17,7 @@ import profileRoutes from './routes/profile.routes';
 import settingsRoutes from './routes/settings.routes';
 import personalGalleryRoutes from './routes/personal-gallery.routes';
 import schoolGalleryRoutes from './routes/school-gallery.routes';
+import schoolsRoutes from './routes/schools.routes';
 import { sanitizeInput } from './middleware/sanitization.middleware';
 
 dotenv.config();
@@ -230,6 +231,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/personal-gallery', personalGalleryRoutes);
 app.use('/api/school-gallery', schoolGalleryRoutes);
+app.use('/api/schools', schoolsRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

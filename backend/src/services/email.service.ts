@@ -1,5 +1,7 @@
 // Email service for authentication
-// In production, integrate with a real email provider like SendGrid, AWS SES, etc.
+// Uses Nodemailer for sending emails via SMTP
+
+import nodemailer from 'nodemailer';
 
 interface EmailOptions {
     to: string;
@@ -9,6 +11,7 @@ interface EmailOptions {
 }
 
 class EmailService {
+    private transporter: nodemailer.Transporter | null = null;
     private fromEmail: string;
     private fromName: string;
     private frontendUrl: string;
@@ -17,11 +20,40 @@ class EmailService {
         this.fromEmail = process.env.EMAIL_FROM || 'noreply@growthforge.ai';
         this.fromName = process.env.EMAIL_FROM_NAME || 'Growth Forge AI';
         this.frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+        
+        // Initialize transporter only in production or if SMTP is configured
+        this.initTransporter();
+    }
+
+    private initTransporter(): void {
+        const smtpHost = process.env.SMTP_HOST;
+        const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
+
+        if (smtpHost && smtpUser && smtpPass) {
+            this.transporter = nodemailer.createTransport({
+                host: smtpHost,
+                port: smtpPort,
+                secure: smtpPort === 465, // true for SSL, false for TLS
+                auth: {
+                    user: smtpUser,
+                    pass: smtpPass,
+                },
+                tls: {
+                    rejectUnauthorized: process.env.NODE_ENV === 'production'
+                }
+            });
+            
+            console.log('📧 Email service initialized with SMTP:', smtpHost);
+        } else {
+            console.log('📧 Email service running in development mode (emails will be logged)');
+        }
     }
 
     async sendEmail(options: EmailOptions): Promise<boolean> {
         // In development, just log the email
-        if (process.env.NODE_ENV !== 'production') {
+        if (process.env.NODE_ENV !== 'production' && !this.transporter) {
             console.log('📧 [DEV] Email sent:');
             console.log(`   To: ${options.to}`);
             console.log(`   Subject: ${options.subject}`);
@@ -29,21 +61,23 @@ class EmailService {
             return true;
         }
 
-        // In production, integrate with real email provider
-        // Example with SendGrid:
-        // try {
-        //     await sgMail.send({
-        //         to: options.to,
-        //         from: { email: this.fromEmail, name: this.fromName },
-        //         subject: options.subject,
-        //         html: options.html,
-        //         text: options.text,
-        //     });
-        //     return true;
-        // } catch (error) {
-        //     console.error('Failed to send email:', error);
-        //     return false;
-        // }
+        // In production or with SMTP configured, send real email
+        if (this.transporter) {
+            try {
+                await this.transporter.sendMail({
+                    from: `"${this.fromName}" <${this.fromEmail}>`,
+                    to: options.to,
+                    subject: options.subject,
+                    html: options.html,
+                    text: options.text || this.stripHtml(options.html),
+                });
+                console.log(`📧 [PROD] Email sent to ${options.to}: ${options.subject}`);
+                return true;
+            } catch (error) {
+                console.error('Failed to send email:', error);
+                return false;
+            }
+        }
 
         console.log('📧 [PROD] Email would be sent:', options.subject);
         return true;
@@ -52,6 +86,12 @@ class EmailService {
     private generatePreviewUrl(html: string): string {
         // For development debugging
         return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    }
+
+    private stripHtml(html: string): string {
+        return html.replace(/<[^>]*>/g, '')
+                  .replace(/\s+/g, ' ')
+                  .trim();
     }
 
     async sendVerificationEmail(to: string, token: string, userName?: string): Promise<boolean> {
@@ -238,6 +278,101 @@ class EmailService {
         return this.sendEmail({
             to,
             subject: 'New Login detected - Growth Forge AI',
+            html,
+        });
+    }
+
+    // New email templates
+    
+    async sendWelcomeEmail(to: string, userName: string): Promise<boolean> {
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Welcome to Growth Forge AI</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Welcome to Growth Forge AI!</h1>
+            </div>
+            
+            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                <p>Hi ${userName},</p>
+                
+                <p>Welcome to Growth Forge AI! We're excited to have you on board.</p>
+                
+                <p>Here's what you can do next:</p>
+                <ul style="line-height: 1.8;">
+                    <li>📝 Complete your profile with your achievements</li>
+                    <li>🏆 Add projects to showcase your work</li>
+                    <li>🎓 Get matched with scholarships</li>
+                    <li>💬 Chat with SmartBuddy for personalized advice</li>
+                </ul>
+                
+                <p style="color: #666; font-size: 14px;">
+                    If you have any questions, our support team is here to help!
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    © ${new Date().getFullYear()} Growth Forge AI. All rights reserved.
+                </p>
+            </div>
+        </body>
+        </html>
+        `;
+
+        return this.sendEmail({
+            to,
+            subject: 'Welcome to Growth Forge AI!',
+            html,
+        });
+    }
+
+    async sendAchievementVerifiedEmail(to: string, userName: string, achievementTitle: string, verifierName: string): Promise<boolean> {
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Achievement Verified</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">🏆 Achievement Verified!</h1>
+            </div>
+            
+            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                <p>Hi ${userName},</p>
+                
+                <p>Great news! Your achievement has been verified:</p>
+                
+                <div style="background: #fff; border: 2px solid #4CAF50; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+                    <p style="margin: 0; font-size: 18px; font-weight: bold; color: #4CAF50;">✓ ${achievementTitle}</p>
+                    <p style="margin: 10px 0 0 0; color: #666;">Verified by ${verifierName}</p>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">
+                    Verified achievements help strengthen your portfolio and improve your scholarship matches!
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    © ${new Date().getFullYear()} Growth Forge AI. All rights reserved.
+                </p>
+            </div>
+        </body>
+        </html>
+        `;
+
+        return this.sendEmail({
+            to,
+            subject: `🏆 Your Achievement "${achievementTitle}" Has Been Verified!`,
             html,
         });
     }

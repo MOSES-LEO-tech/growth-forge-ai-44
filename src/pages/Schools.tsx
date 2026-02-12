@@ -1,85 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SchoolCard from "@/components/SchoolCard";
 import { useInView } from "@/hooks/useInView";
-
-// Mock data - replace with API call later
-const schools = [
-  {
-    id: "1",
-    name: "Greenfield International Academy",
-    logoUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=200&h=200&fit=crop",
-    location: "London, UK",
-    studentCount: 850,
-    tagline: "Excellence in Education",
-    type: "International",
-    country: "UK"
-  },
-  {
-    id: "2",
-    name: "Sunrise Global School",
-    logoUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=200&h=200&fit=crop",
-    location: "Dubai, UAE",
-    studentCount: 1200,
-    tagline: "Nurturing Tomorrow's Leaders",
-    type: "International",
-    country: "UAE"
-  },
-  {
-    id: "3",
-    name: "Tech Valley High School",
-    logoUrl: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=200&h=200&fit=crop",
-    location: "San Francisco, USA",
-    studentCount: 650,
-    tagline: "Innovation Through Education",
-    type: "Secondary",
-    country: "USA"
-  },
-  {
-    id: "4",
-    name: "Royal Cambridge College",
-    logoUrl: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=200&h=200&fit=crop",
-    location: "Cambridge, UK",
-    studentCount: 920,
-    tagline: "Tradition Meets Innovation",
-    type: "College",
-    country: "UK"
-  },
-  {
-    id: "5",
-    name: "Harmony Public School",
-    logoUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=200&h=200&fit=crop",
-    location: "Singapore",
-    studentCount: 1450,
-    tagline: "Building Character, Shaping Futures",
-    type: "Primary & Secondary",
-    country: "Singapore"
-  },
-  {
-    id: "6",
-    name: "Maple Leaf Academy",
-    logoUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=200&h=200&fit=crop",
-    location: "Toronto, Canada",
-    studentCount: 780,
-    tagline: "Where Learning Comes Alive",
-    type: "International",
-    country: "Canada"
-  }
-];
+import schoolsService, { School } from "@/services/schools";
+import { useToast } from "@/components/ui/use-toast";
 
 const Schools = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
+  
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await schoolsService.getSchools({
+          page: 1,
+          limit: 20,
+          search: searchQuery
+        });
+        setSchools(response.schools);
+        setPagination(response.pagination);
+      } catch (err: any) {
+        console.error('Error fetching schools:', err);
+        setError(err.response?.data?.message || 'Failed to load schools');
+        toast({
+          title: 'Error',
+          description: 'Failed to load schools',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce search
+    const debounce = setTimeout(() => {
+      fetchSchools();
+    }, 300);
+
+    return () => clearTimeout(debounce);
+  }, [searchQuery, toast]);
 
   const filteredSchools = schools.filter(school => 
     school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    school.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    school.type.toLowerCase().includes(searchQuery.toLowerCase())
+    (school.location && school.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (school.type && school.type.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -122,31 +99,58 @@ const Schools = () => {
       {/* Schools Grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div 
-            ref={gridRef}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            {filteredSchools.map((school, index) => (
-              <div
-                key={school.id}
-                className={`transition-all duration-700 ${
-                  gridInView 
-                    ? 'opacity-100 translate-y-0' 
-                    : 'opacity-0 translate-y-8'
-                }`}
-                style={{ 
-                  transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
-                }}
-              >
-                <SchoolCard school={school} />
-              </div>
-            ))}
-          </div>
-
-          {filteredSchools.length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-xl text-muted-foreground">No schools found matching your search.</p>
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="ml-2">Loading schools...</span>
             </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <p className="text-xl text-destructive">{error}</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => window.location.reload()}
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div 
+                ref={gridRef}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              >
+                {filteredSchools.map((school, index) => (
+                  <div
+                    key={school.id}
+                    className={`transition-all duration-700 ${
+                      gridInView 
+                        ? 'opacity-100 translate-y-0' 
+                        : 'opacity-0 translate-y-8'
+                    }`}
+                    style={{ 
+                      transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
+                    }}
+                  >
+                    <SchoolCard school={school} />
+                  </div>
+                ))}
+              </div>
+
+              {filteredSchools.length === 0 && (
+                <div className="text-center py-16">
+                  <p className="text-xl text-muted-foreground">No schools found matching your search.</p>
+                </div>
+              )}
+
+              {/* Pagination Info */}
+              {pagination.total > 0 && (
+                <div className="text-center mt-8 text-muted-foreground">
+                  Showing {filteredSchools.length} of {pagination.total} schools
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

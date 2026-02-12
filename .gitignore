@@ -12,6 +12,31 @@ dist
 dist-ssr
 *.local
 
+# Backend specific
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/uploads/
+backend/*.log
+
+# Frontend specific
+src/assets/*.jpg
+src/assets/*.png
+
+# Test results
+test-results/
+tests/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package lock (using bun.lockb)
+package-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
