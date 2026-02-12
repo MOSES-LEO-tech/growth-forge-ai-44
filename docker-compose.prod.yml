@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: growthforge
+      POSTGRES_DB: growth_forge
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,10 +23,11 @@ services:
         condition: service_healthy
     environment:
       PORT: 3000
-      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/growthforge}
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/growth_forge}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4173}
       NODE_ENV: production
+    env_file:
+      - ./backend/.env
     ports:
       - "3000:3000"
     healthcheck:

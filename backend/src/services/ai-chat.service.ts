@@ -4,30 +4,207 @@ const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
-type ScholarshipMatch = { title: string; score: number; explanations: string[] };
+type ScholarshipMatch = {
+  id: number;
+  title: string;
+  score: number;
+  matchedCriteria: string[];
+  missingCriteria: string[];
+};
 type Recommendations = { actions: string[] };
 
-async function getStudentContext(userId: number): Promise<string> {
+// Interfaces for scholarship matching
+interface StudentProfile {
+  gpa?: number;
+  intended_course?: string;
+  grade?: string;
+  achievements: string[];
+  skills: string[];
+}
+
+interface Scholarship {
+  id: number;
+  title: string;
+  description: string | null;
+  min_gpa?: number;
+  eligible_courses?: string[];
+  requirements?: string[];
+  amount: number | null;
+  deadline: Date | null;
+}
+
+// Calculate real scholarship match score based on student profile
+function calculateScholarshipMatch(
+  profile: StudentProfile,
+  scholarship: Scholarship
+): ScholarshipMatch {
+  let score = 0;
+  const matched: string[] = [];
+  const missing: string[] = [];
+
+  // GPA matching (weighted 30%)
+  if (profile.gpa !== undefined && scholarship.min_gpa !== undefined) {
+    if (profile.gpa >= scholarship.min_gpa) {
+      score += 30;
+      matched.push(`GPA ${profile.gpa} meets requirement of ${scholarship.min_gpa}`);
+    } else {
+      missing.push(`GPA ${profile.gpa} below required ${scholarship.min_gpa}`);
+    }
+  } else if (scholarship.min_gpa === undefined) {
+    score += 30; // No GPA requirement
+    matched.push('No GPA requirement');
+  }
+
+  // Course matching (weighted 25%)
+  if (profile.intended_course && scholarship.eligible_courses) {
+    const courseMatch = scholarship.eligible_courses.some(c =>
+      c.toLowerCase().includes(profile.intended_course!.toLowerCase())
+    );
+    if (courseMatch) {
+      score += 25;
+      matched.push(`Course "${profile.intended_course}" is eligible`);
+    } else {
+      missing.push(`Course "${profile.intended_course}" may not be eligible`);
+    }
+  } else if (!scholarship.eligible_courses || scholarship.eligible_courses.length === 0) {
+    score += 25; // Open to all courses
+    matched.push('Open to all courses');
+  }
+
+  // Achievement keyword matching (weighted 25%)
+  const achievementText = profile.achievements.join(' ').toLowerCase();
+  if (scholarship.requirements && scholarship.requirements.length > 0) {
+    const matchedKeywords = scholarship.requirements.filter(req =>
+      req.toLowerCase().split(' ').some(word =>
+        word.length > 3 && achievementText.includes(word.toLowerCase())
+      )
+    );
+    const keywordScore = Math.min(25, matchedKeywords.length * 8);
+    score += keywordScore;
+    if (matchedKeywords.length > 0) {
+      matched.push(`Meets ${matchedKeywords.length} requirement keyword(s)`);
+    }
+  } else {
+    score += 25; // No specific requirements
+    matched.push('No specific requirements');
+  }
+
+  // Deadline proximity (weighted 20%)
+  if (scholarship.deadline) {
+    const daysUntilDeadline = Math.ceil(
+      (new Date(scholarship.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysUntilDeadline > 0) {
+      if (daysUntilDeadline <= 7) {
+        score += 20; // Urgent - apply now!
+        matched.push(`Deadline approaching: ${daysUntilDeadline} days left - apply ASAP!`);
+      } else if (daysUntilDeadline <= 30) {
+        score += 15;
+        matched.push(`Deadline in ${daysUntilDeadline} days - good time to apply`);
+      } else {
+        score += 10;
+        matched.push(`Deadline: ${daysUntilDeadline} days remaining`);
+      }
+    } else {
+      missing.push('Scholarship deadline has passed');
+    }
+  } else {
+    score += 20; // No deadline (ongoing)
+    matched.push('No deadline - rolling applications');
+  }
+
+  return {
+    id: scholarship.id,
+    title: scholarship.title,
+    score: Math.min(100, score),
+    matchedCriteria: matched,
+    missingCriteria: missing,
+  };
+}
+
+// Get student profile for matching
+async function getStudentProfile(userId: number): Promise<StudentProfile> {
   const profileRes = await pool.query(
-    `SELECT p.intended_course, p.gpa, p.subjects, p.graduation_year, u.full_name, u.grade
-     FROM profiles p
-     JOIN users u ON u.id = p.user_id
-     WHERE p.user_id = $1`,
+    `SELECT intended_course, grade FROM profiles WHERE user_id = $1`,
     [userId]
   );
   const profile = profileRes.rows[0] || {};
 
   const achievementsRes = await pool.query(
-    `SELECT title, description FROM achievements WHERE user_id = $1 AND deleted_at IS NULL LIMIT 5`,
+    `SELECT title, description FROM achievements WHERE user_id = $1 AND deleted_at IS NULL`,
+    [userId]
+  );
+
+  const projectsRes = await pool.query(
+    `SELECT skills FROM projects WHERE owner_id = $1 AND deleted_at IS NULL`,
+    [userId]
+  );
+
+  return {
+    intended_course: profile.intended_course,
+    grade: profile.grade,
+    achievements: achievementsRes.rows.map(a => `${a.title} ${a.description || ''}`),
+    skills: projectsRes.rows.flatMap(p => p.skills || []),
+  };
+}
+
+// Real scholarship matching algorithm
+async function matchScholarshipsForStudent(userId: number, limit: number): Promise<ScholarshipMatch[]> {
+  // Get student profile
+  const studentProfile = await getStudentProfile(userId);
+
+  // Get all scholarships (in production, this would be filtered by eligibility)
+  const scholarshipsRes = await pool.query(
+    `SELECT id, title, description, min_gpa, eligible_courses, requirements, amount, deadline 
+         FROM scholarships 
+         WHERE deleted_at IS NULL 
+         ORDER BY deadline ASC NULLS LAST`
+  );
+
+  // Calculate matches for all scholarships
+  const matches = scholarshipsRes.rows.map(scholarship =>
+    calculateScholarshipMatch(studentProfile, scholarship as Scholarship)
+  );
+
+  // Filter out scholarships with no match and sort by score
+  return matches
+    .filter(m => m.score > 0) // Only return relevant matches
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+// Enhanced student context for AI
+async function getStudentContext(userId: number): Promise<string> {
+  const profileRes = await pool.query(
+    `SELECT p.intended_course, p.gpa, p.subjects, p.graduation_year, u.full_name, u.grade,
+                sl.level, sl.points, sl.achievements_count, sl.projects_count
+         FROM profiles p
+         JOIN users u ON u.id = p.user_id
+         LEFT JOIN student_levels sl ON sl.user_id = p.user_id
+         WHERE p.user_id = $1`,
+    [userId]
+  );
+  const profile = profileRes.rows[0] || {};
+
+  const achievementsRes = await pool.query(
+    `SELECT title, description, verified FROM achievements WHERE user_id = $1 AND deleted_at IS NULL LIMIT 10`,
     [userId]
   );
   const achievements = achievementsRes.rows;
 
   const projectsRes = await pool.query(
-    `SELECT title, description, skills FROM projects WHERE owner_id = $1 AND deleted_at IS NULL LIMIT 5`,
+    `SELECT title, description, skills, verified FROM projects WHERE owner_id = $1 AND deleted_at IS NULL LIMIT 10`,
     [userId]
   );
   const projects = projectsRes.rows;
+
+  const schoolRes = await pool.query(
+    `SELECT s.name, s.location FROM schools s
+         JOIN users u ON u.school_id = s.id
+         WHERE u.id = $1`,
+    [userId]
+  );
+  const school = schoolRes.rows[0];
 
   let context = `Student Profile:\n`;
   context += `Name: ${profile.full_name || 'Unknown'}\n`;
@@ -35,19 +212,46 @@ async function getStudentContext(userId: number): Promise<string> {
   context += `Intended Course: ${profile.intended_course || 'Undecided'}\n`;
   context += `GPA: ${profile.gpa || 'N/A'}\n`;
   context += `Graduation Year: ${profile.graduation_year || 'N/A'}\n`;
+
+  if (school) {
+    context += `School: ${school.name} (${school.location || 'N/A'})\n`;
+  }
+
+  if (profile.level) {
+    context += `Student Level: ${profile.level} (${profile.points || 0} points)\n`;
+  }
+
   context += `Subjects: ${JSON.stringify(profile.subjects) || 'None listed'}\n\n`;
 
-  if (achievements.length > 0) {
-    context += `Achievements:\n`;
-    for (const a of achievements) {
+  const verifiedAchievements = achievements.filter(a => a.verified);
+  if (verifiedAchievements.length > 0) {
+    context += `Verified Achievements (${verifiedAchievements.length}):\n`;
+    for (const a of verifiedAchievements) {
+      context += `- ${a.title}: ${a.description || ''} ✓\n`;
+    }
+    context += `\n`;
+  }
+
+  if (achievements.length > verifiedAchievements.length) {
+    context += `Other Achievements:\n`;
+    for (const a of achievements.filter(a => !a.verified)) {
       context += `- ${a.title}: ${a.description || ''}\n`;
     }
     context += `\n`;
   }
 
-  if (projects.length > 0) {
-    context += `Projects:\n`;
-    for (const p of projects) {
+  const verifiedProjects = projects.filter(p => p.verified);
+  if (verifiedProjects.length > 0) {
+    context += `Verified Projects (${verifiedProjects.length}):\n`;
+    for (const p of verifiedProjects) {
+      context += `- ${p.title}: ${p.description || ''} (Skills: ${JSON.stringify(p.skills) || 'N/A'}) ✓\n`;
+    }
+    context += `\n`;
+  }
+
+  if (projects.length > verifiedProjects.length) {
+    context += `Other Projects:\n`;
+    for (const p of projects.filter(p => !p.verified)) {
       context += `- ${p.title}: ${p.description || ''} (Skills: ${JSON.stringify(p.skills) || 'N/A'})\n`;
     }
   }
@@ -55,7 +259,75 @@ async function getStudentContext(userId: number): Promise<string> {
   return context;
 }
 
-// Mock AI Generator
+// Generate personalized recommendations
+async function generateRecommendationsForStudent(userId: number): Promise<Recommendations> {
+  const actions: string[] = [];
+
+  // Get student data
+  const profileRes = await pool.query(
+    `SELECT intended_course, gpa FROM profiles WHERE user_id = $1`,
+    [userId]
+  );
+  const profile = profileRes.rows[0];
+
+  const achievementsRes = await pool.query(
+    `SELECT COUNT(*) as count FROM achievements WHERE user_id = $1 AND deleted_at IS NULL`,
+    [userId]
+  );
+  const achievementsCount = parseInt(achievementsRes.rows[0]?.count || '0');
+
+  const projectsRes = await pool.query(
+    `SELECT COUNT(*) as count FROM projects WHERE owner_id = $1 AND deleted_at IS NULL`,
+    [userId]
+  );
+  const projectsCount = parseInt(projectsRes.rows[0]?.count || '0');
+
+  const verifiedAchievementsRes = await pool.query(
+    `SELECT COUNT(*) as count FROM achievements WHERE user_id = $1 AND verified = true AND deleted_at IS NULL`,
+    [userId]
+  );
+  const verifiedAchievements = parseInt(verifiedAchievementsRes.rows[0]?.count || '0');
+
+  const verifiedProjectsRes = await pool.query(
+    `SELECT COUNT(*) as count FROM projects WHERE owner_id = $1 AND verified = true AND deleted_at IS NULL`,
+    [userId]
+  );
+  const verifiedProjects = parseInt(verifiedProjectsRes.rows[0]?.count || '0');
+
+  // Generate personalized recommendations
+  if (!profile?.intended_course) {
+    actions.push('Complete your profile by adding your intended course of study');
+  }
+
+  if (!profile?.gpa) {
+    actions.push('Add your GPA to your profile for better scholarship matches');
+  }
+
+  if (achievementsCount < 3) {
+    actions.push('Add more achievements to showcase your accomplishments');
+  }
+
+  if (verifiedAchievements < achievementsCount / 2) {
+    actions.push('Request verification from teachers for your unverified achievements');
+  }
+
+  if (projectsCount < 2) {
+    actions.push('Create or add more projects to build your portfolio');
+  }
+
+  if (verifiedProjects < projectsCount / 2) {
+    actions.push('Submit your projects for teacher verification');
+  }
+
+  if (actions.length === 0) {
+    actions.push('Keep up the great work! Your profile is looking strong');
+    actions.push('Consider mentoring other students on their portfolio building');
+  }
+
+  return { actions };
+}
+
+// Mock AI Generator (fallback when no API key)
 async function* mockAIChat(userId: number, message: string, context: string): AsyncGenerator<string, void, unknown> {
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -125,7 +397,11 @@ export async function* streamAIChat(userId: number, userMessage: string): AsyncG
 ${studentContext}
 
 Top Scholarship Matches:
-${matches.map((m: ScholarshipMatch, i: number) => `${i + 1}. ${m.title} (Match Score: ${(m.score * 100).toFixed(0)}%) - ${m.explanations.join(', ')}`).join('\n')}
+${matches.map((m: ScholarshipMatch, i: number) =>
+    `${i + 1}. ${m.title} (Match Score: ${m.score}%)
+     ✅ Matched: ${m.matchedCriteria.join(', ')}
+     ${m.missingCriteria.length > 0 ? `⚠️ Missing: ${m.missingCriteria.join(', ')}` : ''}`
+  ).join('\n')}
 
 Recommended Actions:
 ${recommendations.actions.map((a: string) => `- ${a}`).join('\n')}
@@ -158,7 +434,6 @@ Guidelines:
     });
 
     if (!response.ok) {
-      // ... (Error handling same as before)
       const errorText = await response.text();
       console.error('AI API error:', response.status, errorText);
       yield 'data: {"error": "AI service temporarily unavailable."}\n\n';
@@ -188,7 +463,6 @@ Guidelines:
           const jsonStr = line.slice(6).trim();
           if (jsonStr === '[DONE]') {
             yield 'data: [DONE]\n\n';
-            // Log interaction logic could go here too for real AI
             return;
           }
           try {
@@ -202,11 +476,6 @@ Guidelines:
           }
         }
       }
-    }
-
-    // ... (Buffer flush same as before)
-    if (buffer.trim()) {
-      // ...
     }
 
     yield 'data: [DONE]\n\n';
@@ -228,29 +497,13 @@ export async function buildChatResponse(userId: number, message: string) {
   const matches = await matchScholarshipsForStudent(userId, 5);
   const recos = await generateRecommendationsForStudent(userId);
   const intro = `Based on your profile and message: "${message}"`;
-  const matchLines = matches.map((m: ScholarshipMatch, i: number) => `${i + 1}. ${m.title} (score ${m.score.toFixed(2)})`);
+  const matchLines = matches.map((m: ScholarshipMatch, i: number) =>
+    `${i + 1}. ${m.title} (score: ${m.score}%)`
+  );
   const actionLines = recos.actions.map((a: string) => `- ${a}`);
   const text = [intro, '\nTop scholarships:', ...matchLines, '\nSuggested actions:', ...actionLines].join('\n');
   return { text, matches, recos };
 }
 
-async function matchScholarshipsForStudent(userId: number, limit: number): Promise<ScholarshipMatch[]> {
-  const res = await pool.query(
-    `SELECT title, description FROM scholarships ORDER BY created_at DESC LIMIT $1`,
-    [limit]
-  );
-  return res.rows.map((row: any) => ({
-    title: row.title,
-    score: 0.8,
-    explanations: ['Profile alignment', 'Recent achievements match keywords'],
-  }));
-}
-
-async function generateRecommendationsForStudent(userId: number): Promise<Recommendations> {
-  const actions = [
-    'Add detailed descriptions to top projects',
-    'Request verification for recent achievements',
-    'Upload media to showcase project outcomes',
-  ];
-  return { actions };
-}
+// Export for testing
+export { matchScholarshipsForStudent, generateRecommendationsForStudent, getStudentProfile };

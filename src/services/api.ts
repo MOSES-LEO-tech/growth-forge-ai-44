@@ -109,7 +109,7 @@ type SchoolEventCreateRequest = {
     location?: string;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 
 const api = axios.create({
@@ -133,7 +133,45 @@ api.interceptors.response.use((response) => {
         return { ...response, data: (body as any).data };
     }
     return response;
-}, (error) => {
+}, async (error) => {
+    const originalRequest = error.config;
+    
+    // If 401 error and we haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+        
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+            try {
+                const response = await api.post('/auth/refresh', { refreshToken });
+                const { token: newToken, refreshToken: newRefreshToken } = response.data;
+                
+                // Store new tokens
+                localStorage.setItem('token', newToken);
+                localStorage.setItem('refreshToken', newRefreshToken);
+                
+                // Update original request with new token
+                originalRequest.headers.Authorization = 'Bearer ' + newToken;
+                
+                return api(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed, clear tokens and redirect to login
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                window.location.href = '/auth';
+                return Promise.reject(refreshError);
+            }
+        }
+    }
+    
+    // Clear tokens on other auth errors
+    if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+    }
+    
     return Promise.reject(error);
 });
 
@@ -184,18 +222,18 @@ export const upload = {
             },
         });
     },
-    deleteFile: (filename: string) => api.delete(`/upload/${filename}`),
+    deleteFile: (filename: string) => api.delete('/upload/' + filename),
 };
 
 export const projects = {
-    getAll: (pending?: boolean) => api.get<{ data: Project[] }>(`/projects${pending ? '?pending=true' : ''}`),
-    getOne: (id: string) => api.get<{ data: Project }>(`/projects/${id}`),
+    getAll: (pending?: boolean) => api.get<{ data: Project[] }>('/projects' + (pending ? '?pending=true' : '')),
+    getOne: (id: string) => api.get<{ data: Project }>('/projects/' + id),
     create: (data: ProjectCreateRequest) => api.post('/projects', data),
-    update: (id: string, data: ProjectUpdateRequest) => api.put(`/projects/${id}`, data),
-    delete: (id: string) => api.delete(`/projects/${id}`),
-    addMedia: (id: string, data: ProjectMediaRequest) => api.post(`/projects/${id}/media`, data),
-    verify: (id: string) => api.post(`/projects/${id}/verify`),
-    addFeedback: (id: string, data: ProjectFeedbackRequest) => api.post(`/projects/${id}/feedback`, data),
+    update: (id: string, data: ProjectUpdateRequest) => api.put('/projects/' + id, data),
+    delete: (id: string) => api.delete('/projects/' + id),
+    addMedia: (id: string, data: ProjectMediaRequest) => api.post('/projects/' + id + '/media', data),
+    verify: (id: string) => api.post('/projects/' + id + '/verify'),
+    addFeedback: (id: string, data: ProjectFeedbackRequest) => api.post('/projects/' + id + '/feedback', data),
 };
 
 export const gallery = {
@@ -203,16 +241,16 @@ export const gallery = {
     getUserEvents: () => api.get('/gallery/my-events'),
     createEvent: (data: GalleryEventCreateRequest) => api.post('/gallery/events', data),
     addMedia: (data: GalleryMediaCreateRequest) => api.post('/gallery/media', data),
-    getEvent: (id: string) => api.get(`/gallery/events/${id}`),
-    getEventMedia: (id: string) => api.get(`/gallery/events/${id}/media`),
-    deleteEvent: (id: string) => api.delete(`/gallery/events/${id}`),
-    deleteMedia: (id: string) => api.delete(`/gallery/media/${id}`),
+    getEvent: (id: string) => api.get('/gallery/events/' + id),
+    getEventMedia: (id: string) => api.get('/gallery/events/' + id + '/media'),
+    deleteEvent: (id: string) => api.delete('/gallery/events/' + id),
+    deleteMedia: (id: string) => api.delete('/gallery/media/' + id),
 };
 
 export const scholarship = {
     getAll: (params?: { limit?: number; offset?: number }) =>
         api.get('/scholarship', { params }),
-    getOne: (id: string) => api.get(`/scholarship/${id}`),
+    getOne: (id: string) => api.get('/scholarship/' + id),
     match: (limit?: number) => api.get('/scholarship/match', { params: { limit } }),
 };
 
@@ -223,11 +261,11 @@ export const recommendations = {
 export const ai = {
     chatStream: async (message: string, onToken: (text: string) => void, onMatches?: (matches: unknown[]) => void, onRecos?: (recos: unknown) => void) => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/ai/chat`, {
+        const response = await fetch(API_URL + '/ai/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
+                'Authorization': 'Bearer ' + token,
             },
             body: JSON.stringify({ message }),
         });
@@ -280,14 +318,14 @@ export const ai = {
 };
 
 export const achievements = {
-    getAll: (pending?: boolean) => api.get<{ data: Achievement[] }>(`/achievements${pending ? '?pending=true' : ''}`),
-    getOne: (id: string) => api.get<{ data: Achievement }>(`/achievements/${id}`),
+    getAll: (pending?: boolean) => api.get<{ data: Achievement[] }>('/achievements' + (pending ? '?pending=true' : '')),
+    getOne: (id: string) => api.get<{ data: Achievement }>('/achievements/' + id),
     create: (data: { title: string; description?: string; date_earned?: string; certificate_url?: string }) =>
         api.post('/achievements', data),
     update: (id: string, data: { title?: string; description?: string; date_earned?: string; certificate_url?: string }) =>
-        api.put(`/achievements/${id}`, data),
-    delete: (id: string) => api.delete(`/achievements/${id}`),
-    verify: (id: string) => api.post(`/achievements/verify/${id}`),
+        api.put('/achievements/' + id, data),
+    delete: (id: string) => api.delete('/achievements/' + id),
+    verify: (id: string) => api.post('/achievements/verify/' + id),
 };
 
 
@@ -295,32 +333,32 @@ export const achievements = {
 export const profile = {
     getMe: () => api.get('/profile/me'),
     updateMe: (data: Record<string, unknown>) => api.put('/profile/me', data),
-    getPublicProfile: (id: string) => api.get(`/profile/${id}`),
+    getPublicProfile: (id: string) => api.get('/profile/' + id),
     linkParent: (data: { parentEmail: string; relationship?: string }) => api.post('/profile/link-parent', data),
     getChildren: () => api.get('/profile/children'),
 };
 
 export const settings = {
-    get: (key: string) => api.get(`/settings/${key}`),
-    update: (key: string, value: string | null) => api.put(`/settings/${key}`, { value }),
+    get: (key: string) => api.get('/settings/' + key),
+    update: (key: string, value: string | null) => api.put('/settings/' + key, { value }),
     getAll: () => api.get('/settings'),
 };
 
 export const personalGallery = {
     createItem: (data: PersonalGalleryItemCreate) => api.post('/personal-gallery', data),
-    getMyItems: (page = 1, limit = 20) => api.get(`/personal-gallery?page=${page}&limit=${limit}`),
-    updateItem: (id: number, data: Partial<PersonalGalleryItemCreate>) => api.put(`/personal-gallery/${id}`, data),
-    deleteItem: (id: number) => api.delete(`/personal-gallery/${id}`),
-    getStudentItems: (studentId: number, page = 1, limit = 20) => api.get(`/personal-gallery/student/${studentId}?page=${page}&limit=${limit}`),
+    getMyItems: (page = 1, limit = 20) => api.get('/personal-gallery?page=' + page + '&limit=' + limit),
+    updateItem: (id: number, data: Partial<PersonalGalleryItemCreate>) => api.put('/personal-gallery/' + id, data),
+    deleteItem: (id: number) => api.delete('/personal-gallery/' + id),
+    getStudentItems: (studentId: number, page = 1, limit = 20) => api.get('/personal-gallery/student/' + studentId + '?page=' + page + '&limit=' + limit),
 };
 
 export const schoolGallery = {
     getAll: (schoolId?: number, page = 1, limit = 12) =>
-        api.get(`/school-gallery${schoolId ? `?schoolId=${schoolId}` : ''}${schoolId ? `&` : `?`}page=${page}&limit=${limit}`),
-    getOne: (id: string) => api.get(`/school-gallery/${id}`),
+        api.get('/school-gallery' + (schoolId ? '?schoolId=' + schoolId : '') + (schoolId ? '&' : '?') + 'page=' + page + '&limit=' + limit),
+    getOne: (id: string) => api.get('/school-gallery/' + id),
     create: (data: SchoolEventCreateRequest) => api.post('/school-gallery', data),
-    addMedia: (id: string, data: GalleryMediaCreateRequest) => api.post(`/school-gallery/${id}/media`, data),
-    delete: (id: string) => api.delete(`/school-gallery/${id}`),
+    addMedia: (id: string, data: GalleryMediaCreateRequest) => api.post('/school-gallery/' + id + '/media', data),
+    delete: (id: string) => api.delete('/school-gallery/' + id),
 };
 
 export default api;

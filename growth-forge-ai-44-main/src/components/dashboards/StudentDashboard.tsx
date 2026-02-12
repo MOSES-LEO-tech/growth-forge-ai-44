@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, BookOpen, Calendar, TrendingUp, Plus } from "lucide-react";
@@ -14,26 +14,24 @@ const StudentDashboard = ({ profile }: { profile: any }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: achievementsData } = await supabase
-        .from("achievements")
-        .select("*")
-        .eq("user_id", profile.id)
-        .order("date_earned", { ascending: false })
-        .limit(5);
+      try {
+        const [achievementsData, projectsData] = await Promise.all([
+          api.getAchievements(profile.id),
+          api.getProjects(profile.id)
+        ]);
 
-      const { data: projectsData } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("owner_id", profile.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      setAchievements(achievementsData || []);
-      setProjects(projectsData || []);
-      setLoading(false);
+        setAchievements(achievementsData || []);
+        setProjects(projectsData || []);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchData();
+    if (profile?.id) {
+      fetchData();
+    }
   }, [profile.id]);
 
   const stats = [

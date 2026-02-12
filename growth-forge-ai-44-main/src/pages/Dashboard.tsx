@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
@@ -23,40 +23,34 @@ const Dashboard = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const user = await api.getCurrentUser();
       
-      if (!session) {
+      if (!user) {
         navigate("/auth");
         return;
       }
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      // Map API user to profile structure expected by dashboards
+      const profileData = {
+        ...user,
+        full_name: user.fullName || user.full_name, // Handle both cases
+        id: user.id
+      };
 
       setProfile(profileData);
       setLoading(false);
     };
 
     checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await api.logout();
     toast({
       title: "Signed out",
       description: "You have been signed out successfully"
     });
+    navigate("/auth");
   };
 
   if (loading) {

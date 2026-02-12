@@ -31,31 +31,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session on mount
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
+    console.log('[AuthContext] Mount check - storedToken exists:', !!storedToken, 'storedUser exists:', !!storedUser);
 
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       // Verify token is still valid
-      refreshUser().catch(() => {
+      refreshUser().catch((error) => {
+        console.error('[AuthContext] Token validation failed:', error);
         // Token expired, clear session
         signOut();
       });
     }
     setLoading(false);
+    console.log('[AuthContext] Initial loading complete, loading:', false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
     const response = await auth.login({ email, password });
-    const { token: newToken, user: userData } = response.data;
+    const { token: newToken, refreshToken: newRefreshToken, user: userData } = response.data;
 
     localStorage.setItem('token', newToken);
+    localStorage.setItem('refreshToken', newRefreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
   };
 
   const signUp = async (data: { email: string; password: string; fullName: string; role: string; schoolId?: number }) => {
-    const response = await auth.register(data);
+    const response = await auth.register({ ...data, role: data.role as 'student' | 'parent' | 'teacher' | 'admin' });
     const { token: newToken, user: userData } = response.data;
 
     localStorage.setItem('token', newToken);
@@ -65,7 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = () => {
+    console.log('[AuthContext] signOut called - clearing localStorage and state');
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);

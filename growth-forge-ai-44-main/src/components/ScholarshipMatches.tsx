@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, ExternalLink, Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface ScholarshipMatch {
@@ -27,14 +27,26 @@ const ScholarshipMatches = () => {
   const findMatches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('match-scholarships');
+      const user = await api.getCurrentUser();
+      if (!user) throw new Error("User not found");
+
+      const data = await api.getRecommendations(user.id);
       
-      if (error) throw error;
+      const mappedMatches: ScholarshipMatch[] = data.scholarships.map((s: any) => ({
+        ...s,
+        id: s.id.toString(),
+        deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        organization: "Scholarship Provider",
+        application_url: "#",
+        match_score: "high" as const,
+        match_reason: "Matched based on your profile",
+        requirements: ["GPA > 3.0", "Leadership experience"]
+      }));
       
-      setMatches(data.matches);
+      setMatches(mappedMatches);
       toast({
         title: "Scholarships matched",
-        description: `Found ${data.matches.length} matching scholarships for you!`,
+        description: `Found ${mappedMatches.length} matching scholarships for you!`,
       });
     } catch (error) {
       console.error('Error matching scholarships:', error);

@@ -20,12 +20,16 @@ const Dashboard = () => {
     const checkUser = async () => {
       try {
         const token = localStorage.getItem('token');
+        console.log('[Dashboard] checkUser - token exists:', !!token);
         if (!token) {
+          console.log('[Dashboard] No token found, redirecting to /auth');
           navigate("/auth");
           return;
         }
 
+        console.log('[Dashboard] Fetching profile...');
         const response = await auth.getProfile();
+        console.log('[Dashboard] Profile fetched successfully:', response.data);
         setProfile(response.data);
         setLoading(false);
 
@@ -34,10 +38,13 @@ const Dashboard = () => {
         if (!hasSeenOnboarding) {
           setShowOnboarding(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
+      } catch (error: any) {
+        console.error("[Dashboard] Failed to fetch profile:", error);
+        console.error("[Dashboard] Error response:", error.response?.data);
+        console.error("[Dashboard] Error status:", error.response?.status);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        console.log('[Dashboard] Cleared localStorage, redirecting to /auth');
         navigate("/auth");
       }
     };
@@ -56,6 +63,7 @@ const Dashboard = () => {
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     toast({
       title: "Signed out",

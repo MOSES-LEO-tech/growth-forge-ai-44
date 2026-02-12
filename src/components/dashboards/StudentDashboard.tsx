@@ -29,18 +29,26 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
   const [viewProject, setViewProject] = useState<Project | null>(null);
 
   const fetchData = async () => {
+    console.log('[StudentDashboard] fetchData called');
     try {
+      console.log('[StudentDashboard] Fetching achievements and projects...');
       const [achievementsRes, projectsRes] = await Promise.all([
         dashboard.getAchievements(),
         dashboard.getProjects()
       ]);
 
+      console.log('[StudentDashboard] Achievements fetched:', achievementsRes.data?.length || 0);
+      console.log('[StudentDashboard] Projects fetched:', projectsRes.data?.length || 0);
+
       setAchievements(achievementsRes.data || []);
       setProjects(projectsRes.data || []);
-    } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+    } catch (error: any) {
+      console.error("[StudentDashboard] Failed to fetch dashboard data:", error);
+      console.error("[StudentDashboard] Error response:", error.response?.data);
+      console.error("[StudentDashboard] Error status:", error.response?.status);
     } finally {
       setLoading(false);
+      console.log('[StudentDashboard] Loading set to false');
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,19 +40,16 @@ const Auth = () => {
       const validated = signUpSchema.parse(formData);
       setLoading(true);
 
-      const { data, error } = await supabase.auth.signUp({
-        email: validated.email,
-        password: validated.password,
-        options: {
-          data: {
-            full_name: validated.fullName,
-            role: validated.role
-          },
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
+      // Register
+      await api.register(
+        validated.email, 
+        validated.password, 
+        validated.fullName, 
+        validated.role
+      );
 
-      if (error) throw error;
+      // Auto login
+      await api.login(validated.email, validated.password);
 
       toast({
         title: "Account created!",
@@ -76,12 +73,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
-
-      if (error) throw error;
+      await api.login(formData.email, formData.password);
 
       toast({
         title: "Welcome back!",

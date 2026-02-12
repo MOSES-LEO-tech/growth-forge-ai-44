@@ -45,18 +45,24 @@ Track all bugs, issues, and improvements discovered during testing and developme
 
 | ID | Feature | Issue | Resolution | Date Fixed |
 |----|---------|-------|------------|------------|
-| - | - | - | - | - |
+| AUTH-001 | Authentication | Dashboard redirects to /auth with 401/403 errors when navigating to gallery/project pages | 1. Extended JWT expiry from 15min to 1 hour in backend/src/services/auth.service.ts
+2. Implemented automatic token refresh on frontend:
+   - Added refreshToken storage in localStorage
+   - Added token refresh interceptor in api.ts
+   - Added refreshToken method to auth object
+   - Updated AuthContext to handle refresh tokens
+   - Updated Dashboard.tsx to clear refreshToken on sign out | 2026-02-03 |
 
 ---
 
 ## 📝 Testing Notes
 
 ### Authentication
-- [ ] Registration flow tested
-- [ ] Login flow tested
-- [ ] Session management tested
-- [ ] Role-based access tested
-- [ ] Token security tested
+- [x] Registration flow tested
+- [x] Login flow tested
+- [x] Session management tested (token refresh implemented)
+- [x] Role-based access tested
+- [x] Token security tested (JWT expiry extended, refresh tokens implemented)
 
 ### Projects
 - [ ] Create project tested

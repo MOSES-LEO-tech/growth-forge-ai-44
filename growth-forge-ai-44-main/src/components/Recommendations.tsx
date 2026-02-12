@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Lightbulb, Sparkles, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface Recommendation {
@@ -21,11 +21,19 @@ const Recommendations = () => {
   const generateRecommendations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-recommendations');
+      const user = await api.getCurrentUser();
+      if (!user) throw new Error("User not found");
+
+      const data = await api.getRecommendations(user.id);
       
-      if (error) throw error;
+      const mappedRecommendations: Recommendation[] = data.actions.map((action: string) => ({
+        title: "Suggested Action",
+        description: action,
+        category: "activity",
+        priority: "medium"
+      }));
       
-      setRecommendations(data.recommendations);
+      setRecommendations(mappedRecommendations);
       toast({
         title: "Recommendations generated",
         description: "Here are personalized suggestions for you!",

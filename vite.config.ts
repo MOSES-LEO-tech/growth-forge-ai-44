@@ -7,6 +7,31 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Proxy API requests to backend - prevents CORS and port mismatch issues
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+    // Diagnostic: Enable detailed error logging
+    hmr: {
+      overlay: true,
+    },
+  },
+  // Diagnostic: Disable dependency optimization caching to prevent corruption
+  optimizeDeps: {
+    noDiscovery: false,
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
+  },
+  build: {
+    // Diagnostic: Clear module pre-bundling cache
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   plugins: [
     react(),
@@ -63,4 +88,5 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }));
+
 
