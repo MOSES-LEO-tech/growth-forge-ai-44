@@ -6,6 +6,8 @@ import { GalleryWidget } from "@/components/widgets/GalleryWidget";
 import { ScholarshipsWidget } from "@/components/widgets/ScholarshipsWidget";
 import { RecommendationsWidget } from "@/components/widgets/RecommendationsWidget";
 import { SmartBuddyWidget } from "@/components/widgets/SmartBuddyWidget";
+import { GrowthAnalyticsWidget } from "@/components/widgets/GrowthAnalyticsWidget";
+import { ProfileOverviewWidget } from "@/components/widgets/ProfileOverviewWidget";
 import { useSearchParams } from "react-router-dom";
 
 const StudentDashboard = ({ profile }: { profile: Profile }) => {
@@ -14,13 +16,21 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2">Welcome back, {profile.full_name}!</h2>
-        <p className="text-muted-foreground">Customize your learning journey with your personal dashboard.</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]">
-        {/* Row 1: Key Stats & Quick Actions */}
+        {/* Row 1: Profile & Analytics */}
+        <ProfileOverviewWidget
+          className="md:col-span-1 lg:col-span-1"
+          profile={profile}
+          defaultExpanded={activeWidget === 'profile'}
+        />
+
+        <GrowthAnalyticsWidget
+          className="md:col-span-2 lg:col-span-2"
+          userId={profile.id}
+          defaultExpanded={activeWidget === 'analytics'}
+        />
+
+        {/* Row 2: Achievements & AI Buddy */}
         <AchievementsWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'achievements'}
@@ -31,14 +41,14 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
           defaultExpanded={activeWidget === 'buddy'}
         />
 
-        {/* Row 2: Main Content Areas */}
+        {/* Row 3: Main Content Areas */}
         <ProjectsWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'projects'}
           userId={profile.id}
         />
 
-        {/* Row 3: Gallery & Discovery */}
+        {/* Row 4: Gallery & Discovery */}
         <GalleryWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'gallery'}

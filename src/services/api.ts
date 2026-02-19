@@ -266,6 +266,23 @@ export const recommendations = {
     generate: () => api.get('/recommendations/generate'),
 };
 
+export type StudentAnalytics = {
+    projectCompletionRate: number;
+    verifiedAchievementCount: number;
+    achievementCount: number;
+    aiUsage: { day: string; messages: number }[];
+    xp: {
+        level: number;
+        currentXp: number;
+        nextLevelXp: number;
+        tier: 'basic' | 'plus' | 'pro';
+    };
+};
+
+export const analytics = {
+    getStudentStats: (studentId: string) => api.get<{ data: StudentAnalytics }>('/analytics/student/' + studentId),
+};
+
 export const ai = {
     chatStream: async (message: string, onToken: (text: string) => void, onMatches?: (matches: unknown[]) => void, onRecos?: (recos: unknown) => void) => {
         const token = localStorage.getItem('token');
