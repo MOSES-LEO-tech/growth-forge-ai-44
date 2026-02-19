@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 interface ProjectsWidgetProps {
     className?: string;
     defaultExpanded?: boolean;
-    userId: string;
+    userId?: string;
 }
 
 export function ProjectsWidget({ className, defaultExpanded, userId }: ProjectsWidgetProps) {
@@ -25,7 +25,7 @@ export function ProjectsWidget({ className, defaultExpanded, userId }: ProjectsW
     const { data: projects, isLoading, refetch } = useQuery<Project[]>({
         queryKey: ["projects"],
         queryFn: async () => {
-            const response = await projectsApi.getAll();
+            const response = await projectsApi.getAll({ studentId: userId });
             return response.data.data as Project[];
         },
     });

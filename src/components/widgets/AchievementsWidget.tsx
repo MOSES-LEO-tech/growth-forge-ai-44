@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { dashboard } from "@/services/api";
+import { achievements as achievementsApi } from "@/services/api";
 import type { Achievement } from "@/services/api";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Award, Search, Filter } from "lucide-react";
@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 interface AchievementsWidgetProps {
     className?: string;
     defaultExpanded?: boolean;
+    userId?: string;
 }
 
-export function AchievementsWidget({ className, defaultExpanded }: AchievementsWidgetProps) {
+export function AchievementsWidget({ className, defaultExpanded, userId }: AchievementsWidgetProps) {
     const [achievements, setAchievements] = useState<Achievement[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -20,8 +21,20 @@ export function AchievementsWidget({ className, defaultExpanded }: AchievementsW
     useEffect(() => {
         const fetchAchievements = async () => {
             try {
-                const response = await dashboard.getAchievements();
-                setAchievements(response.data || []);
+                const response = await achievementsApi.getAll({ studentId: userId });
+                // actually I updated achievements.getAll in api.ts, I should use that instead of dashboard.getAchievements if I want filtering
+                // tailored for this file which uses `dashboard` service currently. 
+                // Let's switch to achievementsApi if possible or just update dashboard service? 
+                // The previous attempt used achievementsApi.getAll. 
+                // Let's look at imports: import { achievements as achievementsApi } from "@/services/api";
+                // I need to import achievements from api as well or use dashboard. 
+                // Wait, I updated `achievements` export in api.ts, not `dashboard`. 
+                // `dashboard.getAchievements` calls `/dashboard/achievements`.
+                // `achievements.getAll` calls `/achievements`.
+                // I should probably switch to `achievements.getAll` to use the param.
+
+                // Let's stick to the plan of using achievements.getAll with params.
+                // I need to change the import first.
             } catch (error) {
                 console.error("Failed to fetch achievements:", error);
             } finally {
@@ -29,7 +42,7 @@ export function AchievementsWidget({ className, defaultExpanded }: AchievementsW
             }
         };
         fetchAchievements();
-    }, []);
+    }, [userId]);
 
     const CollapsedContent = () => (
         <div className="flex flex-col h-full gap-4">

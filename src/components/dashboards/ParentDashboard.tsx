@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
 import { profile as profileApi } from "@/services/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, TrendingUp, Award, Calendar, BookOpen, GraduationCap } from "lucide-react";
-import { useInView } from "@/hooks/useInView";
+import { Users, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useSearchParams } from "react-router-dom";
+
+// Widget Imports
+import { ParentStatsWidget } from "@/components/widgets/ParentStatsWidget";
+import { ProjectsWidget } from "@/components/widgets/ProjectsWidget";
+import { AchievementsWidget } from "@/components/widgets/AchievementsWidget";
+import { GalleryWidget } from "@/components/widgets/GalleryWidget";
+import { SchoolGalleryWidget } from "@/components/widgets/SchoolGalleryWidget";
 
 const ParentDashboard = ({ profile }: { profile: any }) => {
-  const { ref: statsRef, isInView: statsInView } = useInView({ threshold: 0.2 });
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const activeWidget = searchParams.get("widget");
 
   useEffect(() => {
     fetchChildren();
@@ -34,16 +42,18 @@ const ParentDashboard = ({ profile }: { profile: any }) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h2 className="text-3xl font-bold mb-2">Welcome, {profile.full_name}!</h2>
-          <p className="text-muted-foreground">Monitor your child's growth and achievements</p>
+          <p className="text-muted-foreground">Monitor your child's growth and achievements.</p>
         </div>
 
         {children.length > 0 && (
-          <div className="w-full md:w-64">
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <span className="text-sm text-muted-foreground whitespace-nowrap hidden md:block">Viewing:</span>
             <Select value={selectedChildId || ''} onValueChange={setSelectedChildId}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full md:w-64">
                 <SelectValue placeholder="Select Child" />
               </SelectTrigger>
               <SelectContent>
@@ -64,13 +74,14 @@ const ParentDashboard = ({ profile }: { profile: any }) => {
         )}
       </div>
 
+      {/* Main Content Area */}
       {loading ? (
         <div className="text-center py-12">Loading...</div>
       ) : children.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Student Progress Overview</CardTitle>
-            <CardDescription>Link your child's account to start tracking their journey</CardDescription>
+            <CardTitle>Welcome to Growth Forge</CardTitle>
+            <CardDescription>Link your child's account to start tracking their journey.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-12 text-muted-foreground">
@@ -81,53 +92,55 @@ const ParentDashboard = ({ profile }: { profile: any }) => {
           </CardContent>
         </Card>
       ) : selectedChild ? (
-        <>
-          <div
-            ref={statsRef}
-            className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-          >
-            {[
-              { icon: BookOpen, label: "Grade", value: selectedChild.grade || 'N/A', gradient: "from-primary to-blue-500" },
-              { icon: TrendingUp, label: "GPA", value: selectedChild.gpa || 'N/A', gradient: "from-emerald-500 to-teal-500" },
-              { icon: Award, label: "Achievements", value: selectedChild.achievement_count || '0', gradient: "from-accent to-amber-500" },
-              { icon: GraduationCap, label: "Target Course", value: selectedChild.intended_course || 'Undecided', gradient: "from-secondary to-purple-500" }
-            ].map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <Card
-                  key={stat.label}
-                  className={`transition-all duration-700 ${statsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                    }`}
-                  style={{ transitionDelay: statsInView ? `${index * 50}ms` : '0ms' }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                        <Icon className="w-6 h-6 text-white" />
-                      </div>
-                      <span className="text-xl font-bold truncate max-w-[120px]">{stat.value}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
+        <div className="space-y-6">
+
+          {/* Info Banner if needed */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 text-blue-800 text-sm">
+            <Info className="w-5 h-5 flex-shrink-0" />
+            <p>
+              You are viewing <strong>{selectedChild.full_name}'s</strong> profile.
+              Use the dropdown above to switch between children.
+            </p>
           </div>
 
-          <div className="grid lg:grid-cols-1 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest updates from {selectedChild.full_name}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  Check their specialized dashboard views for more details.
-                </div>
-              </CardContent>
-            </Card>
+          {/* Widgets Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]">
+
+            {/* 1. Statistics & Overview */}
+            <ParentStatsWidget
+              className="md:col-span-2 lg:col-span-2"
+              studentData={selectedChild}
+              defaultExpanded={activeWidget === 'stats'}
+            />
+
+            {/* 2. Projects */}
+            <ProjectsWidget
+              className="md:col-span-2 lg:col-span-2"
+              userId={selectedChildId || undefined}
+              defaultExpanded={activeWidget === 'projects'}
+            />
+
+            {/* 3. Achievements */}
+            <AchievementsWidget
+              className="md:col-span-2 lg:col-span-2"
+              userId={selectedChildId || undefined}
+              defaultExpanded={activeWidget === 'achievements'}
+            />
+
+            {/* 4. Personal Gallery */}
+            <GalleryWidget
+              className="md:col-span-2 lg:col-span-2"
+              userId={selectedChildId || undefined}
+              defaultExpanded={activeWidget === 'gallery'}
+            />
+
+            {/* 5. School Gallery (Reuse existing, general info) */}
+            <SchoolGalleryWidget
+              className="md:col-span-1 lg:col-span-1 xl:col-span-1"
+              defaultExpanded={activeWidget === 'school'}
+            />
           </div>
-        </>
+        </div>
       ) : null}
     </div>
   );

@@ -1,0 +1,157 @@
+import { useState } from "react";
+import { ExpandableWidget } from "@/components/ExpandableWidget";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Users, Search, Mail, MoreHorizontal, GraduationCap } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+// Mock Data
+const MOCK_STUDENTS = [
+    { id: 1, name: "Alice Johnson", grade: "10th", status: "Active", avatar: "", email: "alice@example.com", growthScore: 850 },
+    { id: 2, name: "Bob Smith", grade: "11th", status: "Active", avatar: "", email: "bob@example.com", growthScore: 720 },
+    { id: 3, name: "Charlie Brown", grade: "9th", status: "Absent", avatar: "", email: "charlie@example.com", growthScore: 690 },
+    { id: 4, name: "Diana Prince", grade: "12th", status: "Active", avatar: "", email: "diana@example.com", growthScore: 910 },
+    { id: 5, name: "Evan Wright", grade: "10th", status: "Inactive", avatar: "", email: "evan@example.com", growthScore: 500 },
+    { id: 6, name: "Fiona Gallagher", grade: "11th", status: "Active", avatar: "", email: "fiona@example.com", growthScore: 780 },
+    { id: 7, name: "George Bailey", grade: "12th", status: "Active", avatar: "", email: "george@example.com", growthScore: 880 },
+    { id: 8, name: "Hannah Montana", grade: "9th", status: "Active", avatar: "", email: "hannah@example.com", growthScore: 750 },
+];
+
+interface StudentDirectoryWidgetProps {
+    className?: string;
+    defaultExpanded?: boolean;
+}
+
+export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDirectoryWidgetProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Filter students
+    const filteredStudents = MOCK_STUDENTS.filter(student =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Active': return 'bg-green-500';
+            case 'Absent': return 'bg-amber-500';
+            case 'Inactive': return 'bg-slate-400';
+            default: return 'bg-slate-400';
+        }
+    };
+
+    const CollapsedContent = () => (
+        <div className="flex flex-col h-full items-center justify-center text-center gap-2">
+            <div className="flex -space-x-3 overflow-hidden p-2">
+                {MOCK_STUDENTS.slice(0, 4).map((s) => (
+                    <Avatar key={s.id} className="inline-block border-2 border-background w-8 h-8">
+                        <AvatarImage src={s.avatar} />
+                        <AvatarFallback>{s.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                ))}
+                <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">
+                    +{MOCK_STUDENTS.length - 4}
+                </div>
+            </div>
+            <div>
+                <p className="text-2xl font-bold">{MOCK_STUDENTS.length}</p>
+                <p className="text-sm text-muted-foreground">Total Students</p>
+            </div>
+        </div>
+    );
+
+    const ExpandedContent = () => (
+        <div className="flex flex-col h-full gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 className="text-lg font-semibold">Student Directory</h3>
+                    <p className="text-sm text-muted-foreground">Manage and view all students</p>
+                </div>
+                <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search students..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 pb-4">
+                {filteredStudents.map((student) => (
+                    <div key={student.id} className="group relative flex flex-col items-center p-6 bg-card border rounded-xl hover:shadow-md transition-all">
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="w-4 h-4" />
+                                        <span className="sr-only">Actions</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => alert(`View profile for ${student.name}`)}>View Profile</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => alert(`Message ${student.email}`)}>Send Message</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive">Remove Student</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+
+                        <div className="relative mb-4">
+                            <Avatar className="w-20 h-20">
+                                <AvatarImage src={student.avatar} />
+                                <AvatarFallback className="text-lg bg-primary/10 text-primary">{student.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-background ${getStatusColor(student.status)}`} title={student.status} />
+                        </div>
+
+                        <h4 className="font-bold text-lg text-center truncate w-full">{student.name}</h4>
+                        <p className="text-sm text-muted-foreground mb-1">{student.grade} Grade</p>
+
+                        <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/5 px-2 py-1 rounded-full mb-4">
+                            <GraduationCap className="w-3 h-3" />
+                            <span>Score: {student.growthScore}</span>
+                        </div>
+
+                        <div className="w-full mt-auto pt-2 border-t flex justify-center">
+                            <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => window.open(`mailto:${student.email}`)}>
+                                <Mail className="w-3 h-3 mr-2" />
+                                Email
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {filteredStudents.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                    <p>No students found matching "{searchQuery}"</p>
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <ExpandableWidget
+            title="Class Directory"
+            icon={<Users className="w-5 h-5 text-blue-500" />}
+            className={className}
+            defaultExpanded={defaultExpanded}
+            expandedContent={<ExpandedContent />}
+        >
+            <CollapsedContent />
+        </ExpandableWidget>
+    );
+}

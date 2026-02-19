@@ -28,9 +28,10 @@ interface GalleryItem {
 interface GalleryWidgetProps {
     className?: string;
     defaultExpanded?: boolean;
+    userId?: string;
 }
 
-export function GalleryWidget({ className, defaultExpanded }: GalleryWidgetProps) {
+export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWidgetProps) {
     const { toast } = useToast();
     const [items, setItems] = useState<GalleryItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -46,8 +47,13 @@ export function GalleryWidget({ className, defaultExpanded }: GalleryWidgetProps
 
     const fetchItems = async () => {
         try {
-            const response = await personalGallery.getMyItems();
-            setItems(response.data.items);
+            let response;
+            if (userId) {
+                response = await personalGallery.getStudentItems(parseInt(userId));
+            } else {
+                response = await personalGallery.getMyItems();
+            }
+            setItems(response.data.items || response.data || []);
         } catch (error) {
             console.error('Error fetching gallery:', error);
         } finally {
@@ -57,7 +63,7 @@ export function GalleryWidget({ className, defaultExpanded }: GalleryWidgetProps
 
     useEffect(() => {
         fetchItems();
-    }, []);
+    }, [userId]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -86,7 +92,7 @@ export function GalleryWidget({ className, defaultExpanded }: GalleryWidgetProps
                 mediaType,
                 mediaUrl: url,
                 thumbnailUrl: thumbnailUrl || (mediaType === 'image' ? url : null),
-                visibility
+                visibility: visibility as 'private' | 'public' | 'parents'
             });
 
             toast({ title: "Success", description: "Item added to gallery" });
