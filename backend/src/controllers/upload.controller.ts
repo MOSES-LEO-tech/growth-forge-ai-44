@@ -12,8 +12,11 @@ export const uploadFile = async (req: Request, res: Response) => {
 
         const file = req.file;
         console.log(`Processing single file upload: ${file.originalname}`);
-        const fileUrl = `/uploads/${file.filename}`;
         const isImage = file.mimetype.startsWith('image/');
+        const isVideo = file.mimetype.startsWith('video/');
+        // Build correct URL based on where multer stored the file (images/ or videos/ subdirectory)
+        const subDir = isImage ? 'images' : isVideo ? 'videos' : '';
+        const fileUrl = subDir ? `/uploads/${subDir}/${file.filename}` : `/uploads/${file.filename}`;
 
         let thumbnailUrl = null;
 
@@ -69,8 +72,10 @@ export const uploadMultipleFiles = async (req: Request, res: Response) => {
         const uploadedFiles = [];
 
         for (const file of files) {
-            const fileUrl = `/uploads/${file.filename}`;
             const isImage = file.mimetype.startsWith('image/');
+            const isVideo = file.mimetype.startsWith('video/');
+            const subDir = isImage ? 'images' : isVideo ? 'videos' : '';
+            const fileUrl = subDir ? `/uploads/${subDir}/${file.filename}` : `/uploads/${file.filename}`;
             let thumbnailUrl = null;
 
             // Generate thumbnail for images

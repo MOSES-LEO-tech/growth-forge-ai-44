@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { profile as profileApi, projects, achievements, type Profile } from "@/services/api";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { User, Mail, Edit3, Loader2, BookOpen, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface ProfileOverviewWidgetProps {
     className?: string;
@@ -22,24 +22,45 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
     const [stats, setStats] = useState({ projects: 0, achievements: 0 });
     const [editForm, setEditForm] = useState({
         full_name: profile.full_name || '',
-        bio: '',
-        interests: ''
+        bio: profile.bio || '',
+        interests: Array.isArray(profile.social_links?.interests)
+            ? profile.social_links!.interests!.join(', ')
+            : ''
     });
 
-    const fetchStats = async () => {
-        try {
-            const [projectsRes, achievementsRes] = await Promise.all([
-                projects.getAll({}),
-                achievements.getAll({})
-            ]);
-            setStats({
-                projects: (projectsRes.data as unknown as any[])?.length || 0,
-                achievements: (achievementsRes.data as unknown as any[])?.length || 0
-            });
-        } catch (error) {
-            console.error("Failed to fetch profile stats:", error);
-        }
-    };
+    // Fetch full profile to pre-populate bio & interests (not always in the auth token payload)
+    useEffect(() => {
+        profileApi.getMe().then((res) => {
+            const data = res.data as any;
+            setEditForm(f => ({
+                ...f,
+                bio: f.bio || data?.bio || '',
+                interests: f.interests || (
+                    Array.isArray(data?.social_links?.interests)
+                        ? data.social_links.interests.join(', ')
+                        : ''
+                ),
+            }));
+        }).catch(() => { /* silently ignore */ });
+    }, []);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const [projectsRes, achievementsRes] = await Promise.all([
+                    projects.getAll({}),
+                    achievements.getAll({})
+                ]);
+                setStats({
+                    projects: (projectsRes.data as unknown as any[])?.length || 0,
+                    achievements: (achievementsRes.data as unknown as any[])?.length || 0
+                });
+            } catch (error) {
+                console.error("Failed to fetch profile stats:", error);
+            }
+        };
+        fetchStats();
+    }, []);
 
     const handleSaveProfile = async () => {
         setLoading(true);
@@ -50,17 +71,20 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                 interests: editForm.interests.split(',').map(i => i.trim()).filter(Boolean)
             });
             setIsEditing(false);
+            toast.success("Profile updated successfully");
         } catch (error) {
             console.error("Failed to update profile:", error);
+            toast.error("Failed to update profile");
         } finally {
             setLoading(false);
         }
     };
 
-    const CollapsedContent = () => (
+    // Collapsed view - shown in the card
+    const collapsedContent = (
         <div className="flex flex-col h-full gap-4">
             <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl font-bold">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                     {profile.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -84,10 +108,11 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
         </div>
     );
 
-    const ExpandedContent = () => (
+    // Expanded view - shown in the dialog
+    const expandedContent = (
         <div className="flex flex-col h-full gap-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-3xl font-bold">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
                     {profile.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 space-y-3">
@@ -99,6 +124,14 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">{profile.email}</span>
                     </div>
+                    {profile.school_name && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">🏫 {profile.school_name}</span>
+                        </div>
+                    )}
+                    {editForm.bio && (
+                        <p className="text-sm text-muted-foreground mt-1 italic">{editForm.bio}</p>
+                    )}
                 </div>
             </div>
 
@@ -119,13 +152,27 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                 </Card>
             </div>
 
+            <Button variant="outline" className="w-full" onClick={() => setIsEditing(true)}>
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit Profile
+            </Button>
+        </div>
+    );
+
+    return (
+        <>
+            <ExpandableWidget
+                title="Profile Overview"
+                icon={<User className="w-5 h-5 text-primary" />}
+                className={className}
+                defaultExpanded={defaultExpanded}
+                expandedContent={expandedContent}
+            >
+                {collapsedContent}
+            </ExpandableWidget>
+
+            {/* Edit Profile Dialog - rendered outside ExpandableWidget to prevent blink */}
             <Dialog open={isEditing} onOpenChange={setIsEditing}>
-                <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                        <Edit3 className="w-4 h-4 mr-2" />
-                        Edit Profile
-                    </Button>
-                </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>Edit Profile</DialogTitle>
@@ -172,18 +219,6 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
-    );
-
-    return (
-        <ExpandableWidget
-            title="Profile Overview"
-            icon={<User className="w-5 h-5 text-primary" />}
-            className={className}
-            defaultExpanded={defaultExpanded}
-            expandedContent={<ExpandedContent />}
-        >
-            <CollapsedContent />
-        </ExpandableWidget>
+        </>
     );
 }

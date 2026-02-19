@@ -1,149 +1,215 @@
-import { useEffect, useState } from "react";
-import { profile as profileApi } from "@/services/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Info } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect, useCallback } from "react";
+import { parent as parentApi } from "@/services/api";
+import { ChildOverviewWidget } from "@/components/widgets/ChildOverviewWidget";
+import { ProjectsMonitoringWidget } from "@/components/widgets/ProjectsMonitoringWidget";
+import { AchievementsMonitoringWidget } from "@/components/widgets/AchievementsMonitoringWidget";
+import { AnalyticsWidget } from "@/components/widgets/AnalyticsWidget";
+import { AIGuidanceWidget } from "@/components/widgets/AIGuidanceWidget";
+import { MessagingWidget } from "@/components/widgets/MessagingWidget";
+import { NotificationsWidget } from "@/components/widgets/NotificationsWidget";
+import { SubscriptionWidget } from "@/components/widgets/SubscriptionWidget";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSearchParams } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Users, ChevronDown, AlertCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
-// Widget Imports
-import { ParentStatsWidget } from "@/components/widgets/ParentStatsWidget";
-import { ProjectsWidget } from "@/components/widgets/ProjectsWidget";
-import { AchievementsWidget } from "@/components/widgets/AchievementsWidget";
-import { GalleryWidget } from "@/components/widgets/GalleryWidget";
-import { SchoolGalleryWidget } from "@/components/widgets/SchoolGalleryWidget";
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-const ParentDashboard = ({ profile }: { profile: any }) => {
-  const [children, setChildren] = useState<any[]>([]);
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
-  const activeWidget = searchParams.get("widget");
+type LinkedChild = {
+  id: number;
+  full_name: string;
+  email: string;
+  avatar_url: string | null;
+  grade: string | null;
+  school_name: string | null;
+  projects_count: number;
+  achievements_count: number;
+  verified_achievements_count: number;
+};
 
-  useEffect(() => {
-    fetchChildren();
+type ParentPlan = { tier: string; features: string[]; updatedAt: string | null };
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function ParentDashboard() {
+  const [children, setChildren] = useState<LinkedChild[]>([]);
+  const [selectedChild, setSelectedChild] = useState<LinkedChild | null>(null);
+  const [plan, setPlan] = useState<ParentPlan | null>(null);
+  const [loadingChildren, setLoadingChildren] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch linked children + parent plan in parallel
+  const fetchInitialData = useCallback(async () => {
+    try {
+      setLoadingChildren(true);
+      setError(null);
+      const [childrenRes, planRes] = await Promise.all([
+        parentApi.getChildren(),
+        parentApi.getPlan(),
+      ]);
+      const kids: LinkedChild[] = childrenRes.data || [];
+      setChildren(kids);
+      if (kids.length > 0) setSelectedChild(kids[0]);
+      setPlan(planRes.data || { tier: 'basic', features: [], updatedAt: null });
+    } catch (err: any) {
+      const code = err?.response?.data?.error;
+      if (code === 'FORBIDDEN') {
+        setError('Access denied. This dashboard is only available to parents.');
+      } else {
+        setError(err?.response?.data?.message || 'Failed to load your dashboard. Please try again.');
+      }
+    } finally {
+      setLoadingChildren(false);
+    }
   }, []);
 
-  const fetchChildren = async () => {
-    try {
-      const res = await profileApi.getChildren();
-      setChildren(res.data || []);
-      if (res.data && res.data.length > 0) {
-        setSelectedChildId(res.data[0].id.toString());
-      }
-    } catch (error) {
-      console.error("Failed to fetch children", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 
-  const selectedChild = children.find(c => c.id.toString() === selectedChildId);
+  // ── Loading state ──────────────────────────────────────────────────────────
+  if (loadingChildren) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-12 w-72" />
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
+          {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
 
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center p-6">
+        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+        </div>
+        <h2 className="text-xl font-semibold">Unable to load Parent Dashboard</h2>
+        <p className="text-muted-foreground max-w-sm">{error}</p>
+        <Button onClick={fetchInitialData} variant="outline">Try Again</Button>
+      </div>
+    );
+  }
+
+  // ── No children linked ─────────────────────────────────────────────────────
+  if (children.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center p-6">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+          <Users className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-semibold">No children linked yet</h2>
+        <p className="text-muted-foreground max-w-sm">
+          Your account has no student accounts linked to it. Ask your child's school administrator to create a parent–student link, or have your child link your account from their profile settings.
+        </p>
+        <Badge variant="outline">Error Code: PARENT_CHILD_NOT_LINKED</Badge>
+      </div>
+    );
+  }
+
+  // ── Dashboard ──────────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="flex flex-col gap-6 p-4 md:p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Welcome, {profile.full_name}!</h2>
-          <p className="text-muted-foreground">Monitor your child's growth and achievements.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Parent Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Monitor and support your child's academic journey
+          </p>
         </div>
 
-        {children.length > 0 && (
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <span className="text-sm text-muted-foreground whitespace-nowrap hidden md:block">Viewing:</span>
-            <Select value={selectedChildId || ''} onValueChange={setSelectedChildId}>
-              <SelectTrigger className="w-full md:w-64">
-                <SelectValue placeholder="Select Child" />
-              </SelectTrigger>
-              <SelectContent>
-                {children.map(child => (
-                  <SelectItem key={child.id} value={child.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={child.avatar_url} />
-                        <AvatarFallback>{child.full_name[0]}</AvatarFallback>
-                      </Avatar>
-                      {child.full_name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Child selector — shown only when 2+ children */}
+        {children.length > 1 && selectedChild && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 min-w-[180px] max-w-[260px]">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={selectedChild.avatar_url ?? undefined} />
+                  <AvatarFallback className="text-xs">{selectedChild.full_name[0]}</AvatarFallback>
+                </Avatar>
+                <span className="truncate flex-1 text-left">{selectedChild.full_name}</span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {children.map(child => (
+                <DropdownMenuItem
+                  key={child.id}
+                  onClick={() => setSelectedChild(child)}
+                  className={`flex items-center gap-3 ${selectedChild.id === child.id ? 'bg-muted' : ''}`}
+                >
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={child.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-xs">{child.full_name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">{child.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{child.school_name || 'No school'}</div>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Single child — compact pill */}
+        {children.length === 1 && selectedChild && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/50 text-sm">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={selectedChild.avatar_url ?? undefined} />
+              <AvatarFallback className="text-xs">{selectedChild.full_name[0]}</AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{selectedChild.full_name}</span>
+            {selectedChild.school_name && <span className="text-muted-foreground text-xs">· {selectedChild.school_name}</span>}
           </div>
         )}
       </div>
 
-      {/* Main Content Area */}
-      {loading ? (
-        <div className="text-center py-12">Loading...</div>
-      ) : children.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome to Growth Forge</CardTitle>
-            <CardDescription>Link your child's account to start tracking their journey.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>No students linked yet.</p>
-              <p className="text-sm mt-2">Contact your school administrator to link your child's account.</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : selectedChild ? (
-        <div className="space-y-6">
-
-          {/* Info Banner if needed */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 text-blue-800 text-sm">
-            <Info className="w-5 h-5 flex-shrink-0" />
-            <p>
-              You are viewing <strong>{selectedChild.full_name}'s</strong> profile.
-              Use the dropdown above to switch between children.
-            </p>
-          </div>
-
-          {/* Widgets Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]">
-
-            {/* 1. Statistics & Overview */}
-            <ParentStatsWidget
-              className="md:col-span-2 lg:col-span-2"
-              studentData={selectedChild}
-              defaultExpanded={activeWidget === 'stats'}
-            />
-
-            {/* 2. Projects */}
-            <ProjectsWidget
-              className="md:col-span-2 lg:col-span-2"
-              userId={selectedChildId || undefined}
-              defaultExpanded={activeWidget === 'projects'}
-            />
-
-            {/* 3. Achievements */}
-            <AchievementsWidget
-              className="md:col-span-2 lg:col-span-2"
-              userId={selectedChildId || undefined}
-              defaultExpanded={activeWidget === 'achievements'}
-            />
-
-            {/* 4. Personal Gallery */}
-            <GalleryWidget
-              className="md:col-span-2 lg:col-span-2"
-              userId={selectedChildId || undefined}
-              defaultExpanded={activeWidget === 'gallery'}
-            />
-
-            {/* 5. School Gallery (Reuse existing, general info) */}
-            <SchoolGalleryWidget
-              className="md:col-span-1 lg:col-span-1 xl:col-span-1"
-              defaultExpanded={activeWidget === 'school'}
+      {/* Widget grid */}
+      {selectedChild ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {/* Row 1: Overview (spans full width on small, 2 cols on md) */}
+          <div className="md:col-span-2 xl:col-span-2">
+            <ChildOverviewWidget
+              childId={selectedChild.id}
+              childName={selectedChild.full_name}
             />
           </div>
+
+          {/* Notifications — right side */}
+          <NotificationsWidget />
+
+          {/* Row 2 */}
+          <ProjectsMonitoringWidget childId={selectedChild.id} />
+          <AchievementsMonitoringWidget childId={selectedChild.id} />
+          <AnalyticsWidget childId={selectedChild.id} />
+
+          {/* Row 3 */}
+          <div className="md:col-span-2">
+            <AIGuidanceWidget
+              childId={selectedChild.id}
+              parentPlan={plan?.tier}
+            />
+          </div>
+          <MessagingWidget />
+
+          {/* Row 4 */}
+          <SubscriptionWidget />
         </div>
-      ) : null}
+      ) : (
+        <div className="text-center py-12 text-muted-foreground">Select a child to view their dashboard.</div>
+      )}
     </div>
   );
-};
+}
 
 export default ParentDashboard;

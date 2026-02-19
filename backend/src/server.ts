@@ -20,6 +20,7 @@ import schoolGalleryRoutes from './routes/school-gallery.routes';
 import schoolsRoutes from './routes/schools.routes';
 import aiRoutes from './routes/ai.routes';
 import analyticsRoutes from './routes/analytics.routes';
+import parentRoutes from './routes/parent.routes';
 import { sanitizeInput } from './middleware/sanitization.middleware';
 
 dotenv.config();
@@ -206,7 +207,8 @@ app.get('/', (req, res) => {
             upload: '/api/upload',
             recommendations: '/api/recommendations',
             ai: '/api/ai',
-            analytics: '/api/analytics'
+            analytics: '/api/analytics',
+            parent: '/api/parent'
         }
     });
 });
@@ -238,6 +240,7 @@ app.use('/api/school-gallery', schoolGalleryRoutes);
 app.use('/api/schools', schoolsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/parent', parentRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

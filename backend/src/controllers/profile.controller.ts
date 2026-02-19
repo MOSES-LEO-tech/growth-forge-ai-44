@@ -6,10 +6,10 @@ export const getProfile = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
 
-        // Fetch user details and profile
+        // Fetch user details and profile (only columns that exist in base schema)
         const result = await pool.query(
             `SELECT u.id, u.full_name, u.email, u.role, u.school_id, u.avatar_url, u.bio, u.grade,
-              p.date_of_birth, p.phone, p.address, p.portfolio_visibility, p.subjects, p.intended_course, p.gpa, p.location, p.graduation_year,
+              p.date_of_birth, p.phone, p.address, p.portfolio_visibility, p.social_links,
               s.name as school_name
        FROM users u
        LEFT JOIN profiles p ON u.id = p.user_id
@@ -34,33 +34,41 @@ export const updateProfile = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
         const {
-            bio, grade, date_of_birth, phone, address, portfolio_visibility,
-            subjects, intended_course, gpa, location, graduation_year
+            full_name, bio, grade, date_of_birth, phone, address, portfolio_visibility,
+            subjects, intended_course, gpa, location, graduation_year, interests
         } = req.body;
 
-        // Update users table fields
+        // Update users table fields (full_name, bio, grade)
         await pool.query(
-            `UPDATE users SET bio = $1, grade = $2 WHERE id = $3`,
-            [bio, grade, userId]
+            `UPDATE users SET
+                full_name = COALESCE($1, full_name),
+                bio = COALESCE($2, bio),
+                grade = COALESCE($3, grade)
+             WHERE id = $4`,
+            [full_name || null, bio || null, grade || null, userId]
         );
 
-        // Upsert into profiles table
+        // Build social_links JSONB to store interests and other extended data
+        const socialLinksData: Record<string, any> = {};
+        if (interests) socialLinksData.interests = Array.isArray(interests) ? interests : interests;
+
+        // Upsert into profiles table (only columns that exist in base schema)
         await pool.query(
-            `INSERT INTO profiles (user_id, date_of_birth, phone, address, portfolio_visibility, subjects, intended_course, gpa, location, graduation_year)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       ON CONFLICT (user_id) 
-       DO UPDATE SET 
-         date_of_birth = EXCLUDED.date_of_birth,
-         phone = EXCLUDED.phone,
-         address = EXCLUDED.address,
-         portfolio_visibility = EXCLUDED.portfolio_visibility,
-         subjects = EXCLUDED.subjects,
-         intended_course = EXCLUDED.intended_course,
-         gpa = EXCLUDED.gpa,
-         location = EXCLUDED.location,
-         graduation_year = EXCLUDED.graduation_year,
+            `INSERT INTO profiles (user_id, date_of_birth, phone, address, portfolio_visibility, social_links)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+       ON CONFLICT (user_id)
+       DO UPDATE SET
+         date_of_birth = COALESCE(EXCLUDED.date_of_birth, profiles.date_of_birth),
+         phone = COALESCE(EXCLUDED.phone, profiles.phone),
+         address = COALESCE(EXCLUDED.address, profiles.address),
+         portfolio_visibility = COALESCE(EXCLUDED.portfolio_visibility, profiles.portfolio_visibility),
+         social_links = CASE
+           WHEN $6::jsonb IS NOT NULL THEN COALESCE(profiles.social_links, '{}'::jsonb) || $6::jsonb
+           ELSE profiles.social_links
+         END,
          updated_at = CURRENT_TIMESTAMP`,
-            [userId, date_of_birth, phone, address, portfolio_visibility, JSON.stringify(subjects), intended_course, gpa, location, graduation_year]
+            [userId, date_of_birth || null, phone || null, address || null, portfolio_visibility || null,
+             Object.keys(socialLinksData).length > 0 ? JSON.stringify(socialLinksData) : null]
         );
 
         res.json({ message: 'Profile updated successfully' });
@@ -77,7 +85,7 @@ export const getPublicProfile = async (req: Request, res: Response) => {
 
         const result = await pool.query(
             `SELECT u.id, u.full_name, u.role, u.school_id, u.avatar_url, u.bio, u.grade,
-              p.portfolio_visibility, p.subjects, p.intended_course, p.location, p.graduation_year,
+              p.portfolio_visibility, p.social_links,
               s.name as school_name
        FROM users u
        LEFT JOIN profiles p ON u.id = p.user_id
@@ -144,8 +152,6 @@ export const getChildren = async (req: Request, res: Response) => {
 
         const result = await pool.query(
             `SELECT u.id, u.full_name, u.email, u.grade, u.avatar_url,
-                    COALESCE(p.gpa, 0) as gpa,
-                    COALESCE(p.intended_course, 'Undeclared') as intended_course,
                     (SELECT COUNT(*) FROM achievements WHERE user_id = u.id AND verified = true) as achievement_count
              FROM parent_student_links psl
              JOIN users u ON psl.student_id = u.id

@@ -2,12 +2,11 @@ import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { AuthRequest } from '../types';
 import { pool } from '../config/database';
-import { requirePlanAtLeast } from '../middleware/entitlement.middleware';
 
 const router = Router();
 
+// Analytics is open to all authenticated students — AI usage tab is plan-gated per row below
 router.use(authenticateToken);
-router.use(requirePlanAtLeast('plus'));
 
 router.get('/student/:id', async (req: AuthRequest, res) => {
     try {
@@ -18,7 +17,7 @@ router.get('/student/:id', async (req: AuthRequest, res) => {
             return res.status(403).json({ success: false, error: 'FORBIDDEN', message: 'You can only access your own analytics.' });
         }
 
-        const [projects, achievements, aiUsage, level] = await Promise.all([
+        const [projects, achievements, level] = await Promise.all([
             pool.query(
                 `SELECT
                   COUNT(*)::int AS total,
@@ -35,14 +34,6 @@ router.get('/student/:id', async (req: AuthRequest, res) => {
                  WHERE user_id = $1 AND deleted_at IS NULL`,
                 [studentId]
             ),
-            pool.query(
-                `SELECT DATE(created_at) AS day, COUNT(*)::int AS messages
-                 FROM ai_chat_logs
-                 WHERE user_id = $1 AND message_role = 'user' AND created_at >= NOW() - INTERVAL '30 days'
-                 GROUP BY DATE(created_at)
-                 ORDER BY day ASC`,
-                [studentId]
-            ),
             pool.query('SELECT level, points FROM student_levels WHERE user_id = $1', [studentId]),
         ]);
 
@@ -52,6 +43,21 @@ router.get('/student/:id', async (req: AuthRequest, res) => {
 
         const points = level.rows[0]?.points || 0;
         const levelBucket = Math.max(1, Math.floor(points / 100) + 1);
+        const planTier = (level.rows[0]?.level || 'basic').toLowerCase();
+
+        // AI usage is only available for Plus / Pro plans
+        let aiUsage: { day: string; messages: number }[] = [];
+        if (planTier === 'plus' || planTier === 'pro') {
+            const aiResult = await pool.query(
+                `SELECT DATE(created_at) AS day, COUNT(*)::int AS messages
+                 FROM ai_chat_logs
+                 WHERE user_id = $1 AND message_role = 'user' AND created_at >= NOW() - INTERVAL '30 days'
+                 GROUP BY DATE(created_at)
+                 ORDER BY day ASC`,
+                [studentId]
+            );
+            aiUsage = aiResult.rows;
+        }
 
         return res.json({
             success: true,
@@ -59,12 +65,12 @@ router.get('/student/:id', async (req: AuthRequest, res) => {
                 projectCompletionRate: completionRate,
                 verifiedAchievementCount: achievements.rows[0]?.verified || 0,
                 achievementCount: achievements.rows[0]?.total || 0,
-                aiUsage: aiUsage.rows,
+                aiUsage,
                 xp: {
                     level: levelBucket,
                     currentXp: points,
                     nextLevelXp: levelBucket * 100,
-                    tier: level.rows[0]?.level || 'basic',
+                    tier: planTier,
                 },
             },
         });

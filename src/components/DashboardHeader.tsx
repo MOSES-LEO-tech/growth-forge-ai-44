@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Settings, Moon, Sun, Monitor, Check, Video } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
 import { useTheme } from "@/contexts/ThemeProvider";
 import {
@@ -74,30 +74,8 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
         {/* Left: Logo */}
         <Logo />
 
-        {/* Center: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
-          <Link
-            to="/dashboard"
-            className={`hover:text-primary transition-colors focus-ring rounded px-2 py-1 ${isActive('/dashboard') ? 'text-primary font-medium' : ''}`}
-            aria-current={isActive('/dashboard') ? 'page' : undefined}
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/gallery"
-            className={`hover:text-primary transition-colors focus-ring rounded px-2 py-1 ${isActive('/gallery') ? 'text-primary font-medium' : ''}`}
-            aria-current={isActive('/gallery') ? 'page' : undefined}
-          >
-            Gallery
-          </Link>
-          <Link
-            to="/projects"
-            className={`hover:text-primary transition-colors focus-ring rounded px-2 py-1 ${isActive('/projects') ? 'text-primary font-medium' : ''}`}
-            aria-current={isActive('/projects') ? 'page' : undefined}
-          >
-            Projects
-          </Link>
-        </nav>
+        {/* Center: Navigation Links - removed separate page links since dashboard uses expandable widgets */}
+        <div />
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">

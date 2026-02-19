@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -133,7 +133,8 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
     const photos = filteredItems.filter(i => i.media_type === 'image');
     const videos = filteredItems.filter(i => i.media_type === 'video');
 
-    const CollapsedContent = () => (
+    // Collapsed view - shown in the card
+    const collapsedContent = (
         <div className="flex flex-col h-full gap-4">
             <div className="grid grid-cols-2 gap-2 h-full max-h-[140px]">
                 {items.slice(0, 4).map((item) => (
@@ -167,7 +168,8 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
         </div>
     );
 
-    const ExpandedContent = () => (
+    // Expanded view - shown in the dialog
+    const expandedContent = (
         <div className="flex flex-col h-full gap-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="relative w-full md:w-96">
@@ -179,55 +181,9 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                         className="pl-9"
                     />
                 </div>
-                <Dialog open={openUpload} onOpenChange={setOpenUpload}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Add New Item
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                        <DialogHeader>
-                            <DialogTitle>Add to Gallery</DialogTitle>
-                            <DialogDescription>Upload a photo or video to share.</DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleUpload} className="space-y-4">
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label htmlFor="media">Media File</Label>
-                                <Input id="media" type="file" accept="image/*,video/*" onChange={handleFileChange} required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="title">Title</Label>
-                                <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="My Awesome Project" required />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="desc">Description</Label>
-                                <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this about?" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="vis">Visibility</Label>
-                                <Select value={visibility} onValueChange={setVisibility}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select visibility" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="private">Private (Only Me)</SelectItem>
-                                        <SelectItem value="parents">Parents Only</SelectItem>
-                                        <SelectItem value="public">Public</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <DialogFooter>
-                                <Button type="submit" disabled={uploading}>
-                                    {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : 'Upload Item'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={() => setOpenUpload(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add New Item
+                </Button>
             </div>
 
             <Tabs defaultValue="all" className="flex-1 flex flex-col">
@@ -253,15 +209,63 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
     );
 
     return (
-        <ExpandableWidget
-            title="Personal Gallery"
-            icon={<ImageIcon className="w-5 h-5 text-purple-500" />}
-            className={className}
-            defaultExpanded={defaultExpanded}
-            expandedContent={<ExpandedContent />}
-        >
-            <CollapsedContent />
-        </ExpandableWidget>
+        <>
+            <ExpandableWidget
+                title="Personal Gallery"
+                icon={<ImageIcon className="w-5 h-5 text-purple-500" />}
+                className={className}
+                defaultExpanded={defaultExpanded}
+                expandedContent={expandedContent}
+            >
+                {collapsedContent}
+            </ExpandableWidget>
+
+            {/* Upload Dialog - rendered outside ExpandableWidget to prevent blink */}
+            <Dialog open={openUpload} onOpenChange={(open) => { setOpenUpload(open); if (!open) resetForm(); }}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Add to Gallery</DialogTitle>
+                        <DialogDescription>Upload a photo or video to share.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleUpload} className="space-y-4">
+                        <div className="grid w-full max-w-sm items-center gap-1.5">
+                            <Label htmlFor="media">Media File</Label>
+                            <Input id="media" type="file" accept="image/*,video/*" onChange={handleFileChange} required />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="title">Title</Label>
+                            <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="My Awesome Project" required />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="desc">Description</Label>
+                            <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this about?" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="vis">Visibility</Label>
+                            <Select value={visibility} onValueChange={setVisibility}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select visibility" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="private">Private (Only Me)</SelectItem>
+                                    <SelectItem value="parents">Parents Only</SelectItem>
+                                    <SelectItem value="public">Public</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="submit" disabled={uploading}>
+                                {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : 'Upload Item'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 
@@ -278,7 +282,6 @@ function GalleryGrid({ items, onDelete }: { items: GalleryItem[], onDelete: (id:
                         {item.media_type === 'video' ? (
                             <div className="w-full h-full flex items-center justify-center bg-black/5">
                                 <Video className="w-12 h-12 text-muted-foreground opacity-50" />
-                                {/* In a real app we would use a thumbnail or video player here */}
                             </div>
                         ) : (
                             <img src={item.media_url} alt={item.title} className="object-cover w-full h-full transition-transform group-hover:scale-105" />

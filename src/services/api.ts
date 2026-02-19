@@ -16,6 +16,11 @@ export type Profile = {
     full_name: string;
     email: string;
     avatar_url?: string | null;
+    bio?: string | null;
+    grade?: string | null;
+    school_name?: string | null;
+    /** Stored in profiles.social_links JSONB — includes interests array */
+    social_links?: { interests?: string[] } | null;
 };
 
 type AuthRegisterRequest = {
@@ -75,8 +80,10 @@ export type Achievement = {
     title: string;
     description: string | null;
     date_earned: string;
+    category?: string | null;
     certificate_url?: string | null;
     verified?: boolean;
+    verifier_name?: string | null;
 };
 
 type GalleryEventCreateRequest = {
@@ -350,7 +357,7 @@ export const achievements = {
         return api.get<{ data: Achievement[] }>('/achievements?' + query.toString());
     },
     getOne: (id: string) => api.get<{ data: Achievement }>('/achievements/' + id),
-    create: (data: { title: string; description?: string; date_earned?: string; certificate_url?: string }) =>
+    create: (data: { title: string; description?: string; category?: string; date_earned?: string; certificate_url?: string }) =>
         api.post('/achievements', data),
     update: (id: string, data: { title?: string; description?: string; date_earned?: string; certificate_url?: string }) =>
         api.put('/achievements/' + id, data),
@@ -389,6 +396,90 @@ export const schoolGallery = {
     create: (data: SchoolEventCreateRequest) => api.post('/school-gallery', data),
     addMedia: (id: string, data: GalleryMediaCreateRequest) => api.post('/school-gallery/' + id + '/media', data),
     delete: (id: string) => api.delete('/school-gallery/' + id),
+};
+
+// ─── Parent Dashboard API ────────────────────────────────────────────────────
+
+export const parent = {
+    getChildren: () => api.get('/parent/children'),
+    getPlan: () => api.get('/parent/plan'),
+
+    getChildOverview: (childId: string | number) =>
+        api.get(`/parent/child/${childId}/overview`),
+
+    getChildProjects: (childId: string | number, params?: { status?: string; limit?: number }) =>
+        api.get(`/parent/child/${childId}/projects`, { params }),
+
+    postProjectComment: (projectId: string | number, comment: string) =>
+        api.post(`/parent/project/${projectId}/comment`, { comment }),
+
+    getChildAchievements: (childId: string | number, params?: { category?: string; verified?: boolean }) =>
+        api.get(`/parent/child/${childId}/achievements`, { params }),
+
+    getChildAnalytics: (childId: string | number) =>
+        api.get(`/parent/child/${childId}/analytics`),
+
+    sendMessage: (receiverId: number, content: string, subject?: string) =>
+        api.post('/parent/message', { receiverId, content, subject }),
+
+    getMessages: () => api.get('/parent/messages'),
+
+    getNotifications: () => api.get('/parent/notifications'),
+
+    markNotificationRead: (notificationId: number) =>
+        api.patch(`/parent/notifications/${notificationId}/read`),
+
+    getAIHistory: (parentId: number) =>
+        api.get(`/ai/parent-history/${parentId}`),
+};
+
+export const parentAI = {
+    /** Streams parent AI guidance. Uses SSE. Call this directly with fetch. */
+    chatStream: async (
+        message: string,
+        childId: number | null,
+        onToken: (text: string) => void,
+    ): Promise<void> => {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/ai/parent-chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+            },
+            body: JSON.stringify({ message, childId }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ message: 'Chat failed' }));
+            throw new Error(err?.message || 'Parent chat failed');
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6).trim();
+                    if (data === '[DONE]') return;
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.text) onToken(parsed.text);
+                        if (parsed.error) throw new Error(parsed.error);
+                    } catch { /* skip malformed */ }
+                }
+            }
+        }
+    },
 };
 
 export default api;
