@@ -76,8 +76,9 @@ const EventGallery = () => {
 
       // 2. Link to Event
       await schoolGallery.addMedia(id, {
-        mediaType: type,
-        mediaUrl: url,
+        media_type: type as 'image' | 'video',
+        media_url: url,
+        event_id: parseInt(id),
         title: uploadFile.name,
         description: 'Event media'
       });

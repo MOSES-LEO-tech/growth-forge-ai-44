@@ -24,7 +24,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
   const [form, setForm] = useState({
     title: "",
     description: "",
-    media_type: "photo" as "photo" | "video",
+    media_type: "image" as "image" | "video",
     media_url: "",
     event_date: ""
   });
@@ -42,7 +42,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     if (file) {
       // Auto-detect media type
       if (file.type.startsWith("image/")) {
-        setForm({ ...form, media_type: "photo" });
+        setForm({ ...form, media_type: "image" });
       } else if (file.type.startsWith("video/")) {
         setForm({ ...form, media_type: "video" });
       }
@@ -98,7 +98,6 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
         media_type: form.media_type,
         media_url: mediaUrl,
         event_id: eventId,
-        uploaded_by: userId
       });
 
       toast({
@@ -107,7 +106,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
         className: "bg-green-500 text-white"
       });
 
-      setForm({ title: "", description: "", media_type: "photo", media_url: "", event_date: "" });
+      setForm({ title: "", description: "", media_type: "image", media_url: "", event_date: "" });
       setSelectedFile(null);
       setUploadProgress(0);
       setOpen(false);
@@ -172,7 +171,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="photo">📷 Photo</SelectItem>
+                <SelectItem value="image">📷 Photo</SelectItem>
                 <SelectItem value="video">🎥 Video</SelectItem>
               </SelectContent>
             </Select>

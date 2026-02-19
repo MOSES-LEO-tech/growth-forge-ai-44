@@ -27,8 +27,8 @@ const TeacherDashboard = ({ profile }: { profile: any }) => {
         achievementsApi.getAll(true),
         projectsApi.getAll(true)
       ]);
-      setPendingAchievements(achievementsRes.data || []);
-      setPendingProjects(projectsRes.data || []);
+      setPendingAchievements(Array.isArray(achievementsRes.data) ? achievementsRes.data : []);
+      setPendingProjects(Array.isArray(projectsRes.data) ? projectsRes.data : []);
     } catch (error) {
       console.error("Failed to fetch teacher data", error);
     } finally {
