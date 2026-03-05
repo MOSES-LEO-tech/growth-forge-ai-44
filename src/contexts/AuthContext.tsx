@@ -85,10 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = {
         id: response.data.id,
         email: response.data.email,
-        fullName: response.data.full_name,
+        fullName: response.data.fullName,
         role: response.data.role,
-        avatarUrl: response.data.avatar_url,
-        schoolId: response.data.school_id,
+        avatarUrl: response.data.avatarUrl,
+        schoolId: response.data.schoolId,
       };
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));

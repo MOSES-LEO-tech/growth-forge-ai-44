@@ -4,6 +4,7 @@ import { PendingApprovalsWidget } from "@/components/widgets/PendingApprovalsWid
 import { SchoolGalleryWidget } from "@/components/widgets/SchoolGalleryWidget";
 import { StudentDirectoryWidget } from "@/components/widgets/StudentDirectoryWidget";
 import { TeacherStatsWidget } from "@/components/widgets/TeacherStatsWidget";
+import { NotificationsWidget } from "@/components/widgets/NotificationsWidget";
 import { useSearchParams } from "react-router-dom";
 
 const TeacherDashboard = ({ profile }: { profile: Profile }) => {
@@ -35,9 +36,9 @@ const TeacherDashboard = ({ profile }: { profile: Profile }) => {
           defaultExpanded={activeWidget === 'directory'}
         />
 
-        <SchoolGalleryWidget
+        <NotificationsWidget
           className="md:col-span-2 lg:col-span-2"
-          defaultExpanded={activeWidget === 'gallery'}
+          defaultExpanded={activeWidget === 'notifications'}
         />
       </div>
     </div>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-type Role = 'student' | 'parent' | 'teacher' | 'admin';
+type Role = 'student' | 'parent' | 'teacher' | 'admin' | 'school_admin';
 
 export type User = {
     id: string;
@@ -16,11 +16,8 @@ export type Profile = {
     full_name: string;
     email: string;
     avatar_url?: string | null;
-    bio?: string | null;
-    grade?: string | null;
-    school_name?: string | null;
-    /** Stored in profiles.social_links JSONB — includes interests array */
-    social_links?: { interests?: string[] } | null;
+    role: Role;
+    schoolId?: number;
 };
 
 type AuthRegisterRequest = {
@@ -63,10 +60,11 @@ type ProjectCreateRequest = {
 type ProjectUpdateRequest = Partial<ProjectCreateRequest>;
 
 type ProjectMediaRequest = {
-    title?: string;
-    description?: string;
-    media_type: 'image' | 'video' | 'pdf';
-    media_url: string;
+    fileName?: string;
+    fileSize?: number;
+    mediaType: 'image' | 'video' | 'pdf' | 'document';
+    mediaUrl: string;
+    thumbnailUrl?: string;
 };
 
 type ProjectFeedbackRequest = {
@@ -80,10 +78,8 @@ export type Achievement = {
     title: string;
     description: string | null;
     date_earned: string;
-    category?: string | null;
     certificate_url?: string | null;
     verified?: boolean;
-    verifier_name?: string | null;
 };
 
 type GalleryEventCreateRequest = {
@@ -357,7 +353,7 @@ export const achievements = {
         return api.get<{ data: Achievement[] }>('/achievements?' + query.toString());
     },
     getOne: (id: string) => api.get<{ data: Achievement }>('/achievements/' + id),
-    create: (data: { title: string; description?: string; category?: string; date_earned?: string; certificate_url?: string }) =>
+    create: (data: { title: string; description?: string; date_earned?: string; certificate_url?: string }) =>
         api.post('/achievements', data),
     update: (id: string, data: { title?: string; description?: string; date_earned?: string; certificate_url?: string }) =>
         api.put('/achievements/' + id, data),
@@ -398,50 +394,68 @@ export const schoolGallery = {
     delete: (id: string) => api.delete('/school-gallery/' + id),
 };
 
-// ─── Parent Dashboard API ────────────────────────────────────────────────────
+export const teacher = {
+    // Classes
+    getClasses: () => api.get('/teacher/classes'),
+    getClass: (id: string) => api.get('/teacher/class/' + id),
+    getClassStudents: (id: string, params?: { search?: string; grade?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.search) query.append('search', params.search);
+        if (params?.grade) query.append('grade', params.grade);
+        return api.get('/teacher/class/' + id + '/students?' + query.toString());
+    },
+
+    // Students
+    getStudents: (params?: { search?: string; grade?: string; classId?: string; page?: number; limit?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.search) query.append('search', params.search);
+        if (params?.grade) query.append('grade', params.grade);
+        if (params?.classId) query.append('classId', params.classId);
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        return api.get('/teacher/students?' + query.toString());
+    },
+    getStudent: (id: string) => api.get('/teacher/student/' + id),
+
+    // Analytics
+    getAnalytics: () => api.get('/teacher/analytics/overview'),
+    getClassAnalytics: (classId: string) => api.get('/teacher/analytics/class/' + classId),
+
+    // Notifications
+    getNotifications: (params?: { unreadOnly?: boolean; page?: number; limit?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.unreadOnly) query.append('unreadOnly', 'true');
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        return api.get('/teacher/notifications?' + query.toString());
+    },
+    markNotificationRead: (id: string) => api.patch('/teacher/notifications/' + id + '/read'),
+    markAllNotificationsRead: () => api.patch('/teacher/notifications/read-all'),
+
+    // Verification
+    getPendingProjects: () => api.get('/teacher/projects/pending'),
+    rejectProject: (id: string, reason: string) => api.post('/teacher/project/' + id + '/reject', { reason }),
+    addProjectFeedback: (id: string, data: { comment?: string; rating?: number }) =>
+        api.post('/teacher/project/' + id + '/feedback', data),
+
+    getPendingAchievements: () => api.get('/teacher/achievements/pending'),
+    rejectAchievement: (id: string, reason: string) => api.post('/teacher/achievement/' + id + '/reject', { reason }),
+};
 
 export const parent = {
-    getChildren: () => api.get('/parent/children'),
-    getPlan: () => api.get('/parent/plan'),
-
-    getChildOverview: (childId: string | number) =>
-        api.get(`/parent/child/${childId}/overview`),
-
-    getChildProjects: (childId: string | number, params?: { status?: string; limit?: number }) =>
-        api.get(`/parent/child/${childId}/projects`, { params }),
-
-    postProjectComment: (projectId: string | number, comment: string) =>
-        api.post(`/parent/project/${projectId}/comment`, { comment }),
-
-    getChildAchievements: (childId: string | number, params?: { category?: string; verified?: boolean }) =>
-        api.get(`/parent/child/${childId}/achievements`, { params }),
-
-    getChildAnalytics: (childId: string | number) =>
-        api.get(`/parent/child/${childId}/analytics`),
-
-    sendMessage: (receiverId: number, content: string, subject?: string) =>
-        api.post('/parent/message', { receiverId, content, subject }),
-
     getMessages: () => api.get('/parent/messages'),
-
-    getNotifications: () => api.get('/parent/notifications'),
-
-    markNotificationRead: (notificationId: number) =>
-        api.patch(`/parent/notifications/${notificationId}/read`),
-
-    getAIHistory: (parentId: number) =>
-        api.get(`/ai/parent-history/${parentId}`),
+    sendMessage: (receiverId: number, content: string, subject?: string) =>
+        api.post('/parent/messages', { receiverId, content, subject }),
+    getChildProjects: (childId: string | number) => api.get(`/parent/child/${childId}/projects`),
+    postProjectComment: (projectId: number, comment: string) =>
+        api.post(`/parent/projects/${projectId}/comments`, { comment }),
+    getPlan: () => api.get('/parent/plan'),
 };
 
 export const parentAI = {
-    /** Streams parent AI guidance. Uses SSE. Call this directly with fetch. */
-    chatStream: async (
-        message: string,
-        childId: number | null,
-        onToken: (text: string) => void,
-    ): Promise<void> => {
+    chatStream: async (message: string, childId: number | null, onToken: (text: string) => void) => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/ai/parent-chat`, {
+        const response = await fetch(API_URL + '/parent/ai/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -451,8 +465,8 @@ export const parentAI = {
         });
 
         if (!response.ok) {
-            const err = await response.json().catch(() => ({ message: 'Chat failed' }));
-            throw new Error(err?.message || 'Parent chat failed');
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || 'Chat request failed');
         }
 
         const reader = response.body?.getReader();
@@ -464,22 +478,252 @@ export const parentAI = {
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
+
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';
+
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     const data = line.slice(6).trim();
-                    if (data === '[DONE]') return;
+                    if (data === '[DONE]') continue;
+
                     try {
                         const parsed = JSON.parse(data);
-                        if (parsed.text) onToken(parsed.text);
-                        if (parsed.error) throw new Error(parsed.error);
-                    } catch { /* skip malformed */ }
+                        if (parsed.text) {
+                            onToken(parsed.text);
+                        } else if (parsed.error) {
+                            throw new Error(parsed.error);
+                        }
+                    } catch (e) {
+                        continue;
+                    }
                 }
             }
         }
+    }
+};
+
+// School Admin API
+export const schoolAdmin = {
+    // === SCHOOL OVERVIEW ===
+    getSchoolOverview: () => api.get('/school-admin/overview'),
+
+    // === USER MANAGEMENT ===
+    // Students
+    getStudents: (params?: { page?: number; limit?: number; search?: string; classId?: string; status?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        if (params?.search) query.append('search', params.search);
+        if (params?.classId) query.append('classId', params.classId);
+        if (params?.status) query.append('status', params.status);
+        return api.get('/school-admin/students?' + query.toString());
+    },
+    getStudent: (id: string) => api.get('/school-admin/students/' + id),
+    addStudent: (data: { email: string; firstName: string; lastName: string; classId?: string }) =>
+        api.post('/school-admin/students', data),
+    updateStudent: (id: string, data: { firstName?: string; lastName?: string; classId?: string; level?: number }) =>
+        api.put('/school-admin/students/' + id, data),
+    deleteStudent: (id: string) => api.delete('/school-admin/students/' + id),
+    suspendStudent: (id: string, reason: string) => api.post('/school-admin/students/' + id + '/suspend', { reason }),
+    resetStudentPassword: (id: string) => api.post('/school-admin/students/' + id + '/reset-password'),
+    bulkUploadStudents: (data: FormData) => api.post('/school-admin/students/bulk', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+
+    // Teachers
+    getTeachers: (params?: { page?: number; limit?: number; search?: string; subjectId?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        if (params?.search) query.append('search', params.search);
+        if (params?.subjectId) query.append('subjectId', params.subjectId);
+        return api.get('/school-admin/teachers?' + query.toString());
+    },
+    getTeacher: (id: string) => api.get('/school-admin/teachers/' + id),
+    addTeacher: (data: { email: string; firstName: string; lastName: string; subjectIds?: number[] }) =>
+        api.post('/school-admin/teachers', data),
+    updateTeacher: (id: string, data: { firstName?: string; lastName?: string; subjectIds?: number[]; permissions?: string[] }) =>
+        api.put('/school-admin/teachers/' + id, data),
+    deleteTeacher: (id: string) => api.delete('/school-admin/teachers/' + id),
+    assignTeacherToClass: (teacherId: string, classId: string) =>
+        api.post('/school-admin/teachers/' + teacherId + '/assign-class', { classId }),
+
+    // Parents
+    getParents: (params?: { page?: number; limit?: number; search?: string; studentId?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        if (params?.search) query.append('search', params.search);
+        if (params?.studentId) query.append('studentId', params.studentId);
+        return api.get('/school-admin/parents?' + query.toString());
+    },
+    linkParentToStudent: (parentId: string, studentId: string) =>
+        api.post('/school-admin/parents/' + parentId + '/link-student', { studentId }),
+    unlinkParentFromStudent: (parentId: string, studentId: string) =>
+        api.delete('/school-admin/parents/' + parentId + '/unlink-student/' + studentId),
+    removeParentAccess: (id: string) => api.delete('/school-admin/parents/' + id),
+
+    // === ACADEMIC STRUCTURE ===
+    // Classes
+    getClasses: (params?: { academicYearId?: number; grade?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.academicYearId) query.append('academicYearId', String(params.academicYearId));
+        if (params?.grade) query.append('grade', params.grade);
+        return api.get('/school-admin/classes?' + query.toString());
+    },
+    getClass: (id: string) => api.get('/school-admin/classes/' + id),
+    createClass: (data: { name: string; grade: string; academicYearId: number; teacherId?: string }) =>
+        api.post('/school-admin/classes', data),
+    updateClass: (id: string, data: { name?: string; grade?: string; teacherId?: string }) =>
+        api.put('/school-admin/classes/' + id, data),
+    deleteClass: (id: string) => api.delete('/school-admin/classes/' + id),
+    archiveClass: (id: string) => api.post('/school-admin/classes/' + id + '/archive'),
+    assignStudentToClass: (studentId: string, classId: string) =>
+        api.post('/school-admin/classes/' + classId + '/assign-student', { studentId }),
+
+    // Subjects
+    getSubjects: (params?: { grade?: string; academicYearId?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.grade) query.append('grade', params.grade);
+        if (params?.academicYearId) query.append('academicYearId', String(params.academicYearId));
+        return api.get('/school-admin/subjects?' + query.toString());
+    },
+    getSubject: (id: string) => api.get('/school-admin/subjects/' + id),
+    createSubject: (data: { name: string; grade: string; academicYearId: number; teacherIds?: number[] }) =>
+        api.post('/school-admin/subjects', data),
+    updateSubject: (id: string, data: { name?: string; teacherIds?: number[] }) =>
+        api.put('/school-admin/subjects/' + id, data),
+    deleteSubject: (id: string) => api.delete('/school-admin/subjects/' + id),
+    assignSubjectHead: (subjectId: string, teacherId: string) =>
+        api.post('/school-admin/subjects/' + subjectId + '/assign-head', { teacherId }),
+
+    // Academic Years
+    getAcademicYears: () => api.get('/school-admin/academic-years'),
+    getAcademicYear: (id: string) => api.get('/school-admin/academic-years/' + id),
+    createAcademicYear: (data: { name: string; startDate: string; endDate: string }) =>
+        api.post('/school-admin/academic-years', data),
+    updateAcademicYear: (id: string, data: { name?: string; startDate?: string; endDate?: string; isActive?: boolean }) =>
+        api.put('/school-admin/academic-years/' + id, data),
+    archiveAcademicYear: (id: string) => api.post('/school-admin/academic-years/' + id + '/archive'),
+    promoteStudents: (fromYearId: string, toYearId: string) =>
+        api.post('/school-admin/academic-years/' + fromYearId + '/promote', { toYearId }),
+
+    // === PORTFOLIO MODERATION ===
+    getAllProjects: (params?: { page?: number; limit?: number; status?: string; classId?: string; search?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        if (params?.status) query.append('status', params.status);
+        if (params?.classId) query.append('classId', params.classId);
+        if (params?.search) query.append('search', params.search);
+        return api.get('/school-admin/projects?' + query.toString());
+    },
+    getProject: (id: string) => api.get('/school-admin/projects/' + id),
+    approveProject: (id: string) => api.post('/school-admin/projects/' + id + '/approve'),
+    rejectProject: (id: string, reason: string) => api.post('/school-admin/projects/' + id + '/reject', { reason }),
+    featureProject: (id: string) => api.post('/school-admin/projects/' + id + '/feature'),
+    unfeatureProject: (id: string) => api.delete('/school-admin/projects/' + id + '/feature'),
+    removeProjectContent: (id: string, reason: string) => api.delete('/school-admin/projects/' + id + '/content', { data: { reason } }),
+    flagProject: (id: string, reason: string) => api.post('/school-admin/projects/' + id + '/flag', { reason }),
+
+    // === ACHIEVEMENT SYSTEM ===
+    getSchoolAchievements: (params?: { page?: number; limit?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        return api.get('/school-admin/achievements?' + query.toString());
+    },
+    createSchoolAchievement: (data: { title: string; description?: string; criteria?: string; iconUrl?: string; points?: number }) =>
+        api.post('/school-admin/achievements', data),
+    updateSchoolAchievement: (id: string, data: { title?: string; description?: string; criteria?: string; iconUrl?: string; points?: number }) =>
+        api.put('/school-admin/achievements/' + id, data),
+    deleteSchoolAchievement: (id: string) => api.delete('/school-admin/achievements/' + id),
+    grantAchievementToStudent: (achievementId: string, studentId: string) =>
+        api.post('/school-admin/achievements/' + achievementId + '/grant', { studentId }),
+    revokeAchievementFromStudent: (achievementId: string, studentId: string) =>
+        api.delete('/school-admin/achievements/' + achievementId + '/revoke/' + studentId),
+
+    // === AI GOVERNANCE ===
+    getAIUsageStats: (params?: { startDate?: string; endDate?: string; groupBy?: 'day' | 'week' | 'month' }) => {
+        const query = new URLSearchParams();
+        if (params?.startDate) query.append('startDate', params.startDate);
+        if (params?.endDate) query.append('endDate', params.endDate);
+        if (params?.groupBy) query.append('groupBy', params.groupBy);
+        return api.get('/school-admin/ai-usage?' + query.toString());
+    },
+    getTopAIUsers: (limit?: number) => api.get('/school-admin/ai-usage/top-users' + (limit ? '?limit=' + limit : '')),
+    getAIUsageByFeature: () => api.get('/school-admin/ai-usage/by-feature'),
+    getAIUsageLogs: (params?: { userId?: string; page?: number; limit?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.userId) query.append('userId', params.userId);
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        return api.get('/school-admin/ai-usage/logs?' + query.toString());
+    },
+    disableAIForUser: (userId: string) => api.post('/school-admin/ai-access/disable', { userId }),
+    enableAIForUser: (userId: string) => api.post('/school-admin/ai-access/enable', { userId }),
+    setAIQuotaForUser: (userId: string, quota: number) => api.post('/school-admin/ai-access/quota', { userId, quota }),
+    setAIQuotaForLevel: (level: number, quota: number) => api.post('/school-admin/ai-access/level-quota', { level, quota }),
+
+    // === ANALYTICS & REPORTING ===
+    getAnalytics: (type: string, params?: { startDate?: string; endDate?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.startDate) query.append('startDate', params.startDate);
+        if (params?.endDate) query.append('endDate', params.endDate);
+        return api.get('/school-admin/analytics/' + type + '?' + query.toString());
+    },
+    exportReport: (type: string, format: 'csv' | 'pdf', params?: { startDate?: string; endDate?: string }) => {
+        const query = new URLSearchParams({ format });
+        if (params?.startDate) query.append('startDate', params.startDate);
+        if (params?.endDate) query.append('endDate', params.endDate);
+        return api.get('/school-admin/reports/' + type + '?' + query.toString(), { responseType: 'blob' as any });
+    },
+
+    // === SCHOOL SETTINGS ===
+    getSchoolSettings: () => api.get('/school-admin/settings'),
+    updateSchoolSettings: (data: {
+        schoolName?: string;
+        logoUrl?: string;
+        themeColor?: string;
+        academicCalendar?: string;
+        parentAccessEnabled?: boolean;
+        aiFeaturesEnabled?: boolean;
+        studentLevelRules?: string;
+    }) => api.put('/school-admin/settings', data),
+
+    // === NOTIFICATIONS ===
+    getNotifications: (params?: { unreadOnly?: boolean; page?: number; limit?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.unreadOnly) query.append('unreadOnly', 'true');
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        return api.get('/school-admin/notifications?' + query.toString());
+    },
+    markNotificationRead: (id: string) => api.patch('/school-admin/notifications/' + id + '/read'),
+    markAllNotificationsRead: () => api.patch('/school-admin/notifications/read-all'),
+    sendAnnouncement: (data: { title: string; message: string; targetRoles?: string[]; classIds?: string[] }) =>
+        api.post('/school-admin/announcements', data),
+
+    // === LOGS & AUDIT ===
+    getAuditLogs: (params?: { userId?: string; action?: string; page?: number; limit?: number; startDate?: string; endDate?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.userId) query.append('userId', params.userId);
+        if (params?.action) query.append('action', params.action);
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        if (params?.startDate) query.append('startDate', params.startDate);
+        if (params?.endDate) query.append('endDate', params.endDate);
+        return api.get('/school-admin/audit-logs?' + query.toString());
+    },
+    getUserActivityLogs: (userId: string, params?: { page?: number; limit?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.append('page', String(params.page));
+        if (params?.limit) query.append('limit', String(params.limit));
+        return api.get('/school-admin/users/' + userId + '/activity?' + query.toString());
     },
 };
 
 export default api;
+

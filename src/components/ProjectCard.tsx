@@ -1,4 +1,4 @@
-import { Calendar, Users, TrendingUp } from "lucide-react";
+import { Calendar, Users, TrendingUp, Image as ImageIcon, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -40,15 +40,33 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   };
 
   // Calculate mock progress based on status
-  const progress = project.status === 'complete' ? 100 : 
-                   project.status === 'ongoing' ? 60 : 10;
+  const progress = project.status === 'complete' ? 100 :
+    project.status === 'ongoing' ? 60 : 10;
 
   return (
-    <Card 
-      className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
+    <Card
+      className="overflow-hidden flex flex-col cursor-pointer group hover:shadow-lg transition-all duration-300"
       onClick={() => navigate(`/projects/${project.id}`)}
     >
-      <CardHeader>
+      {/* Thumbnail or Media Indicator */}
+      {project.thumbnail_url && (
+        <div className="w-full h-32 bg-muted relative overflow-hidden shrink-0 border-b">
+          {!project.thumbnail_url.endsWith('.pdf') && !project.thumbnail_url.includes('word') ? (
+            <img
+              src={project.thumbnail_url}
+              alt={project.title}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-primary/5">
+              <FileText className="w-8 h-8 mb-2 opacity-60" />
+              <span className="text-xs font-semibold uppercase">Document</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <CardHeader className={project.thumbnail_url ? "pt-4" : ""}>
         <div className="flex items-start justify-between mb-2">
           <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors">
             {project.title}

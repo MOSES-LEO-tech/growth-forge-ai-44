@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
 import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
+import SchoolAdminDashboard from "@/components/dashboards/SchoolAdminDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
 import { QuickActions } from "@/components/QuickActions";
 import { OnboardingModal } from "@/components/OnboardingModal";
@@ -97,6 +98,8 @@ const Dashboard = () => {
       case "teacher":
       case "admin":
         return <TeacherDashboard profile={profile} />;
+      case "school_admin":
+        return <SchoolAdminDashboard profile={profile} />;
       default:
         return <StudentDashboard profile={profile} />;
     }

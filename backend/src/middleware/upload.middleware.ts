@@ -6,9 +6,10 @@ import fs from 'fs';
 const uploadsDir = path.join(__dirname, '../../uploads');
 const imagesDir = path.join(uploadsDir, 'images');
 const videosDir = path.join(uploadsDir, 'videos');
+const documentsDir = path.join(uploadsDir, 'documents');
 const thumbnailsDir = path.join(uploadsDir, 'thumbnails');
 
-[uploadsDir, imagesDir, videosDir, thumbnailsDir].forEach(dir => {
+[uploadsDir, imagesDir, videosDir, documentsDir, thumbnailsDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
@@ -19,11 +20,16 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const isImage = file.mimetype.startsWith('image/');
         const isVideo = file.mimetype.startsWith('video/');
+        const isDocument = file.mimetype === 'application/pdf' || 
+                           file.mimetype === 'application/msword' || 
+                           file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
         if (isImage) {
             cb(null, imagesDir);
         } else if (isVideo) {
             cb(null, videosDir);
+        } else if (isDocument) {
+            cb(null, documentsDir);
         } else {
             cb(new Error('Invalid file type'), '');
         }
@@ -41,18 +47,23 @@ const storage = multer.diskStorage({
 
 // File filter for validation
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    // Allowed image types
-    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    // Allow ALL image types by checking if it starts with 'image/'
+    const isImage = file.mimetype.startsWith('image/');
     // Allowed video types
     const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
-
-    const isImage = allowedImageTypes.includes(file.mimetype);
     const isVideo = allowedVideoTypes.includes(file.mimetype);
+    // Allowed document types
+    const allowedDocumentTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    const isDocument = allowedDocumentTypes.includes(file.mimetype);
 
-    if (isImage || isVideo) {
+    if (isImage || isVideo || isDocument) {
         cb(null, true);
     } else {
-        cb(new Error(`Invalid file type. Allowed types: ${[...allowedImageTypes, ...allowedVideoTypes].join(', ')}`));
+        cb(new Error(`Invalid file type. Allowed: Images, Videos, PDFs, and Word Documents.`));
     }
 };
 

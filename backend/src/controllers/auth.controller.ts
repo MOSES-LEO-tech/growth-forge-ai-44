@@ -153,9 +153,13 @@ export const register = async (req: Request, res: Response) => {
         const { ip, userAgent } = getClientInfo(req);
         await auditService.logRegister(newUser.id, email, userRole, ip, userAgent);
 
-        // Don't return tokens yet - email needs to be verified
+        // Auto-login after registration (optional, but matches frontend expectation)
+        const tokens = await generateAuthResponse(newUser);
+
         return ApiResponse.success(res, {
             user: createUserResponse(newUser),
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
             message: 'Registration successful. Please check your email to verify your account.',
         }, 'User registered successfully', 201);
     } catch (error) {

@@ -14,14 +14,16 @@ export const uploadFile = async (req: Request, res: Response) => {
         console.log(`Processing single file upload: ${file.originalname}`);
         const isImage = file.mimetype.startsWith('image/');
         const isVideo = file.mimetype.startsWith('video/');
-        // Build correct URL based on where multer stored the file (images/ or videos/ subdirectory)
-        const subDir = isImage ? 'images' : isVideo ? 'videos' : '';
+        const isDocument = file.mimetype.includes('pdf') || file.mimetype.includes('word');
+        // Build correct URL based on where multer stored the file (images/ or videos/ or documents/ subdirectory)
+        const subDir = isImage ? 'images' : isVideo ? 'videos' : isDocument ? 'documents' : '';
         const fileUrl = subDir ? `/uploads/${subDir}/${file.filename}` : `/uploads/${file.filename}`;
 
         let thumbnailUrl = null;
 
-        // Generate thumbnail for images
-        if (isImage) {
+        // Generate thumbnail for images (except SVGs which sharp might not handle well depending on system libs)
+        const skipThumbnail = file.mimetype === 'image/svg+xml' || file.mimetype.includes('icon');
+        if (isImage && !skipThumbnail) {
             try {
                 const thumbnailsDir = path.join(__dirname, '../../uploads/thumbnails');
                 // Ensure thumbnails directory exists
@@ -42,7 +44,7 @@ export const uploadFile = async (req: Request, res: Response) => {
 
                 thumbnailUrl = `/uploads/thumbnails/${thumbnailFilename}`;
             } catch (error) {
-                console.error('Thumbnail generation failed:', error);
+                console.error('Thumbnail generation failed for', file.originalname, error);
                 // Continue without thumbnail
             }
         }
@@ -74,12 +76,14 @@ export const uploadMultipleFiles = async (req: Request, res: Response) => {
         for (const file of files) {
             const isImage = file.mimetype.startsWith('image/');
             const isVideo = file.mimetype.startsWith('video/');
-            const subDir = isImage ? 'images' : isVideo ? 'videos' : '';
+            const isDocument = file.mimetype.includes('pdf') || file.mimetype.includes('word');
+            const subDir = isImage ? 'images' : isVideo ? 'videos' : isDocument ? 'documents' : '';
             const fileUrl = subDir ? `/uploads/${subDir}/${file.filename}` : `/uploads/${file.filename}`;
             let thumbnailUrl = null;
 
             // Generate thumbnail for images
-            if (isImage) {
+            const skipThumbnail = file.mimetype === 'image/svg+xml' || file.mimetype.includes('icon');
+            if (isImage && !skipThumbnail) {
                 try {
                     const thumbnailsDir = path.join(__dirname, '../../uploads/thumbnails');
                     // Ensure thumbnails directory exists
@@ -134,9 +138,10 @@ export const deleteFile = async (req: Request, res: Response) => {
         // Sanitize filename to prevent directory traversal
         const sanitizedFilename = path.basename(filename);
 
-        // Check in images and videos directories
+        // Check in images, videos, and documents directories
         const imagePath = path.join(__dirname, '../../uploads/images', sanitizedFilename);
         const videoPath = path.join(__dirname, '../../uploads/videos', sanitizedFilename);
+        const docPath = path.join(__dirname, '../../uploads/documents', sanitizedFilename);
         const thumbnailPath = path.join(__dirname, '../../uploads/thumbnails', `thumb_${sanitizedFilename}`);
 
         let deleted = false;
@@ -155,6 +160,12 @@ export const deleteFile = async (req: Request, res: Response) => {
         // Try to delete from videos
         if (fs.existsSync(videoPath)) {
             fs.unlinkSync(videoPath);
+            deleted = true;
+        }
+
+        // Try to delete from documents
+        if (fs.existsSync(docPath)) {
+            fs.unlinkSync(docPath);
             deleted = true;
         }
 

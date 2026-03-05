@@ -45,6 +45,9 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
     const [description, setDescription] = useState('');
     const [visibility, setVisibility] = useState('private');
 
+    // Lightbox State
+    const [selectedMedia, setSelectedMedia] = useState<GalleryItem | null>(null);
+
     const fetchItems = async () => {
         try {
             let response;
@@ -135,10 +138,14 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
 
     // Collapsed view - shown in the card
     const collapsedContent = (
-        <div className="flex flex-col h-full gap-4">
-            <div className="grid grid-cols-2 gap-2 h-full max-h-[140px]">
+        <div className="flex flex-col h-full gap-4 min-w-0">
+            <div className="grid grid-cols-2 gap-2 h-full max-h-[140px] min-w-0">
                 {items.slice(0, 4).map((item) => (
-                    <div key={item.id} className="relative aspect-square rounded overflow-hidden bg-muted group">
+                    <div
+                        key={item.id}
+                        className="relative aspect-square rounded overflow-hidden bg-muted group cursor-pointer"
+                        onClick={() => setSelectedMedia(item)}
+                    >
                         {item.media_type === 'video' ? (
                             <div className="w-full h-full bg-black/10 flex items-center justify-center">
                                 <Video className="w-6 h-6 text-muted-foreground" />
@@ -147,7 +154,7 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                             <img
                                 src={item.thumbnail_url || item.media_url}
                                 alt={item.title}
-                                className="object-cover w-full h-full"
+                                className="object-cover w-full h-full transition-transform group-hover:scale-105"
                             />
                         )}
                     </div>
@@ -193,15 +200,15 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                     <TabsTrigger value="videos">Videos</TabsTrigger>
                 </TabsList>
 
-                <ScrollArea className="flex-1 -mx-2 px-2">
+                <ScrollArea className="flex-1 -mx-2 px-2 overflow-hidden">
                     <TabsContent value="all" className="mt-0">
-                        <GalleryGrid items={filteredItems} onDelete={handleDelete} />
+                        <GalleryGrid items={filteredItems} onDelete={handleDelete} onSelectMedia={setSelectedMedia} />
                     </TabsContent>
                     <TabsContent value="photos" className="mt-0">
-                        <GalleryGrid items={photos} onDelete={handleDelete} />
+                        <GalleryGrid items={photos} onDelete={handleDelete} onSelectMedia={setSelectedMedia} />
                     </TabsContent>
                     <TabsContent value="videos" className="mt-0">
-                        <GalleryGrid items={videos} onDelete={handleDelete} />
+                        <GalleryGrid items={videos} onDelete={handleDelete} onSelectMedia={setSelectedMedia} />
                     </TabsContent>
                 </ScrollArea>
             </Tabs>
@@ -265,20 +272,49 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Lightbox Dialog for Fullscreen Preview */}
+            <Dialog open={!!selectedMedia} onOpenChange={(open) => { if (!open) setSelectedMedia(null); }}>
+                <DialogContent className="sm:max-w-5xl bg-black/95 border-none p-0 overflow-hidden flex flex-col justify-center items-center h-[90vh]">
+                    <DialogTitle className="sr-only">Media Preview</DialogTitle>
+                    <div className="absolute top-4 left-4 z-50 text-white">
+                        <h3 className="font-semibold drop-shadow-md">{selectedMedia?.title}</h3>
+                        <p className="text-sm opacity-80 drop-shadow-md">{selectedMedia?.description}</p>
+                    </div>
+                    {selectedMedia?.media_type === 'video' ? (
+                        <video
+                            src={selectedMedia.media_url}
+                            controls
+                            autoPlay
+                            className="max-w-full max-h-full object-contain"
+                        />
+                    ) : selectedMedia?.media_type === 'image' ? (
+                        <img
+                            src={selectedMedia.media_url}
+                            alt={selectedMedia.title}
+                            className="max-w-full max-h-[90vh] object-contain"
+                        />
+                    ) : null}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
 
-function GalleryGrid({ items, onDelete }: { items: GalleryItem[], onDelete: (id: number) => void }) {
+function GalleryGrid({ items, onDelete, onSelectMedia }: { items: GalleryItem[], onDelete: (id: number) => void, onSelectMedia: (item: GalleryItem) => void }) {
     if (items.length === 0) {
         return <div className="text-center py-12 text-muted-foreground">No items found.</div>;
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-6 min-w-0">
             {items.map((item) => (
-                <Card key={item.id} className="overflow-hidden group relative hover:shadow-lg transition-shadow">
-                    <div className="aspect-square relative bg-muted">
+                <Card
+                    key={item.id}
+                    className="overflow-hidden group relative hover:shadow-lg transition-shadow cursor-pointer min-w-0 flex flex-col"
+                    onClick={() => onSelectMedia(item)}
+                >
+                    <div className="aspect-square relative bg-muted shrink-0 w-full overflow-hidden">
                         {item.media_type === 'video' ? (
                             <div className="w-full h-full flex items-center justify-center bg-black/5">
                                 <Video className="w-12 h-12 text-muted-foreground opacity-50" />
@@ -292,12 +328,22 @@ function GalleryGrid({ items, onDelete }: { items: GalleryItem[], onDelete: (id:
                             </Badge>
                         </div>
                     </div>
-                    <CardContent className="p-4">
-                        <h3 className="font-semibold truncate" title={item.title}>{item.title}</h3>
-                        <p className="text-sm text-muted-foreground truncate">{item.description}</p>
-                        <div className="flex justify-between items-center mt-3">
-                            <span className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</span>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => onDelete(item.id)}>
+                    <CardContent className="p-4 flex flex-col justify-between flex-1 min-w-0">
+                        <div>
+                            <h3 className="font-semibold truncate" title={item.title}>{item.title}</h3>
+                            <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                        </div>
+                        <div className="flex justify-between items-center mt-3 pt-2 border-t text-muted-foreground">
+                            <span className="text-xs">{new Date(item.created_at).toLocaleDateString()}</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10 z-10"
+                                onClick={(e) => {
+                                    e.stopPropagation(); // prevent opening lightbox when deleting
+                                    onDelete(item.id);
+                                }}
+                            >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>

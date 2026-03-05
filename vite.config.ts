@@ -10,13 +10,13 @@ export default defineConfig(({ mode }) => ({
     // Proxy API requests to backend - prevents CORS and port mismatch issues
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       },
       // Proxy uploads to backend so images/videos are served correctly
       '/uploads': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       },
@@ -94,5 +94,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }));
+
 
 

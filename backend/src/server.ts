@@ -18,9 +18,8 @@ import settingsRoutes from './routes/settings.routes';
 import personalGalleryRoutes from './routes/personal-gallery.routes';
 import schoolGalleryRoutes from './routes/school-gallery.routes';
 import schoolsRoutes from './routes/schools.routes';
-import aiRoutes from './routes/ai.routes';
-import analyticsRoutes from './routes/analytics.routes';
-import parentRoutes from './routes/parent.routes';
+import teacherRoutes from './routes/teacher.routes';
+import schoolAdminRoutes from './routes/school-admin.routes';
 import { sanitizeInput } from './middleware/sanitization.middleware';
 
 dotenv.config();
@@ -205,10 +204,7 @@ app.get('/', (req, res) => {
             projects: '/api/projects',
             gallery: '/api/gallery',
             upload: '/api/upload',
-            recommendations: '/api/recommendations',
-            ai: '/api/ai',
-            analytics: '/api/analytics',
-            parent: '/api/parent'
+            recommendations: '/api/recommendations'
         }
     });
 });
@@ -238,9 +234,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/personal-gallery', personalGalleryRoutes);
 app.use('/api/school-gallery', schoolGalleryRoutes);
 app.use('/api/schools', schoolsRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/parent', parentRoutes);
+app.use('/api/teacher', teacherRoutes);
+app.use('/api/school-admin', schoolAdminRoutes);
 
 app.listen(port, async () => {
     console.log(`Server running on port ${port}`);

@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
-import { projects } from "@/services/api";
+import { Plus, Loader2, UploadCloud } from "lucide-react";
+import { projects, upload } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddProjectModalProps {
@@ -25,6 +25,8 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     start_date: "",
     status: "pending" as "pending" | "ongoing" | "complete"
   });
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -35,12 +37,35 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     setLoading(true);
 
     try {
-      await projects.create({
+      // 1. Create the project
+      const result = await projects.create({
         title: form.title,
         description: form.description,
         start_date: form.start_date,
         status: form.status
       });
+
+      const projectId = result.data.data?.id || result.data.id; // handle unwrapped nested data if returned
+
+      // 2. Upload file if selected
+      if (file && projectId) {
+        setUploadProgress(1); // Indicate start
+        const uploadRes = await upload.uploadFile(file, (pct) => setUploadProgress(pct));
+        const { url, thumbnailUrl, mimetype, filename, size } = uploadRes.data;
+
+        let mediaType: 'image' | 'video' | 'pdf' | 'document' = 'document';
+        if (mimetype.startsWith('image/')) mediaType = 'image';
+        else if (mimetype.startsWith('video/')) mediaType = 'video';
+        else if (mimetype.includes('pdf')) mediaType = 'pdf';
+
+        await projects.addMedia(projectId, {
+          mediaType,
+          mediaUrl: url,
+          fileName: file.name,
+          fileSize: size,
+          thumbnailUrl: thumbnailUrl
+        });
+      }
 
       toast({
         title: "Success!",
@@ -49,6 +74,8 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
       });
 
       setForm({ title: "", description: "", start_date: "", status: "pending" });
+      setFile(null);
+      setUploadProgress(0);
       setOpen(false);
       onProjectAdded?.();
     } catch (error: any) {
@@ -127,6 +154,23 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* File Upload Section */}
+          <div className="space-y-2">
+            <Label htmlFor="file_upload">Attach File (Optional)</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="file_upload"
+                type="file"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="flex-1"
+                accept="image/*,video/*,.pdf,.doc,.docx"
+              />
+            </div>
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <p className="text-xs text-blue-500">Uploading file: {uploadProgress}%</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
