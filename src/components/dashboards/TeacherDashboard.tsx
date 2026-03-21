@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Profile } from "@/integrations/supabase/types";
+import type { Profile } from "@/types";
 import { PendingApprovalsWidget } from "@/components/widgets/PendingApprovalsWidget";
 import { SchoolGalleryWidget } from "@/components/widgets/SchoolGalleryWidget";
 import { StudentDirectoryWidget } from "@/components/widgets/StudentDirectoryWidget";

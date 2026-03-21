@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getProfile, updateProfile } from "@/lib/supabase/profile";
 import { getProjects } from "@/lib/supabase/projects";
 import { getAchievements } from "@/lib/supabase/achievements";
-import type { Profile } from "@/integrations/supabase/types";
+import type { Profile } from "@/types";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { User, Mail, Edit3, Loader2, BookOpen, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";

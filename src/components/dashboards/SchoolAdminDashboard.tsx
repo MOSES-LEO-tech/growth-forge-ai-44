@@ -1,4 +1,4 @@
-import type { Profile } from "@/integrations/supabase/types";
+import type { Profile } from "@/types";
 import { SchoolOverviewWidget } from "@/components/widgets/SchoolOverviewWidget";
 import { UserManagementWidget } from "@/components/widgets/UserManagementWidget";
 import { AcademicStructureWidget } from "@/components/widgets/AcademicStructureWidget";

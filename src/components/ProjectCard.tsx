@@ -78,16 +78,10 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             <Calendar className="w-3 h-3" />
             <span>{format(new Date(project.created_at), "MMM dd, yyyy")}</span>
           </div>
-          {project.media_urls && project.media_urls.length > 0 && (
+          {project.collaborators && project.collaborators.length > 0 && (
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              <span>{project.media_urls.length} files</span>
-            </div>
-          )}
-          {project.tags && project.tags.length > 0 && (
-            <div className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              <span>{project.tags.length} tags</span>
+              <span>{project.collaborators.length} collaborators</span>
             </div>
           )}
         </div>

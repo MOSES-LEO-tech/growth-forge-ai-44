@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProjects } from "@/lib/supabase/projects";
-import type { Project } from "@/integrations/supabase/types";
+import type { Project } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Rocket, BookOpen, CheckCircle } from "lucide-react";
