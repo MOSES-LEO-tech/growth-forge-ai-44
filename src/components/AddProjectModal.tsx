@@ -40,10 +40,10 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     try {
       // 1. Create the project
       const project = await createProject({
-        user_id: userId,
+        owner_id: userId,
         title: form.title,
         description: form.description,
-        status: form.status as any
+        start_date: form.start_date || new Date().toISOString(),
       });
 
       const projectId = project.id;
