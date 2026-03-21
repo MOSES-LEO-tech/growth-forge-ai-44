@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import type { Project } from "@/integrations/supabase/types";
+import type { Project } from "@/types";
 
 interface ProjectCardProps {
   project: Project;
