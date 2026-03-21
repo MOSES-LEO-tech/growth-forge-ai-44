@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getAchievements, createAchievement, deleteAchievement } from "@/lib/supabase/achievements";
 import { supabase } from "@/integrations/supabase/client";
-import type { Achievement } from "@/integrations/supabase/types";
+import type { Achievement } from "@/types";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Award, Search, Plus, Trash2, CheckCircle, Clock, Loader2, Upload } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
