@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicEvents } from "@/lib/supabase/gallery";
-import type { GalleryEvent } from "@/integrations/supabase/types";
+import type { Event } from "@/types";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";

@@ -188,7 +188,7 @@ export function ParentDashboard() {
           {/* Row 2 */}
           <ProjectsMonitoringWidget childId={selectedChild.id} />
           <AchievementsMonitoringWidget childId={selectedChild.id} />
-          <AnalyticsWidget childId={selectedChild.id} />
+          <AnalyticsWidget />
 
           {/* Row 3 */}
           <div className="md:col-span-2">

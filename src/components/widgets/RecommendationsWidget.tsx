@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getRecommendations } from "@/lib/supabase/recommendations";
-import type { Recommendation } from "@/integrations/supabase/types";
+// Recommendation type defined locally below
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";

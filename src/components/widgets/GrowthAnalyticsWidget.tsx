@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { getProjects } from "@/lib/supabase/projects";
 import { getAchievements } from "@/lib/supabase/achievements";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
@@ -50,10 +49,9 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
             try {
                 setLoading(true);
                 
-                const [projectsData, achievementsData, { data: levelData }] = await Promise.all([
+                const [projectsData, achievementsData] = await Promise.all([
                     getProjects(userId),
                     getAchievements(userId),
-                    supabase.from('student_levels').select('*').eq('user_id', userId).single()
                 ]);
 
                 const totalProjects = projectsData?.length || 0;
@@ -63,11 +61,11 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                     projectCompletionRate: totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0,
                     verifiedAchievementCount: achievementsData?.filter(a => a.verified).length || 0,
                     achievementCount: achievementsData?.length || 0,
-                    aiUsage: [], // Mocked for now
+                    aiUsage: [] as any[],
                     xp: {
-                        level: levelData?.level || 1,
-                        currentXp: levelData?.points || 0,
-                        nextLevelXp: (levelData?.level || 1) * 1000,
+                        level: 1,
+                        currentXp: 0,
+                        nextLevelXp: 1000,
                         tier: 'basic'
                     }
                 };
@@ -191,7 +189,7 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                                 <StatCard
                                     icon={<Bot className="w-6 h-6 text-purple-500" />}
                                     label="AI Messages"
-                                    value={`${analyticsData.aiUsage.reduce((sum, d) => sum + d.messages, 0)}`}
+                                    value="0"
                                     sublabel="Last 30 days"
                                 />
                                 <StatCard
@@ -228,54 +226,13 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                                             {analyticsData.xp.nextLevelXp - analyticsData.xp.currentXp} XP to next level
                                         </p>
                                     </div>
-
-                                    <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-                                        <div className="bg-muted rounded-lg p-3">
-                                            <p className="text-lg font-bold">Basic</p>
-                                            <p className="text-xs text-muted-foreground">Free tier</p>
-                                        </div>
-                                        <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3">
-                                            <p className="text-lg font-bold text-blue-600">Plus</p>
-                                            <p className="text-xs text-muted-foreground">$9.99/mo</p>
-                                        </div>
-                                        <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-3">
-                                            <p className="text-lg font-bold text-amber-600">Pro</p>
-                                            <p className="text-xs text-muted-foreground">$19.99/mo</p>
-                                        </div>
-                                    </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>
 
                         <TabsContent value="activity" className="mt-0">
-                            <div className="space-y-4 pb-6">
-                                <h3 className="font-semibold">AI Usage (Last 30 Days)</h3>
-                                {analyticsData.aiUsage.length > 0 ? (
-                                    <div className="h-48 flex items-end gap-1">
-                                        {analyticsData.aiUsage.map((day, idx) => {
-                                            const maxMessages = Math.max(...analyticsData.aiUsage.map(d => d.messages), 1);
-                                            const height = (day.messages / maxMessages) * 100;
-                                            return (
-                                                <div
-                                                    key={idx}
-                                                    className="flex-1 bg-purple-500 rounded-t hover:bg-purple-600 transition-colors relative group"
-                                                    style={{ height: `${Math.max(height, 4)}%` }}
-                                                >
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-popover border rounded px-2 py-1 text-xs whitespace-nowrap z-10">
-                                                        {day.messages} messages on {new Date(day.day).toLocaleDateString()}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-12 text-muted-foreground">
-                                        No AI activity yet. Start chatting with SmartBuddy!
-                                    </div>
-                                )}
-                                <p className="text-xs text-muted-foreground text-center">
-                                    Hover over bars to see daily message count
-                                </p>
+                            <div className="text-center py-12 text-muted-foreground">
+                                No AI activity yet. Start chatting with SmartBuddy!
                             </div>
                         </TabsContent>
                     </ScrollArea>

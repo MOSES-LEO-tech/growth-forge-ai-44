@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getAchievements, createAchievement, deleteAchievement } from "@/lib/supabase/achievements";
 import { supabase } from "@/integrations/supabase/client";
-import type { Achievement } from "@/integrations/supabase/types";
+import type { Achievement } from "@/types";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Award, Search, Plus, Trash2, CheckCircle, Clock, Loader2, Upload } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -97,7 +97,6 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
                 description: form.description.trim() || undefined,
                 category: form.category,
                 date_earned: form.date_earned,
-                certificate_url: certificateUrl,
             });
 
             toast({ title: "Achievement added!", description: "Submitted for teacher verification." });
@@ -243,8 +242,8 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
                                     </div>
                                 </div>
                                 {achievement.description && <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{achievement.description}</p>}
-                                {achievement.certificate_url && (
-                                    <a href={achievement.certificate_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">View Certificate</a>
+                                {achievement.media_id && (
+                                    <span className="text-xs text-primary">Has media</span>
                                 )}
                                 <div className="mt-auto pt-2 border-t text-xs text-muted-foreground">
                                     {achievement.date_earned ? new Date(achievement.date_earned).toLocaleDateString() : ""}

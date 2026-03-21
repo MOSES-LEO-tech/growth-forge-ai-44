@@ -40,10 +40,10 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     try {
       // 1. Create the project
       const project = await createProject({
-        user_id: userId,
+        owner_id: userId,
         title: form.title,
         description: form.description,
-        status: form.status as any
+        start_date: form.start_date || new Date().toISOString(),
       });
 
       const projectId = project.id;
@@ -65,10 +65,8 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
           .from('project-media')
           .getPublicUrl(filePath);
 
-        // Update project with media URL
-        await updateProject(projectId, {
-          media_urls: [publicUrl]
-        });
+        // Media uploaded - could link via media_id in future
+        // For now just upload to storage
       }
 
       toast({

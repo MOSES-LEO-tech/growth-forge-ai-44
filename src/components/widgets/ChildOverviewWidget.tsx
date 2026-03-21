@@ -14,7 +14,7 @@ interface ChildOverviewWidgetProps {
 }
 
 type OverviewData = {
-    student: { id: number; fullName: string; email: string; avatarUrl?: string; grade?: string; school?: { name: string; location?: string } | null };
+    student: { id: string; fullName: string; email: string; avatarUrl?: string; grade?: string; school?: { name: string; location?: string } | null };
     stats: { projectsCount: number; projectsCompleted: number; achievementsCount: number; verifiedAchievementsCount: number; level: string; points: number };
     recentActivity: { type: string; label: string; status_text: string; created_at: string }[];
 };
@@ -28,8 +28,8 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
         try {
             setLoading(true);
             setError(null);
-            const data = await getChildOverview(String(childId));
-            setData(data as OverviewData);
+            const result = await getChildOverview(String(childId));
+            setData(result as OverviewData);
         } catch (err: any) {
             setError(err?.message || "Failed to load overview.");
         } finally {
@@ -94,7 +94,6 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                 </div>
             ) : data ? (
                 <>
-                    {/* Student card */}
                     <div className="flex items-center gap-4 p-4 rounded-xl border bg-card">
                         <Avatar className="h-16 w-16">
                             <AvatarImage src={data.student.avatarUrl} />
@@ -113,7 +112,6 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                         </div>
                     </div>
 
-                    {/* Stats row */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
                             { icon: BookOpen, label: "Projects", value: data.stats.projectsCount, sub: `${data.stats.projectsCompleted} completed`, color: "text-blue-500 bg-blue-500/10" },
@@ -132,7 +130,6 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                         ))}
                     </div>
 
-                    {/* Recent activity */}
                     <div>
                         <h4 className="font-semibold mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-primary" />Recent Activity</h4>
                         {data.recentActivity.length === 0 ? (

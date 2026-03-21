@@ -18,9 +18,8 @@ type AchievementItem = {
     title: string;
     description: string | null;
     category: string;
-    verified: boolean;
-    certificate_url: string | null;
-    date_earned: string | null;
+    verified: boolean | null;
+    date_earned: string;
     created_at: string;
 };
 
@@ -39,7 +38,6 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [category, setCategory] = useState("all");
-    const [previewCert, setPreviewCert] = useState<string | null>(null);
 
     const fetchAchievements = useCallback(async () => {
         try {
@@ -47,10 +45,10 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
             setError(null);
             const params: { category?: string } = {};
             if (category !== "all") params.category = category;
-            const res = await parentApi.getChildAchievements(childId, params);
-            setAchievements(res.data || []);
+            const res = await getChildAchievements(childId, params);
+            setAchievements(res as AchievementItem[] || []);
         } catch (err: any) {
-            setError(err?.response?.data?.message || "Failed to load achievements.");
+            setError(err?.message || "Failed to load achievements.");
         } finally {
             setLoading(false);
         }
@@ -110,59 +108,36 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
                     <p>No achievements{category !== "all" ? ` in ${category}` : ""} yet</p>
                 </div>
             ) : (
-                <>
-                    {/* Certificate preview modal */}
-                    {previewCert && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewCert(null)}>
-                            <div className="bg-card rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden" onClick={e => e.stopPropagation()}>
-                                <div className="p-4 border-b flex justify-between items-center">
-                                    <span className="font-semibold">Certificate Preview</span>
-                                    <button onClick={() => setPreviewCert(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+                <ScrollArea className="max-h-[400px]">
+                    <div className="space-y-3 pr-2">
+                        {achievements.map(achievement => (
+                            <div key={achievement.id} className="p-4 rounded-xl border bg-card flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                                    <Award className="w-5 h-5 text-white" />
                                 </div>
-                                <img src={previewCert} alt="Certificate" className="w-full" />
-                                <div className="p-4">
-                                    <a href={previewCert} download className="text-sm text-primary underline">Download Certificate</a>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                                        <h4 className="font-semibold">{achievement.title}</h4>
+                                        <div className="flex gap-1 flex-shrink-0">
+                                            {achievement.verified && (
+                                                <Badge variant="secondary" className="text-[10px] h-5">
+                                                    <CheckCircle className="w-3 h-3 mr-1 text-emerald-500" />Verified
+                                                </Badge>
+                                            )}
+                                            <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${CATEGORY_COLORS[achievement.category] || CATEGORY_COLORS.other}`}>
+                                                {achievement.category}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {achievement.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{achievement.description}</p>}
+                                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                                        {achievement.date_earned && <span>Earned {new Date(achievement.date_earned).toLocaleDateString()}</span>}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    <ScrollArea className="max-h-[400px]">
-                        <div className="space-y-3 pr-2">
-                            {achievements.map(achievement => (
-                                <div key={achievement.id} className="p-4 rounded-xl border bg-card flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
-                                        <Award className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                                            <h4 className="font-semibold">{achievement.title}</h4>
-                                            <div className="flex gap-1 flex-shrink-0">
-                                                {achievement.verified && (
-                                                    <Badge variant="secondary" className="text-[10px] h-5">
-                                                        <CheckCircle className="w-3 h-3 mr-1 text-emerald-500" />Verified
-                                                    </Badge>
-                                                )}
-                                                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${CATEGORY_COLORS[achievement.category] || CATEGORY_COLORS.other}`}>
-                                                    {achievement.category}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {achievement.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{achievement.description}</p>}
-                                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                                            {achievement.date_earned && <span>Earned {new Date(achievement.date_earned).toLocaleDateString()}</span>}
-                                            {achievement.certificate_url && (
-                                                <button onClick={() => setPreviewCert(achievement.certificate_url!)} className="text-primary hover:underline">
-                                                    View Certificate
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </>
+                        ))}
+                    </div>
+                </ScrollArea>
             )}
         </div>
     );

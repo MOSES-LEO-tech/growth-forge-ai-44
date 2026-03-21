@@ -1,37 +1,17 @@
-import { supabase } from '@/integrations/supabase/client';
+// Notifications table doesn't exist yet in the database.
+// Providing stub implementations that return empty data.
 
-export const getNotifications = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-
-  const unreadCount = data.filter(n => !n.read).length;
-
+export const getNotifications = async (_userId: string) => {
   return {
-    notifications: data,
-    unreadCount
+    notifications: [] as any[],
+    unreadCount: 0
   };
 };
 
-export const markNotificationRead = async (id: string) => {
-  const { error } = await supabase
-    .from('notifications')
-    .update({ read: true })
-    .eq('id', id);
-
-  if (error) throw error;
+export const markNotificationRead = async (_id: string) => {
+  // No-op until notifications table is created
 };
 
-export const markAllNotificationsRead = async (userId: string) => {
-  const { error } = await supabase
-    .from('notifications')
-    .update({ read: true })
-    .eq('user_id', userId)
-    .eq('read', false);
-
-  if (error) throw error;
+export const markAllNotificationsRead = async (_userId: string) => {
+  // No-op until notifications table is created
 };
