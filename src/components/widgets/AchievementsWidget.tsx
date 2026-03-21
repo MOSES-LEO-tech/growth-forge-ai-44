@@ -97,7 +97,6 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
                 description: form.description.trim() || undefined,
                 category: form.category,
                 date_earned: form.date_earned,
-                certificate_url: certificateUrl,
             });
 
             toast({ title: "Achievement added!", description: "Submitted for teacher verification." });
