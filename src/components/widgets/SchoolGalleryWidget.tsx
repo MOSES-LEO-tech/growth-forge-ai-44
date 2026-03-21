@@ -66,12 +66,10 @@ export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGaller
         setCreating(true);
         try {
             await createEvent({
-                user_id: user.id,
+                created_by: user.id,
                 title: newEvent.title,
                 description: newEvent.description,
                 event_date: newEvent.date,
-                location: newEvent.location,
-                is_public: true
             });
             toast({ title: "Success", description: "Event created successfully" });
             setCreateOpen(false);
