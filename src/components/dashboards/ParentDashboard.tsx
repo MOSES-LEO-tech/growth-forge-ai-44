@@ -47,17 +47,10 @@ export function ParentDashboard({ profile }: { profile?: any }) {
   const [loadingChildren, setLoadingChildren] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   // Fetch linked children + parent plan in parallel
+  // Note: This must be defined BEFORE any early returns to comply with Rules of Hooks
   const fetchInitialData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     try {
       setLoadingChildren(true);
       setError(null);
@@ -73,9 +66,18 @@ export function ParentDashboard({ profile }: { profile?: any }) {
     } finally {
       setLoadingChildren(false);
     }
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
+
+  // Early return for missing profile - now AFTER hooks are called
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   // ── Loading state ──────────────────────────────────────────────────────────
   if (loadingChildren) {
