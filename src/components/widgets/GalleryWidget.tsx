@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { getGalleryEvents, createEvent, deleteEvent, uploadMedia } from "@/lib/supabase/gallery";
-import type { GalleryEvent, GalleryMedia } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,13 @@ import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Loader2, Plus, Image as ImageIcon, Video, Trash2, Search } from "lucide-react";
 
 interface GalleryItem {
-    id: number;
+    id: string;
     title: string;
-    description: string;
-    media_type: 'image' | 'video';
-    media_url: string;
+    description: string | null;
+    media_type?: string;
+    media_url?: string;
     thumbnail_url?: string;
-    visibility: 'private' | 'public' | 'parents';
+    visibility?: string;
     created_at: string;
 }
 
@@ -42,13 +41,11 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
     const [openUpload, setOpenUpload] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Upload Form State
     const [file, setFile] = useState<File | null>(null);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [visibility, setVisibility] = useState('private');
 
-    // Lightbox State
     const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
 
     const fetchItems = async () => {
@@ -83,15 +80,12 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
 
         setUploading(true);
         try {
-            // 1. Create event
             const event = await createEvent({
-                user_id: user.id,
+                created_by: user.id,
                 title,
                 description,
-                is_public: visibility === 'public'
             });
 
-            // 2. Upload media
             await uploadMedia(event.id, file);
 
             toast({ title: "Success", description: "Item added to gallery" });
@@ -125,36 +119,13 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
     };
 
     const filteredItems = items.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const photos = filteredItems.filter(i => i.media_type === 'image');
-    const videos = filteredItems.filter(i => i.media_type === 'video');
-
-    // Collapsed view - shown in the card
     const collapsedContent = (
         <div className="flex flex-col h-full gap-4 min-w-0">
             <div className="grid grid-cols-2 gap-2 h-full max-h-[140px] min-w-0">
-                {items.slice(0, 4).map((item) => (
-                    <div
-                        key={item.id}
-                        className="relative aspect-square rounded overflow-hidden bg-muted group cursor-pointer"
-                        onClick={() => setSelectedMedia(item)}
-                    >
-                        {item.media_type === 'video' ? (
-                            <div className="w-full h-full bg-black/10 flex items-center justify-center">
-                                <Video className="w-6 h-6 text-muted-foreground" />
-                            </div>
-                        ) : (
-                            <img
-                                src={item.thumbnail_url || item.media_url}
-                                alt={item.title}
-                                className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                            />
-                        )}
-                    </div>
-                ))}
                 {items.length === 0 && (
                     <div className="col-span-2 flex flex-col items-center justify-center text-muted-foreground h-full bg-muted/20 rounded">
                         <ImageIcon className="w-8 h-8 opacity-50 mb-2" />
@@ -171,7 +142,6 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
         </div>
     );
 
-    // Expanded view - shown in the dialog
     const expandedContent = (
         <div className="flex flex-col h-full gap-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -189,25 +159,41 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                 </Button>
             </div>
 
-            <Tabs defaultValue="all" className="flex-1 flex flex-col">
-                <TabsList className="grid w-full max-w-md grid-cols-3 self-center md:self-start mb-4">
-                    <TabsTrigger value="all">All Items</TabsTrigger>
-                    <TabsTrigger value="photos">Photos</TabsTrigger>
-                    <TabsTrigger value="videos">Videos</TabsTrigger>
-                </TabsList>
-
-                <ScrollArea className="flex-1 -mx-2 px-2 overflow-hidden">
-                    <TabsContent value="all" className="mt-0">
-                        <GalleryGrid items={filteredItems} onDelete={handleDelete} onSelectMedia={setSelectedMedia} />
-                    </TabsContent>
-                    <TabsContent value="photos" className="mt-0">
-                        <GalleryGrid items={photos} onDelete={handleDelete} onSelectMedia={setSelectedMedia} />
-                    </TabsContent>
-                    <TabsContent value="videos" className="mt-0">
-                        <GalleryGrid items={videos} onDelete={handleDelete} onSelectMedia={setSelectedMedia} />
-                    </TabsContent>
-                </ScrollArea>
-            </Tabs>
+            <ScrollArea className="flex-1 -mx-2 px-2 overflow-hidden">
+                {filteredItems.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">No items found.</div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-6 min-w-0">
+                        {filteredItems.map((item) => (
+                            <Card
+                                key={item.id}
+                                className="overflow-hidden group relative hover:shadow-lg transition-shadow cursor-pointer min-w-0 flex flex-col"
+                            >
+                                <CardContent className="p-4 flex flex-col justify-between flex-1 min-w-0">
+                                    <div>
+                                        <h3 className="font-semibold truncate" title={item.title}>{item.title}</h3>
+                                        <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center mt-3 pt-2 border-t text-muted-foreground">
+                                        <span className="text-xs">{new Date(item.created_at).toLocaleDateString()}</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:bg-destructive/10 z-10"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(item.id);
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </ScrollArea>
         </div>
     );
 
@@ -223,7 +209,6 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                 {collapsedContent}
             </ExpandableWidget>
 
-            {/* Upload Dialog - rendered outside ExpandableWidget to prevent blink */}
             <Dialog open={openUpload} onOpenChange={(open) => { setOpenUpload(open); if (!open) resetForm(); }}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
@@ -246,20 +231,6 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                             <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this about?" />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="vis">Visibility</Label>
-                            <Select value={visibility} onValueChange={setVisibility}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select visibility" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="private">Private (Only Me)</SelectItem>
-                                    <SelectItem value="parents">Parents Only</SelectItem>
-                                    <SelectItem value="public">Public</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
                         <DialogFooter>
                             <Button type="submit" disabled={uploading}>
                                 {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : 'Upload Item'}
@@ -268,84 +239,6 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
                     </form>
                 </DialogContent>
             </Dialog>
-
-            {/* Lightbox Dialog for Fullscreen Preview */}
-            <Dialog open={!!selectedMedia} onOpenChange={(open) => { if (!open) setSelectedMedia(null); }}>
-                <DialogContent className="sm:max-w-5xl bg-black/95 border-none p-0 overflow-hidden flex flex-col justify-center items-center h-[90vh]">
-                    <DialogTitle className="sr-only">Media Preview</DialogTitle>
-                    <div className="absolute top-4 left-4 z-50 text-white">
-                        <h3 className="font-semibold drop-shadow-md">{selectedMedia?.title}</h3>
-                        <p className="text-sm opacity-80 drop-shadow-md">{selectedMedia?.description}</p>
-                    </div>
-                    {selectedMedia?.media_type === 'video' ? (
-                        <video
-                            src={selectedMedia.media_url}
-                            controls
-                            autoPlay
-                            className="max-w-full max-h-full object-contain"
-                        />
-                    ) : selectedMedia?.media_type === 'image' ? (
-                        <img
-                            src={selectedMedia.media_url}
-                            alt={selectedMedia.title}
-                            className="max-w-full max-h-[90vh] object-contain"
-                        />
-                    ) : null}
-                </DialogContent>
-            </Dialog>
         </>
-    );
-}
-
-function GalleryGrid({ items, onDelete, onSelectMedia }: { items: GalleryItem[], onDelete: (id: number) => void, onSelectMedia: (item: GalleryItem) => void }) {
-    if (items.length === 0) {
-        return <div className="text-center py-12 text-muted-foreground">No items found.</div>;
-    }
-
-    return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-6 min-w-0">
-            {items.map((item) => (
-                <Card
-                    key={item.id}
-                    className="overflow-hidden group relative hover:shadow-lg transition-shadow cursor-pointer min-w-0 flex flex-col"
-                    onClick={() => onSelectMedia(item)}
-                >
-                    <div className="aspect-square relative bg-muted shrink-0 w-full overflow-hidden">
-                        {item.media_type === 'video' ? (
-                            <div className="w-full h-full flex items-center justify-center bg-black/5">
-                                <Video className="w-12 h-12 text-muted-foreground opacity-50" />
-                            </div>
-                        ) : (
-                            <img src={item.media_url} alt={item.title} className="object-cover w-full h-full transition-transform group-hover:scale-105" />
-                        )}
-                        <div className="absolute top-2 right-2">
-                            <Badge variant={item.visibility === 'public' ? 'default' : 'secondary'} className="opacity-90">
-                                {item.visibility}
-                            </Badge>
-                        </div>
-                    </div>
-                    <CardContent className="p-4 flex flex-col justify-between flex-1 min-w-0">
-                        <div>
-                            <h3 className="font-semibold truncate" title={item.title}>{item.title}</h3>
-                            <p className="text-sm text-muted-foreground truncate">{item.description}</p>
-                        </div>
-                        <div className="flex justify-between items-center mt-3 pt-2 border-t text-muted-foreground">
-                            <span className="text-xs">{new Date(item.created_at).toLocaleDateString()}</span>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:bg-destructive/10 z-10"
-                                onClick={(e) => {
-                                    e.stopPropagation(); // prevent opening lightbox when deleting
-                                    onDelete(item.id);
-                                }}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
     );
 }

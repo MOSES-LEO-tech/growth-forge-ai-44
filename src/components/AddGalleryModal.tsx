@@ -124,12 +124,10 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
           {/* Media Upload */}
           <div className="space-y-2">
             <Label>Media *</Label>
-            <FileUpload
+            <Input
+              type="file"
               accept="image/*,video/*"
-              maxSize={50}
-              onFileSelect={handleFileSelect}
-              onUrlChange={handleUrlChange}
-              preview={true}
+              onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
             />
           </div>
 

@@ -65,10 +65,8 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
           .from('project-media')
           .getPublicUrl(filePath);
 
-        // Update project with media URL
-        await updateProject(projectId, {
-          media_urls: [publicUrl]
-        });
+        // Media uploaded - could link via media_id in future
+        // For now just upload to storage
       }
 
       toast({
