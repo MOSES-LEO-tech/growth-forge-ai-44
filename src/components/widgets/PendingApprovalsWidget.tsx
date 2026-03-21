@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { achievements as achievementsApi, projects as projectsApi } from "@/services/api";
+import { getPendingAchievements, verifyAchievement } from "@/lib/supabase/achievements";
+import { getPendingProjects, verifyProject } from "@/lib/supabase/projects";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -25,12 +26,12 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
     const fetchPendingData = async () => {
         setLoading(true);
         try {
-            const [achievementsRes, projectsRes] = await Promise.all([
-                achievementsApi.getAll(true),
-                projectsApi.getAll(true)
+            const [achievements, projects] = await Promise.all([
+                getPendingAchievements(),
+                getPendingProjects()
             ]);
-            setPendingAchievements(achievementsRes.data || []);
-            setPendingProjects(projectsRes.data || []);
+            setPendingAchievements(achievements);
+            setPendingProjects(projects);
         } catch (error) {
             console.error("Failed to fetch pending data", error);
         } finally {
@@ -47,9 +48,9 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
 
         try {
             if (verifyType === 'achievement') {
-                await achievementsApi.verify(verifyId);
+                await verifyAchievement(verifyId);
             } else {
-                await projectsApi.verify(verifyId);
+                await verifyProject(verifyId);
             }
             toast({ title: "Verified", description: "Item verified successfully" });
             fetchPendingData();

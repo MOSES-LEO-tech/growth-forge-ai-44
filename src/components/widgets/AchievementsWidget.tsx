@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { achievements as achievementsApi, upload } from "@/services/api";
-import type { Achievement } from "@/services/api";
+import { getAchievements, createAchievement, deleteAchievement } from "@/lib/supabase/achievements";
+import { supabase } from "@/integrations/supabase/client";
+import type { Achievement } from "@/integrations/supabase/types";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Award, Search, Plus, Trash2, CheckCircle, Clock, Loader2, Upload } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,16 +45,10 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
 
     const fetchAchievements = useCallback(async () => {
         try {
+            if (!userId) return;
             setLoading(true);
             setError(null);
-            const response = await achievementsApi.getAll({ studentId: userId });
-            // API returns { stats, achievements: [...] } — unwrap correctly
-            const data = response.data as any;
-            const list: AchievementWithCategory[] = Array.isArray(data)
-                ? data
-                : Array.isArray(data?.achievements)
-                    ? data.achievements
-                    : [];
+            const list = await getAchievements(userId);
             setAchievements(list);
         } catch (err: any) {
             console.error("Failed to fetch achievements:", err);
@@ -71,6 +66,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
             toast({ title: "Title required", variant: "destructive" });
             return;
         }
+        if (!userId) return;
         setSubmitting(true);
         try {
             let certificateUrl: string | undefined;
@@ -78,11 +74,25 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
             // Optional: upload certificate file first
             if (form.certificate_file) {
                 setUploadProgress(0);
-                const uploadRes = await upload.uploadFile(form.certificate_file, (pct) => setUploadProgress(pct));
-                certificateUrl = uploadRes.data?.url;
+                const fileExt = form.certificate_file.name.split('.').pop();
+                const fileName = `${userId}/${Math.random()}.${fileExt}`;
+                const filePath = `${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('project-media') // Reusing project-media bucket for certificates
+                    .upload(filePath, form.certificate_file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('project-media')
+                    .getPublicUrl(filePath);
+                
+                certificateUrl = publicUrl;
             }
 
-            await achievementsApi.create({
+            await createAchievement({
+                user_id: userId,
                 title: form.title.trim(),
                 description: form.description.trim() || undefined,
                 category: form.category,
@@ -95,7 +105,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
             setForm({ title: "", description: "", category: "academic", date_earned: new Date().toISOString().split("T")[0], certificate_file: null });
             fetchAchievements();
         } catch (err: any) {
-            toast({ title: "Failed to add achievement", description: err?.response?.data?.message || "Please try again.", variant: "destructive" });
+            toast({ title: "Failed to add achievement", description: err.message || "Please try again.", variant: "destructive" });
         } finally {
             setSubmitting(false);
             setUploadProgress(0);
@@ -105,7 +115,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId }: Achie
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this achievement?")) return;
         try {
-            await achievementsApi.delete(id);
+            await deleteAchievement(id);
             setAchievements(prev => prev.filter(a => a.id !== id));
             toast({ title: "Achievement deleted" });
         } catch {

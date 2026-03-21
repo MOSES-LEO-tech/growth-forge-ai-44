@@ -1,0 +1,274 @@
+-- Profiles (extends Supabase auth.users)
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT,
+  avatar_url TEXT,
+  bio TEXT,
+  grade_level TEXT,
+  gpa DECIMAL(3,2),
+  interests TEXT[],
+  extracurriculars TEXT[],
+  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student','parent','teacher','admin')),
+  school_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Schools
+CREATE TABLE schools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  location TEXT,
+  description TEXT,
+  logo_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Student levels (gamification)
+CREATE TABLE student_levels (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  points INTEGER DEFAULT 0,
+  level INTEGER DEFAULT 1,
+  badges TEXT[],
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Achievements
+CREATE TABLE achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  date_earned DATE,
+  verified BOOLEAN DEFAULT FALSE,
+  certificate_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Projects
+CREATE TABLE projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  tags TEXT[],
+  media_urls TEXT[],
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','ongoing','complete')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- Scholarships
+CREATE TABLE scholarships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  amount DECIMAL(10,2),
+  deadline DATE,
+  requirements TEXT,
+  school_id UUID REFERENCES schools(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Recommendations
+CREATE TABLE recommendations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  type TEXT CHECK (type IN ('scholarship','profile','actions')),
+  content JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Gallery Events
+CREATE TABLE gallery_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  location TEXT,
+  event_date DATE,
+  is_public BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- Gallery Media
+CREATE TABLE gallery_media (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID REFERENCES gallery_events(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  type TEXT CHECK (type IN ('image','video','document')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- Trigger to auto-create a profile row when a new user signs up
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO profiles (id, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'full_name',
+    COALESCE(NEW.raw_user_meta_data->>'role', 'student')
+  );
+  INSERT INTO student_levels (user_id) VALUES (NEW.id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Row Level Security (RLS)
+-- Profiles
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Teachers can view student profiles in their school" ON profiles FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM profiles viewer
+    WHERE viewer.id = auth.uid()
+    AND viewer.role = 'teacher'
+    AND viewer.school_id = profiles.school_id
+  ));
+CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Projects
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own projects" ON projects FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Teachers view school student projects" ON projects FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM profiles teacher, profiles student
+    WHERE teacher.id = auth.uid() AND teacher.role = 'teacher'
+    AND student.id = projects.user_id
+    AND student.school_id = teacher.school_id
+  ));
+
+-- Schools
+ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone authenticated can view schools" ON schools FOR SELECT
+  TO authenticated USING (TRUE);
+CREATE POLICY "Only admins can modify schools" ON schools FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Scholarships
+ALTER TABLE scholarships ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone authenticated can view scholarships" ON scholarships FOR SELECT
+  TO authenticated USING (TRUE);
+CREATE POLICY "Only admins can modify scholarships" ON scholarships FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Achievements
+ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own achievements" ON achievements FOR ALL USING (auth.uid() = user_id);
+
+-- Student Levels
+ALTER TABLE student_levels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users view own level" ON student_levels FOR SELECT USING (auth.uid() = user_id);
+
+-- Recommendations
+ALTER TABLE recommendations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users view own recommendations" ON recommendations FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Gallery Events
+ALTER TABLE gallery_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own events" ON gallery_events FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Anyone can view public events" ON gallery_events FOR SELECT
+  USING (is_public = TRUE AND deleted_at IS NULL);
+
+-- Gallery Media
+ALTER TABLE gallery_media ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Event owner manages media" ON gallery_media FOR ALL
+  USING (EXISTS (
+    SELECT 1 FROM gallery_events WHERE id = gallery_media.event_id AND user_id = auth.uid()
+  ));
+
+-- Notifications
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT,
+  resource_type TEXT,
+  resource_id UUID,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own notifications" ON notifications FOR ALL USING (auth.uid() = user_id);
+
+-- Parent-Child links
+CREATE TABLE parent_child_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  child_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(parent_id, child_id)
+);
+
+ALTER TABLE parent_child_links ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Parents view own links" ON parent_child_links FOR SELECT
+  USING (auth.uid() = parent_id);
+
+-- Messages
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  subject TEXT,
+  content TEXT NOT NULL,
+  read_status BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users view own messages" ON messages FOR SELECT
+  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+CREATE POLICY "Users send messages" ON messages FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+-- Comments
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  resource_type TEXT NOT NULL,
+  resource_id UUID NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view comments on accessible resources" ON comments FOR SELECT
+  USING (TRUE); -- Simplified for now, in reality should check access to resource
+CREATE POLICY "Users can post comments" ON comments FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Settings
+CREATE TABLE settings (
+  key TEXT PRIMARY KEY,
+  value JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view settings" ON settings FOR SELECT USING (TRUE);
+CREATE POLICY "Only admins can modify settings" ON settings FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Seed data
+INSERT INTO schools (name, location, description) VALUES
+  ('Greenfield International Academy', 'London, UK', 'A leading international school focused on holistic education'),
+  ('Nairobi STEM High School', 'Nairobi, Kenya', 'East Africa''s premier STEM-focused secondary school'),
+  ('Cape Town Arts Academy', 'Cape Town, South Africa', 'Nurturing creative talent across the arts');
+
+INSERT INTO scholarships (title, amount, deadline, requirements) VALUES
+  ('African Excellence Scholarship', 25000, '2025-06-30', 'Open to African students with GPA above 3.5'),
+  ('STEM Women Initiative', 15000, '2025-05-15', 'For female students pursuing STEM careers'),
+  ('Young Leaders Award', 10000, '2025-07-31', 'For students demonstrating outstanding leadership');

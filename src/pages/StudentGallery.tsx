@@ -1,18 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { personalGallery, upload } from '../services/api';
-import { useToast } from '../components/ui/use-toast';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { getGalleryEvents, createEvent, deleteEvent, updateEvent, uploadMedia } from '@/lib/supabase/gallery';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus, Image as ImageIcon, Video, Trash2, Eye, EyeOff, Users, Globe, Lock, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
-import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
-import Navbar from '../components/Navbar';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import Navbar from '@/components/Navbar';
+import type { GalleryEvent } from '@/integrations/supabase/types';
 
 interface GalleryItem {
     id: number;
@@ -59,8 +60,9 @@ const StudentGallery = () => {
 
     const fetchItems = async () => {
         try {
-            const response = await personalGallery.getMyItems();
-            setItems(response.data?.items || []);
+            if (!user) return;
+            const data = await getGalleryEvents(user.id);
+            setItems(data as any[]);
         } catch (error) {
             console.error('Error fetching gallery:', error);
             toast({ title: "Error", description: "Failed to load gallery items", variant: "destructive" });
@@ -86,28 +88,26 @@ const StudentGallery = () => {
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) {
+        if (!file || !user) {
             toast({ title: "Error", description: "Please select a file", variant: "destructive" });
             return;
         }
 
         setUploading(true);
-        setUploadProgress(0);
+        setUploadProgress(10);
         try {
-            const uploadResponse = await upload.uploadFile(file, (progress) => {
-                setUploadProgress(progress);
-            });
-            const { url, thumbnailUrl, mimetype } = uploadResponse.data;
-            const mediaType = mimetype?.startsWith('video/') ? 'video' : 'image';
-
-            await personalGallery.createItem({
+            // 1. Create event
+            const event = await createEvent({
+                user_id: user.id,
                 title: title || 'Untitled',
                 description,
-                mediaType: mediaType,
-                mediaUrl: url,
-                thumbnailUrl: thumbnailUrl || (mediaType === 'image' ? url : null),
-                visibility,
+                is_public: visibility === 'public'
             });
+
+            // 2. Upload media
+            setUploadProgress(30);
+            await uploadMedia(event.id, file);
+            setUploadProgress(100);
 
             toast({ title: "Success!", description: "Item added to your gallery" });
             setOpen(false);
@@ -130,10 +130,10 @@ const StudentGallery = () => {
         setPreview(null);
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this item?")) return;
         try {
-            await personalGallery.deleteItem(id);
+            await deleteEvent(id);
             setItems(items.filter(item => item.id !== id));
             if (lightboxItem?.id === id) setLightboxItem(null);
             toast({ title: "Deleted", description: "Item removed from gallery" });
@@ -145,10 +145,10 @@ const StudentGallery = () => {
     const handleEditSave = async () => {
         if (!editItem) return;
         try {
-            await personalGallery.updateItem(editItem.id, {
+            await updateEvent(editItem.id, {
                 title: editItem.title,
                 description: editItem.description,
-                visibility: editItem.visibility,
+                is_public: editItem.visibility === 'public'
             });
             toast({ title: "Updated", description: "Item updated successfully" });
             setEditOpen(false);

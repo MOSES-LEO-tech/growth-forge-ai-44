@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { PasswordStrength, calculatePasswordStrength } from "@/components/PasswordStrength";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { useApiWithRetry, parseApiError } from "@/hooks/useApiWithRetry";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const signUpSchema = z.object({
@@ -34,6 +33,7 @@ interface FieldErrors {
 }
 
 const Auth = () => {
+  const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -47,12 +47,6 @@ const Auth = () => {
   });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [networkError, setNetworkError] = useState<string | null>(null);
-
-  const { executeWithRetry, isRetrying, retryCount } = useApiWithRetry({
-    maxRetries: 3,
-    retryDelay: 1000,
-  });
 
   // Real-time validation
   const validateField = (field: string, value: string) => {
@@ -100,7 +94,6 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNetworkError(null);
 
     // Mark all fields as touched
     setTouched({ email: true, password: true, fullName: true });
@@ -126,25 +119,12 @@ const Auth = () => {
 
       setLoading(true);
 
-      const response = await executeWithRetry(
-        () => auth.register({
-          email: validated.email,
-          password: validated.password,
-          fullName: validated.fullName,
-          role: validated.role,
-          schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined
-        }),
-        (attempt, maxAttempts) => {
-          toast({
-            title: "Connection issue",
-            description: `Retrying... (${attempt}/${maxAttempts})`,
-          });
-        }
+      await signUp(
+        validated.email,
+        validated.password,
+        validated.fullName,
+        validated.role as any
       );
-
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
 
       toast({
         title: "Account created!",
@@ -162,16 +142,11 @@ const Auth = () => {
         });
         setErrors(fieldErrors);
       } else {
-        const parsedError = parseApiError(error);
-        if (parsedError.isBackendUnreachable) {
-          setNetworkError(parsedError.message);
-        } else {
-          toast({
-            title: "Error",
-            description: parsedError.message,
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred during sign up",
+          variant: "destructive"
+        });
       }
     } finally {
       setLoading(false);
@@ -180,7 +155,6 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNetworkError(null);
 
     // Mark all fields as touched
     setTouched({ email: true, password: true });
@@ -193,22 +167,7 @@ const Auth = () => {
 
       setLoading(true);
 
-      const response = await executeWithRetry(
-        () => auth.login({
-          email: validated.email,
-          password: validated.password
-        }),
-        (attempt, maxAttempts) => {
-          toast({
-            title: "Connection issue",
-            description: `Retrying... (${attempt}/${maxAttempts})`,
-          });
-        }
-      );
-
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      await signIn(validated.email, validated.password);
 
       toast({
         title: "Welcome back!",
@@ -226,16 +185,11 @@ const Auth = () => {
         });
         setErrors(fieldErrors);
       } else {
-        const parsedError = parseApiError(error);
-        if (parsedError.isBackendUnreachable) {
-          setNetworkError(parsedError.message);
-        } else {
-          toast({
-            title: "Error",
-            description: parsedError.message,
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Error",
+          description: error.message || "Invalid email or password",
+          variant: "destructive"
+        });
       }
     } finally {
       setLoading(false);
@@ -269,18 +223,6 @@ const Auth = () => {
           <CardDescription>Create your account or sign in to continue</CardDescription>
         </CardHeader>
         <CardContent>
-          {networkError && (
-            <Alert variant="destructive" className="mb-4">
-              <WifiOff className="h-4 w-4" />
-              <AlertDescription className="ml-2">
-                {networkError}
-                <p className="text-xs mt-1 opacity-80">
-                  Make sure the backend server is running at the configured URL.
-                </p>
-              </AlertDescription>
-            </Alert>
-          )}
-
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -338,20 +280,16 @@ const Auth = () => {
                     <p className="text-xs text-red-500">{errors.password}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      {isRetrying ? (
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? (
+                      <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      {isRetrying ? `Retrying (${retryCount}/3)...` : "Signing in..."}
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </Button>
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -485,12 +423,8 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <>
-                      {isRetrying ? (
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      {isRetrying ? `Retrying (${retryCount}/3)...` : "Creating account..."}
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
                     </>
                   ) : (
                     "Create Account"

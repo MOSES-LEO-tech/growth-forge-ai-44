@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { scholarship } from "@/services/api";
+import { getScholarships } from "@/lib/supabase/scholarships";
+import type { Scholarship } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,28 +27,27 @@ interface ScholarshipsWidgetProps {
 }
 
 export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsWidgetProps) {
-    const [matches, setMatches] = useState<ScholarshipMatch[]>([]);
+    const [matches, setMatches] = useState<Scholarship[]>([]);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
     const findMatches = async (showToast = true) => {
         setLoading(true);
         try {
-            const response = await scholarship.match();
-            const data = response.data;
-            setMatches(data.matches);
+            const data = await getScholarships();
+            setMatches(data);
             if (showToast) {
                 toast({
-                    title: "Scholarships matched",
-                    description: `Found ${data.matches.length} matching scholarships for you!`,
+                    title: "Scholarships loaded",
+                    description: `Found ${data.length} scholarships for you!`,
                 });
             }
         } catch (error) {
-            console.error('Error matching scholarships:', error);
+            console.error('Error fetching scholarships:', error);
             if (showToast) {
                 toast({
                     title: "Error",
-                    description: "Failed to find scholarship matches. Please try again.",
+                    description: "Failed to fetch scholarships. Please try again.",
                     variant: "destructive",
                 });
             }
@@ -112,11 +112,7 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <h4 className="font-bold text-lg">{scholarship.title}</h4>
-                                            <Badge variant={getMatchColor(scholarship.match_score)} className="ml-2">
-                                                {scholarship.match_score} match
-                                            </Badge>
                                         </div>
-                                        <p className="text-sm text-muted-foreground font-medium">{scholarship.organization}</p>
                                     </div>
                                     {scholarship.amount && (
                                         <Badge variant="outline" className="text-lg px-3 py-1 bg-green-50 text-green-700 border-green-200">
@@ -125,41 +121,14 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
                                     )}
                                 </div>
 
-                                <p className="text-sm text-muted-foreground">{scholarship.description}</p>
+                                <p className="text-sm text-muted-foreground">{scholarship.requirements}</p>
 
                                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                         <Calendar className="w-4 h-4" />
-                                        <span>Due: {new Date(scholarship.deadline).toLocaleDateString()}</span>
+                                        <span>Due: {scholarship.deadline ? new Date(scholarship.deadline).toLocaleDateString() : 'N/A'}</span>
                                     </div>
-                                    {scholarship.requirements && (
-                                        <div className="flex gap-2">
-                                            {scholarship.requirements.map((req, i) => (
-                                                <Badge key={i} variant="secondary" className="text-xs h-5">
-                                                    {req}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
-
-                                <div className="bg-muted/50 p-3 rounded-md text-sm">
-                                    <span className="font-semibold text-primary block mb-1">Why it matches:</span>
-                                    {scholarship.match_reason}
-                                </div>
-
-                                {scholarship.application_url && (
-                                    <div className="pt-2">
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            onClick={() => window.open(scholarship.application_url, '_blank')}
-                                        >
-                                            <ExternalLink className="w-4 h-4 mr-2" />
-                                            Apply Now
-                                        </Button>
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>

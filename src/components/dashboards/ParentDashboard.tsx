@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { parent as parentApi } from "@/services/api";
+import { getChildren, getPlan } from "@/lib/supabase/parent";
+import { useAuth } from "@/contexts/AuthContext";
 import { ChildOverviewWidget } from "@/components/widgets/ChildOverviewWidget";
 import { ProjectsMonitoringWidget } from "@/components/widgets/ProjectsMonitoringWidget";
 import { AchievementsMonitoringWidget } from "@/components/widgets/AchievementsMonitoringWidget";
@@ -39,36 +40,32 @@ type ParentPlan = { tier: string; features: string[]; updatedAt: string | null }
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ParentDashboard() {
-  const [children, setChildren] = useState<LinkedChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<LinkedChild | null>(null);
-  const [plan, setPlan] = useState<ParentPlan | null>(null);
+  const { user } = useAuth();
+  const [children, setChildren] = useState<any[]>([]);
+  const [selectedChild, setSelectedChild] = useState<any | null>(null);
+  const [plan, setPlan] = useState<any | null>(null);
   const [loadingChildren, setLoadingChildren] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch linked children + parent plan in parallel
   const fetchInitialData = useCallback(async () => {
+    if (!user) return;
     try {
       setLoadingChildren(true);
       setError(null);
-      const [childrenRes, planRes] = await Promise.all([
-        parentApi.getChildren(),
-        parentApi.getPlan(),
+      const [kids, parentPlan] = await Promise.all([
+        getChildren(user.id),
+        getPlan(user.id),
       ]);
-      const kids: LinkedChild[] = childrenRes.data || [];
       setChildren(kids);
       if (kids.length > 0) setSelectedChild(kids[0]);
-      setPlan(planRes.data || { tier: 'basic', features: [], updatedAt: null });
+      setPlan(parentPlan || { tier: 'basic', features: [], updatedAt: null });
     } catch (err: any) {
-      const code = err?.response?.data?.error;
-      if (code === 'FORBIDDEN') {
-        setError('Access denied. This dashboard is only available to parents.');
-      } else {
-        setError(err?.response?.data?.message || 'Failed to load your dashboard. Please try again.');
-      }
+      setError(err?.message || 'Failed to load your dashboard. Please try again.');
     } finally {
       setLoadingChildren(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 

@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Lightbulb, Sparkles, TrendingUp } from "lucide-react";
-import { recommendations } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { getRecommendations } from "@/lib/supabase/recommendations";
 import { useToast } from "@/hooks/use-toast";
 
 interface Recommendation {
@@ -14,22 +16,29 @@ interface Recommendation {
 }
 
 const Recommendations = () => {
-  const [recommendationsList, setRecommendationsList] = useState<Recommendation[]>([]);
+  const { user } = useAuth();
+  const [recommendationsList, setRecommendationsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const generateRecommendations = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const response = await recommendations.generate();
-      const data = response.data;
+      const { error } = await supabase.functions.invoke('generate-recommendations', {
+        body: { userId: user.id, type: 'profile' }
+      });
 
-      setRecommendationsList(data.recommendations);
+      if (error) throw error;
+
+      const recs = await getRecommendations(user.id);
+      setRecommendationsList(recs);
+      
       toast({
         title: "Recommendations generated",
         description: "Here are personalized suggestions for you!",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating recommendations:', error);
       toast({
         title: "Error",
@@ -98,16 +107,13 @@ const Recommendations = () => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      {getCategoryIcon(rec.category)}
-                      <h4 className="font-semibold">{rec.title}</h4>
+                      {getCategoryIcon(rec.type || 'activity')}
+                      <h4 className="font-semibold">{typeof rec.content === 'string' ? rec.content : rec.content?.title || 'Recommendation'}</h4>
                     </div>
-                    <Badge variant={getPriorityColor(rec.priority)}>
-                      {rec.priority}
-                    </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{rec.description}</p>
+                  <p className="text-sm text-muted-foreground">{typeof rec.content === 'object' ? rec.content?.description : rec.content}</p>
                   <Badge variant="outline" className="text-xs">
-                    {rec.category}
+                    {rec.type}
                   </Badge>
                 </div>
               ))}

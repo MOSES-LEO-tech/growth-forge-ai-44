@@ -6,8 +6,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SchoolCard from "@/components/SchoolCard";
 import { useInView } from "@/hooks/useInView";
-import schoolsService, { School } from "@/services/schools";
-import { useToast } from "@/components/ui/use-toast";
+import { getSchools } from "@/lib/supabase/schools";
+import { useToast } from "@/hooks/use-toast";
+import type { School } from "@/integrations/supabase/types";
 
 const Schools = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,16 +26,12 @@ const Schools = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await schoolsService.getSchools({
-          page: 1,
-          limit: 20,
-          search: searchQuery
-        });
-        setSchools(response.schools);
-        setPagination(response.pagination);
+        const data = await getSchools();
+        setSchools(data as any[]);
+        setPagination({ page: 1, limit: 20, total: data.length, pages: 1 });
       } catch (err: any) {
         console.error('Error fetching schools:', err);
-        setError(err.response?.data?.message || 'Failed to load schools');
+        setError(err.message || 'Failed to load schools');
         toast({
           title: 'Error',
           description: 'Failed to load schools',

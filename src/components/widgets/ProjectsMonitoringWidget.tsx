@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { parent as parentApi } from "@/services/api";
+import { getChildProjects, postProjectComment } from "@/lib/supabase/parent";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { FolderOpen, CheckCircle, Clock, MessageSquare, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ interface ProjectsMonitoringWidgetProps {
 }
 
 type ProjectItem = {
-    id: number;
+    id: string;
     title: string;
     description: string | null;
     status: string;
@@ -39,7 +39,7 @@ export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }
     const [projects, setProjects] = useState<ProjectItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [commentingOn, setCommentingOn] = useState<number | null>(null);
+    const [commentingOn, setCommentingOn] = useState<string | null>(null);
     const [commentText, setCommentText] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -47,10 +47,10 @@ export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }
         try {
             setLoading(true);
             setError(null);
-            const res = await parentApi.getChildProjects(childId);
-            setProjects(res.data || []);
+            const data = await getChildProjects(childId);
+            setProjects(data as any[]);
         } catch (err: any) {
-            setError(err?.response?.data?.message || "Failed to load projects.");
+            setError(err?.message || "Failed to load projects.");
         } finally {
             setLoading(false);
         }
@@ -58,20 +58,20 @@ export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }
 
     useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-    const handleSubmitComment = async (projectId: number) => {
+    const handleSubmitComment = async (projectId: string) => {
         if (commentText.trim().length < 10) {
             toast({ title: "Comment too short", description: "Please write at least 10 characters.", variant: "destructive" });
             return;
         }
         try {
             setSubmitting(true);
-            await parentApi.postProjectComment(projectId, commentText.trim());
+            await postProjectComment(projectId, commentText.trim());
             toast({ title: "Encouragement sent! 🎉", description: "Your child will see your message." });
             setCommentingOn(null);
             setCommentText("");
             fetchProjects();
         } catch (err: any) {
-            toast({ title: "Failed to send", description: err?.response?.data?.message || "Please try again.", variant: "destructive" });
+            toast({ title: "Failed to send", description: err?.message || "Please try again.", variant: "destructive" });
         } finally {
             setSubmitting(false);
         }

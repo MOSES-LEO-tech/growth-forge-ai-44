@@ -1,4 +1,4 @@
-import type { Profile } from "@/services/api";
+import type { Profile } from "@/integrations/supabase/types";
 import { SchoolOverviewWidget } from "@/components/widgets/SchoolOverviewWidget";
 import { UserManagementWidget } from "@/components/widgets/UserManagementWidget";
 import { AcademicStructureWidget } from "@/components/widgets/AcademicStructureWidget";
@@ -25,56 +25,56 @@ const SchoolAdminDashboard = ({ profile }: { profile: Profile }) => {
         <SchoolOverviewWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'overview'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 2: User Management */}
         <UserManagementWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'users'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 3: Academic Structure */}
         <AcademicStructureWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'academic'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 4: Portfolio Moderation */}
         <PortfolioModerationWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'portfolio'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 5: Achievement Control */}
         <AchievementControlWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'achievements'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 6: AI Governance */}
         <AIGovernanceWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'ai'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 7: Analytics */}
         <AnalyticsWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'analytics'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
 
         {/* Row 8: Settings */}
         <SchoolSettingsWidget
           className="md:col-span-2 lg:col-span-2"
           defaultExpanded={activeWidget === 'settings'}
-          schoolId={profile.schoolId}
+          schoolId={profile.school_id}
         />
       </div>
     </div>

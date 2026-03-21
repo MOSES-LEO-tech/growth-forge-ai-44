@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { projects as projectsApi } from "@/services/api";
-import type { Project } from "@/services/api";
+import { getProjects } from "@/lib/supabase/projects";
+import type { Project } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Rocket, BookOpen, CheckCircle } from "lucide-react";
@@ -23,11 +23,12 @@ export function ProjectsWidget({ className, defaultExpanded, userId }: ProjectsW
 
     // We can use the same query key as the page to share cache
     const { data: projects, isLoading, refetch } = useQuery<Project[]>({
-        queryKey: ["projects"],
+        queryKey: ["projects", userId],
         queryFn: async () => {
-            const response = await projectsApi.getAll({ studentId: userId });
-            return response.data.data as Project[];
+            if (!userId) return [];
+            return await getProjects(userId);
         },
+        enabled: !!userId,
     });
 
     const filteredProjects = projects?.filter((project: Project) =>

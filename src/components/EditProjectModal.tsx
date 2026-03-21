@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { updateProject } from "@/lib/supabase/projects";
 import { useToast } from "@/hooks/use-toast";
-import { projects } from "@/services/api";
 
 interface EditProjectModalProps {
     project: any;
@@ -50,12 +50,10 @@ export default function EditProjectModal({ project, open, onOpenChange, onProjec
         setLoading(true);
 
         try {
-            await projects.update(project.id, {
+            await updateProject(project.id, {
                 title: form.title,
                 description: form.description,
-                start_date: form.start_date,
-                end_date: form.end_date || null,
-                status: form.status
+                status: form.status as any
             });
 
             toast({
@@ -70,7 +68,7 @@ export default function EditProjectModal({ project, open, onOpenChange, onProjec
             console.error("Project update error:", error);
             toast({
                 title: "Error",
-                description: error.response?.data?.message || "Failed to update project",
+                description: error.message || "Failed to update project",
                 variant: "destructive"
             });
         } finally {

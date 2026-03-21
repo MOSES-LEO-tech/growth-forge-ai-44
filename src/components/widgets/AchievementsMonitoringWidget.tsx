@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { parent as parentApi } from "@/services/api";
+import { getChildAchievements } from "@/lib/supabase/parent";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Award, CheckCircle, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ interface AchievementsMonitoringWidgetProps {
 }
 
 type AchievementItem = {
-    id: number;
+    id: string;
     title: string;
     description: string | null;
     category: string;

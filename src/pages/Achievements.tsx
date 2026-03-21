@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { achievements } from '../services/api';
-import { useToast } from '../components/ui/use-toast';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
+import { getAchievements, createAchievement, verifyAchievement } from '@/lib/supabase/achievements';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Trophy, Medal, Plus, CheckCircle, Shield } from 'lucide-react';
+import type { Achievement } from '@/integrations/supabase/types';
 
 interface Achievement {
     id: number;
@@ -48,12 +49,20 @@ const Achievements = () => {
 
     const fetchData = async () => {
         try {
-            const response = await achievements.getAll();
-            const data = response.data as any;
-            setList(Array.isArray(data) ? data : data.achievements || []);
-            if (data.stats) setStats(data.stats);
+            if (!user) return;
+            const [achievementsData, { data: levelData }] = await Promise.all([
+                getAchievements(user.id),
+                supabase.from('student_levels').select('*').eq('user_id', user.id).single()
+            ]);
+
+            setList(achievementsData as any[]);
+            setStats({
+                points: levelData?.points || 0,
+                level: levelData?.level?.toString() || '1',
+                achievements_count: achievementsData.length
+            });
         } catch (error) {
-            // Silent error or toast
+            console.error('Fetch data error:', error);
         } finally {
             setLoading(false);
         }
@@ -61,9 +70,15 @@ const Achievements = () => {
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setSubmitting(true);
         try {
-            await achievements.create(formData);
+            await createAchievement({
+                user_id: user.id,
+                title: formData.title,
+                description: formData.description,
+                date_earned: formData.date_earned
+            });
             toast({ title: "Achievement Added", description: "Pending verification." });
             setIsAddOpen(false);
             setFormData({ title: '', description: '', date_earned: '' });
@@ -75,10 +90,10 @@ const Achievements = () => {
         }
     };
 
-    const handleVerify = async (id: number) => {
+    const handleVerify = async (id: string) => {
         if (user?.role !== 'teacher' && user?.role !== 'admin') return;
         try {
-            await achievements.verify(id.toString());
+            await verifyAchievement(id);
             toast({ title: "Verified", description: "Achievement verified successfully" });
             fetchData();
         } catch (error) {

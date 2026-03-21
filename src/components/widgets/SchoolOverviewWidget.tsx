@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, BookOpen, Trophy, Brain, HardDrive, FolderOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { schoolAdmin } from "@/services/api";
+import { getSchoolMetrics } from "@/lib/supabase/schools";
 
 interface SchoolOverviewWidgetProps {
   className?: string;
@@ -36,21 +36,11 @@ export function SchoolOverviewWidget({ className = "", defaultExpanded = false, 
       try {
         setLoading(true);
         setError(null);
-        const response = await schoolAdmin.getSchoolOverview();
-        setMetrics(response.data);
+        const data = await getSchoolMetrics(String(schoolId));
+        setMetrics(data);
       } catch (err) {
         console.error('Failed to fetch school overview:', err);
         setError('Failed to load metrics');
-        // Fallback to mock data for demo
-        setMetrics({
-          totalStudents: 245,
-          totalTeachers: 28,
-          totalParents: 180,
-          totalProjects: 156,
-          achievementCompletions: 89,
-          aiUsageCount: 1245,
-          storageUsed: 2.4
-        });
       } finally {
         setLoading(false);
       }

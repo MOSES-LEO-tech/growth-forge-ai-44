@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { auth } from "@/services/api";
+import { updateProfile } from "@/lib/supabase/profile";
 import { useToast } from "@/hooks/use-toast";
 import { Settings } from "lucide-react";
 
@@ -23,9 +23,8 @@ const ProfileSettingsModal = ({ profile, onProfileUpdated }: ProfileSettingsModa
         setLoading(true);
 
         try {
-            await auth.updateProfile({
-                fullName,
-                avatarUrl: profile?.avatar_url // Keep existing avatar for now
+            await updateProfile(profile.id, {
+                full_name: fullName
             });
 
             toast({

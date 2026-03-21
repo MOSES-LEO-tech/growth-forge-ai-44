@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { analytics, type StudentAnalytics } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getProjects } from "@/lib/supabase/projects";
+import { getAchievements } from "@/lib/supabase/achievements";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { TrendingUp, Award, Bot, Zap, BarChart3, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -38,7 +40,7 @@ function StatCard({ icon, label, value, sublabel }: {
 }
 
 export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: GrowthAnalyticsWidgetProps) {
-    const [analyticsData, setAnalyticsData] = useState<StudentAnalytics | null>(null);
+    const [analyticsData, setAnalyticsData] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -47,8 +49,30 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
             if (!userId) return;
             try {
                 setLoading(true);
-                const response = await analytics.getStudentStats(userId);
-                setAnalyticsData(response.data as unknown as StudentAnalytics);
+                
+                const [projectsData, achievementsData, { data: levelData }] = await Promise.all([
+                    getProjects(userId),
+                    getAchievements(userId),
+                    supabase.from('student_levels').select('*').eq('user_id', userId).single()
+                ]);
+
+                const totalProjects = projectsData?.length || 0;
+                const completedProjects = projectsData?.filter(p => p.status === 'complete').length || 0;
+                
+                const data = {
+                    projectCompletionRate: totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0,
+                    verifiedAchievementCount: achievementsData?.filter(a => a.verified).length || 0,
+                    achievementCount: achievementsData?.length || 0,
+                    aiUsage: [], // Mocked for now
+                    xp: {
+                        level: levelData?.level || 1,
+                        currentXp: levelData?.points || 0,
+                        nextLevelXp: (levelData?.level || 1) * 1000,
+                        tier: 'basic'
+                    }
+                };
+
+                setAnalyticsData(data);
             } catch (err) {
                 console.error("Failed to fetch analytics:", err);
                 setError("Failed to load analytics");

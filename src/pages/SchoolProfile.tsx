@@ -10,15 +10,15 @@ import SchoolStats from "@/components/SchoolStats";
 import SchoolHallOfFame from "@/components/SchoolHallOfFame";
 import SchoolYearbook from "@/components/SchoolYearbook";
 import { useInView } from "@/hooks/useInView";
-import schoolsService, { SchoolWithStats } from "@/services/schools";
-import { useToast } from "@/components/ui/use-toast";
+import { getSchool } from "@/lib/supabase/schools";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 
 const SchoolProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [school, setSchool] = useState<SchoolWithStats | null>(null);
+  const [school, setSchool] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -37,11 +37,11 @@ const SchoolProfile = () => {
 
       try {
         setLoading(true);
-        const schoolData = await schoolsService.getSchool(Number(id));
+        const schoolData = await getSchool(id);
         setSchool(schoolData);
       } catch (err: any) {
         console.error('Error fetching school:', err);
-        setError(err.response?.data?.message || 'Failed to load school profile');
+        setError(err.message || 'Failed to load school profile');
         toast({
           title: 'Error',
           description: 'Failed to load school profile',

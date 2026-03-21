@@ -6,9 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { createEvent, uploadMedia } from "@/lib/supabase/gallery";
 import { useToast } from "@/hooks/use-toast";
-import { FileUpload } from "@/components/FileUpload";
-import { upload, gallery } from "@/services/api";
 import { Progress } from "@/components/ui/progress";
 
 interface AddGalleryModalProps {
@@ -66,39 +65,22 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     }
 
     setLoading(true);
-    let mediaUrl = form.media_url;
 
     try {
-      // Upload file if selected
+      // 1. Create event
+      const event = await createEvent({
+        user_id: userId,
+        title: form.title,
+        description: form.description,
+        is_public: true // Default to public for now as per original gallery logic
+      });
+
+      // 2. Upload file if selected
       if (selectedFile) {
         setUploading(true);
-        const uploadResponse = await upload.uploadFile(selectedFile, (progress) => {
-          setUploadProgress(progress);
-        });
-
-        // Use the backend URL
-        mediaUrl = `http://localhost:3001${uploadResponse.data.file.url}`;
+        await uploadMedia(event.id, selectedFile);
         setUploading(false);
       }
-
-      // Create event with media via local API
-      const eventResponse = await gallery.createEvent({
-        title: form.title,
-        description: form.description,
-        event_date: form.event_date,
-        created_by: userId
-      });
-
-      const eventId = eventResponse.data.id;
-
-      // Add media item linked to the event
-      await gallery.addMedia({
-        title: form.title,
-        description: form.description,
-        media_type: form.media_type,
-        media_url: mediaUrl,
-        event_id: eventId,
-      });
 
       toast({
         title: "Success!",
@@ -111,11 +93,11 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
       setUploadProgress(0);
       setOpen(false);
       onItemAdded?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gallery upload error:", error);
       toast({
         title: "Error",
-        description: "Failed to add gallery item",
+        description: error.message || "Failed to add gallery item",
         variant: "destructive"
       });
     } finally {

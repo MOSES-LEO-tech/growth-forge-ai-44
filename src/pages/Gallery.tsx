@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { gallery } from "@/services/api";
+import { getPublicEvents } from "@/lib/supabase/gallery";
+import type { GalleryEvent } from "@/integrations/supabase/types";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -15,15 +16,14 @@ const Gallery = () => {
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
 
-  const { data: events, isLoading } = useQuery({
+  const { data: events, isLoading } = useQuery<GalleryEvent[]>({
     queryKey: ["events"],
     queryFn: async () => {
-      const response = await gallery.getPublicEvents();
-      return response.data?.data || response.data || [];
+      return await getPublicEvents();
     },
   });
 
-  const filteredEvents = events?.filter(event =>
+  const filteredEvents = events?.filter((event: GalleryEvent) =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );

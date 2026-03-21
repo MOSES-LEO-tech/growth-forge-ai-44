@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { parentAI } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Brain, Send, Bot, User, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const SUGGESTIONS = [
 ];
 
 export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPlan = 'basic' }: AIGuidanceWidgetProps) {
+    const { user, session } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [streaming, setStreaming] = useState(false);
@@ -43,7 +45,7 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
 
     const sendMessage = useCallback(async (text?: string) => {
         const msg = (text || input).trim();
-        if (!msg || streaming || isLocked) return;
+        if (!msg || streaming || isLocked || !user || !session) return;
 
         setInput("");
         setError(null);
@@ -52,27 +54,31 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
         const botMsg: Message = { role: 'assistant', content: '', timestamp: new Date() };
         setMessages(prev => [...prev, userMsg, botMsg]);
         setStreaming(true);
-        abortRef.current = false;
         scrollToBottom();
 
         try {
-            await parentAI.chatStream(msg, childId ?? null, (token) => {
-                if (abortRef.current) return;
+            const { data, error: chatError } = await supabase.functions.invoke('parent-ai-guidance', {
+                body: { 
+                    message: msg,
+                    childId: childId,
+                    history: messages.slice(-5)
+                }
+            });
+
+            if (chatError) throw chatError;
+
+            if (data?.text) {
                 setMessages(prev => {
                     const next = [...prev];
-                    next[next.length - 1] = { ...next[next.length - 1], content: next[next.length - 1].content + token };
+                    next[next.length - 1] = { ...next[next.length - 1], content: data.text };
                     return next;
                 });
-                scrollToBottom();
-            });
-        } catch (err: any) {
-            if (err?.message?.includes('PLAN_UPGRADE_REQUIRED')) {
-                setError('Upgrade to Plus to unlock AI Guidance.');
-            } else if (err?.message?.includes('PLAN_LIMIT_REACHED')) {
-                setError('Daily guidance limit reached. Try again tomorrow.');
             } else {
-                setError(err?.message || 'Something went wrong. Please try again.');
+                throw new Error("No response from assistant");
             }
+            scrollToBottom();
+        } catch (err: any) {
+            setError(err?.message || 'Something went wrong. Please try again.');
             setMessages(prev => {
                 const next = [...prev];
                 next[next.length - 1] = { ...next[next.length - 1], content: '⚠️ Failed to get a response. Please try again.' };
@@ -81,7 +87,7 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
         } finally {
             setStreaming(false);
         }
-    }, [input, streaming, isLocked, childId, scrollToBottom]);
+    }, [input, streaming, isLocked, childId, scrollToBottom, user, session, messages]);
 
     const CollapsedContent = () => (
         <div className="flex flex-col items-center justify-center gap-2 h-full text-center py-4">

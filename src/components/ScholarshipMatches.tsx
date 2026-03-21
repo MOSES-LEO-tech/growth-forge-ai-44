@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, ExternalLink, Calendar } from "lucide-react";
-import { scholarship } from "@/services/api";
+import { getScholarships } from "@/lib/supabase/scholarships";
+import type { Scholarship } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface ScholarshipMatch {
@@ -20,26 +22,25 @@ interface ScholarshipMatch {
 }
 
 const ScholarshipMatches = () => {
-  const [matches, setMatches] = useState<ScholarshipMatch[]>([]);
+  const { user } = useAuth();
+  const [matches, setMatches] = useState<Scholarship[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const findMatches = async () => {
     setLoading(true);
     try {
-      const response = await scholarship.match();
-      const data = response.data;
-
-      setMatches(data.matches);
+      const data = await getScholarships();
+      setMatches(data);
       toast({
-        title: "Scholarships matched",
-        description: `Found ${data.matches.length} matching scholarships for you!`,
+        title: "Scholarships loaded",
+        description: `Found ${data.length} scholarships for you!`,
       });
     } catch (error) {
-      console.error('Error matching scholarships:', error);
+      console.error('Error fetching scholarships:', error);
       toast({
         title: "Error",
-        description: "Failed to find scholarship matches. Please try again.",
+        description: "Failed to fetch scholarships. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -96,16 +97,10 @@ const ScholarshipMatches = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h4 className="font-semibold">{scholarship.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {scholarship.organization}
-                      </p>
                     </div>
-                    <Badge variant={getMatchColor(scholarship.match_score)}>
-                      {scholarship.match_score} match
-                    </Badge>
                   </div>
 
-                  <p className="text-sm">{scholarship.description}</p>
+                  <p className="text-sm">{scholarship.requirements}</p>
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     {scholarship.amount && (
@@ -115,36 +110,9 @@ const ScholarshipMatches = () => {
                     )}
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      <span>Due: {new Date(scholarship.deadline).toLocaleDateString()}</span>
+                      <span>Due: {scholarship.deadline ? new Date(scholarship.deadline).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
-
-                  <div className="bg-muted p-3 rounded text-sm">
-                    <p className="font-medium mb-1">Why it matches:</p>
-                    <p className="text-muted-foreground">{scholarship.match_reason}</p>
-                  </div>
-
-                  {scholarship.requirements && scholarship.requirements.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {scholarship.requirements.map((req, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {req}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {scholarship.application_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => window.open(scholarship.application_url, '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Apply Now
-                    </Button>
-                  )}
                 </div>
               ))}
             </div>

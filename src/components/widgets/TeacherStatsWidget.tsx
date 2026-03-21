@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { teacher } from "@/services/api";
+import { getTeacherAnalytics } from "@/lib/supabase/teacher";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,15 +28,17 @@ interface AnalyticsData {
 }
 
 export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsWidgetProps) {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
+            if (!user) return;
             setLoading(true);
             try {
-                const response = await teacher.getAnalytics();
-                setAnalytics(response.data);
+                const data = await getTeacherAnalytics(user.id);
+                setAnalytics(data);
             } catch (error) {
                 console.error("Failed to fetch analytics", error);
             } finally {
@@ -43,7 +46,7 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
             }
         };
         fetchAnalytics();
-    }, []);
+    }, [user]);
 
     // Transform analytics to stats
     const stats = analytics ? [

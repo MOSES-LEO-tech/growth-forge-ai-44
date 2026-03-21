@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { projects as projectsApi } from "@/services/api";
-import type { Project } from "@/services/api";
+import { getProjects } from "@/lib/supabase/projects";
+import type { Project } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,17 +15,19 @@ import { useInView } from "@/hooks/useInView";
 import { useToast } from "@/hooks/use-toast";
 
 const Projects = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
   const { toast } = useToast();
 
   const { data: projects, isLoading, isError, error } = useQuery<Project[]>({
-    queryKey: ["projects"],
+    queryKey: ["projects", user?.id],
     queryFn: async () => {
-      const response = await projectsApi.getAll();
-      return response.data.data as Project[];
+      if (!user) return [];
+      return await getProjects(user.id);
     },
+    enabled: !!user,
   });
 
   useEffect(() => {

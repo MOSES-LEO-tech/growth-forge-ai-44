@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { schoolAdmin } from "@/services/api";
+import { getSchoolUsers } from "@/lib/supabase/schools";
 
 interface UserManagementWidgetProps {
   className?: string;
@@ -42,32 +42,14 @@ export function UserManagementWidget({ className = "", defaultExpanded = false, 
         setLoading(true);
         setError(null);
         
-        const [studentsRes, teachersRes, parentsRes] = await Promise.all([
-          schoolAdmin.getStudents({ limit: 50 }),
-          schoolAdmin.getTeachers({ limit: 50 }),
-          schoolAdmin.getParents({ limit: 50 })
-        ]);
+        const data = await getSchoolUsers(String(schoolId));
         
-        setStudents(studentsRes.data || []);
-        setTeachers(teachersRes.data || []);
-        setParents(parentsRes.data || []);
+        setStudents(data.students as any[]);
+        setTeachers(data.teachers as any[]);
+        setParents(data.parents as any[]);
       } catch (err) {
         console.error('Failed to fetch users:', err);
         setError('Failed to load users');
-        // Fallback to mock data for demo
-        setStudents([
-          { id: 1, full_name: "John Smith", email: "john@example.com", role: "student", grade: "10A" },
-          { id: 2, full_name: "Jane Doe", email: "jane@example.com", role: "student", grade: "9B" },
-          { id: 3, full_name: "Mike Johnson", email: "mike@example.com", role: "student", grade: "11A" },
-        ]);
-        setTeachers([
-          { id: 4, full_name: "Mrs. Williams", email: "williams@school.edu", role: "teacher" },
-          { id: 5, full_name: "Mr. Brown", email: "brown@school.edu", role: "teacher" },
-        ]);
-        setParents([
-          { id: 6, full_name: "Robert Smith", email: "robert@example.com", role: "parent" },
-          { id: 7, full_name: "Sarah Johnson", email: "sarah@example.com", role: "parent" },
-        ]);
       } finally {
         setLoading(false);
       }

@@ -1,10 +1,10 @@
-import { Calendar, Users, TrendingUp, Image as ImageIcon, FileText } from "lucide-react";
+import { Calendar, Users, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import type { Project } from "@/services/api";
+import type { Project } from "@/integrations/supabase/types";
 
 interface ProjectCardProps {
   project: Project;
@@ -13,7 +13,7 @@ interface ProjectCardProps {
 const ProjectCard = ({ project }: ProjectCardProps) => {
   const navigate = useNavigate();
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-500';
@@ -26,7 +26,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | null) => {
     switch (status) {
       case 'pending':
         return 'New';
@@ -35,38 +35,20 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
       case 'complete':
         return 'Completed';
       default:
-        return status;
+        return status || 'Unknown';
     }
   };
 
   // Calculate mock progress based on status
-  const progress = project.status === 'complete' ? 100 :
-    project.status === 'ongoing' ? 60 : 10;
+  const progress = project.status === 'complete' ? 100 : 
+                   project.status === 'ongoing' ? 60 : 10;
 
   return (
-    <Card
-      className="overflow-hidden flex flex-col cursor-pointer group hover:shadow-lg transition-all duration-300"
+    <Card 
+      className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
       onClick={() => navigate(`/projects/${project.id}`)}
     >
-      {/* Thumbnail or Media Indicator */}
-      {project.thumbnail_url && (
-        <div className="w-full h-32 bg-muted relative overflow-hidden shrink-0 border-b">
-          {!project.thumbnail_url.endsWith('.pdf') && !project.thumbnail_url.includes('word') ? (
-            <img
-              src={project.thumbnail_url}
-              alt={project.title}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-primary/5">
-              <FileText className="w-8 h-8 mb-2 opacity-60" />
-              <span className="text-xs font-semibold uppercase">Document</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      <CardHeader className={project.thumbnail_url ? "pt-4" : ""}>
+      <CardHeader>
         <div className="flex items-start justify-between mb-2">
           <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors">
             {project.title}
@@ -94,18 +76,18 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            <span>{format(new Date(project.start_date), "MMM dd, yyyy")}</span>
+            <span>{format(new Date(project.created_at), "MMM dd, yyyy")}</span>
           </div>
-          {project.collaborators && project.collaborators.length > 0 && (
+          {project.media_urls && project.media_urls.length > 0 && (
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              <span>{project.collaborators.length} collaborators</span>
+              <span>{project.media_urls.length} files</span>
             </div>
           )}
-          {project.skills_tracked && Object.keys(project.skills_tracked).length > 0 && (
+          {project.tags && project.tags.length > 0 && (
             <div className="flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
-              <span>{Object.keys(project.skills_tracked).length} skills</span>
+              <span>{project.tags.length} tags</span>
             </div>
           )}
         </div>

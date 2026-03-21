@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { schoolGallery, upload } from "@/services/api";
+import { getAllEvents, createEvent, uploadMedia, deleteEvent } from "@/lib/supabase/gallery";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +29,9 @@ interface SchoolGalleryWidgetProps {
 }
 
 export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGalleryWidgetProps) {
+    const { user } = useAuth();
     const { toast } = useToast();
-    const [events, setEvents] = useState<SchoolEvent[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [createOpen, setCreateOpen] = useState(false);
     const [uploadOpen, setUploadOpen] = useState(false);
@@ -45,8 +47,8 @@ export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGaller
 
     const fetchEvents = async () => {
         try {
-            const response = await schoolGallery.getAll();
-            setEvents(response.data.events || response.data || []);
+            const data = await getAllEvents();
+            setEvents(data || []);
         } catch (error) {
             console.error("Failed to fetch school events", error);
         } finally {
@@ -60,13 +62,16 @@ export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGaller
 
     const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setCreating(true);
         try {
-            await schoolGallery.create({
+            await createEvent({
+                user_id: user.id,
                 title: newEvent.title,
                 description: newEvent.description,
-                eventDate: newEvent.date,
-                location: newEvent.location
+                event_date: newEvent.date,
+                location: newEvent.location,
+                is_public: true
             });
             toast({ title: "Success", description: "Event created successfully" });
             setCreateOpen(false);
@@ -84,13 +89,7 @@ export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGaller
         if (!file || !selectedEventId) return;
         setUploading(true);
         try {
-            const uploadRes = await upload.uploadFile(file);
-            const { url } = uploadRes.data;
-
-            await schoolGallery.addMedia(selectedEventId, {
-                media_type: file.type.startsWith('video') ? 'video' : 'image',
-                media_url: url
-            });
+            await uploadMedia(selectedEventId, file);
 
             toast({ title: "Success", description: "Media added to event" });
             setUploadOpen(false);
@@ -106,7 +105,7 @@ export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGaller
     const handleDeleteEvent = async (id: string) => {
         if (!confirm("Are you sure? This will delete the event and all its media.")) return;
         try {
-            await schoolGallery.delete(id);
+            await deleteEvent(id);
             toast({ title: "Deleted", description: "Event deleted" });
             fetchEvents();
         } catch (error) {

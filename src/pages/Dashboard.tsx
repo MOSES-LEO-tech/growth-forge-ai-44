@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
@@ -11,61 +11,26 @@ import { QuickActions } from "@/components/QuickActions";
 import { OnboardingModal } from "@/components/OnboardingModal";
 
 const Dashboard = () => {
+  const { user, profile: authProfile, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        console.log('[Dashboard] checkUser - token exists:', !!token);
-        if (!token) {
-          console.log('[Dashboard] No token found, redirecting to /auth');
-          navigate("/auth");
-          return;
-        }
-
-        console.log('[Dashboard] Fetching profile...');
-        const response = await auth.getProfile();
-        console.log('[Dashboard] Profile fetched successfully:', response.data);
-        setProfile(response.data);
-        setLoading(false);
-
-        // Show onboarding for first-time users
-        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-        if (!hasSeenOnboarding) {
-          setShowOnboarding(true);
-        }
-      } catch (error: any) {
-        console.error("[Dashboard] Failed to fetch profile:", error);
-        console.error("[Dashboard] Error response:", error.response?.data);
-        console.error("[Dashboard] Error status:", error.response?.status);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        console.log('[Dashboard] Cleared localStorage, redirecting to /auth');
-        navigate("/auth");
-      }
-    };
-
-    checkUser();
-  }, [navigate]);
-
-  const refreshProfile = async () => {
-    try {
-      const response = await auth.getProfile();
-      setProfile(response.data);
-    } catch (error) {
-      console.error("Failed to refresh profile:", error);
+    if (!authLoading && !user) {
+      navigate("/auth");
     }
-  };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    if (!authLoading && user) {
+      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+      if (!hasSeenOnboarding) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user, authLoading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
     toast({
       title: "Signed out",
       description: "You have been signed out successfully"
@@ -78,7 +43,7 @@ const Dashboard = () => {
     localStorage.setItem('hasSeenOnboarding', 'true');
   };
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -90,24 +55,24 @@ const Dashboard = () => {
   }
 
   const renderDashboard = () => {
-    switch (profile?.role) {
+    switch (authProfile?.role) {
       case "student":
-        return <StudentDashboard profile={profile} />;
+        return <StudentDashboard profile={authProfile} />;
       case "parent":
-        return <ParentDashboard profile={profile} />;
+        return <ParentDashboard profile={authProfile} />;
       case "teacher":
       case "admin":
-        return <TeacherDashboard profile={profile} />;
+        return <TeacherDashboard profile={authProfile} />;
       case "school_admin":
-        return <SchoolAdminDashboard profile={profile} />;
+        return <SchoolAdminDashboard profile={authProfile} />;
       default:
-        return <StudentDashboard profile={profile} />;
+        return <StudentDashboard profile={authProfile} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
+      <DashboardHeader profile={authProfile} onSignOut={handleSignOut} />
 
       <main id="main-content" role="main">
         {renderDashboard()}

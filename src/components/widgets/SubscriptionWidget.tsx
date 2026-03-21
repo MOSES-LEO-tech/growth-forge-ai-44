@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { parent as parentApi } from "@/services/api";
+import { getPlan } from "@/lib/supabase/parent";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Crown, Check, Zap, Star, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,22 +58,24 @@ const ALL_PLAN_FEATURES = [
 ];
 
 export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionWidgetProps) {
+    const { user } = useAuth();
     const [plan, setPlan] = useState<PlanData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchPlan = useCallback(async () => {
+        if (!user) return;
         try {
             setLoading(true);
             setError(null);
-            const res = await parentApi.getPlan();
-            setPlan(res.data);
+            const data = await getPlan(user.id);
+            setPlan(data as PlanData);
         } catch (err: any) {
-            setError(err?.response?.data?.message || "Failed to load plan.");
+            setError(err?.message || "Failed to load plan.");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => { fetchPlan(); }, [fetchPlan]);
 

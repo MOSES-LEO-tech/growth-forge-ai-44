@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { parent as parentApi } from "@/services/api";
+import { getChildOverview } from "@/lib/supabase/parent";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Users, School, BookOpen, Award, Star, Activity, CheckCircle, Clock, TrendingUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,10 +28,10 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
         try {
             setLoading(true);
             setError(null);
-            const res = await parentApi.getChildOverview(childId);
-            setData(res.data);
+            const data = await getChildOverview(String(childId));
+            setData(data as OverviewData);
         } catch (err: any) {
-            setError(err?.response?.data?.message || "Failed to load overview.");
+            setError(err?.message || "Failed to load overview.");
         } finally {
             setLoading(false);
         }

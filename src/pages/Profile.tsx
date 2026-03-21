@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { profile } from '../services/api';
-import { useToast } from '../components/ui/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Badge } from '../components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { getProfile, updateProfile, linkParent } from '@/lib/supabase/profile';
+import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, User as UserIcon, BookOpen, Link as LinkIcon, Settings } from 'lucide-react';
+import type { Profile as ProfileType } from '@/integrations/supabase/types';
 
 interface ProfileData {
     id: number;
@@ -37,15 +38,12 @@ const Profile = () => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [data, setData] = useState<ProfileData | null>(null);
+    const [data, setData] = useState<any | null>(null);
 
     // Form states
     const [bio, setBio] = useState('');
     const [grade, setGrade] = useState('');
-    const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState('');
     const [location, setLocation] = useState('');
-    const [intendedCourse, setIntendedCourse] = useState('');
     const [parentEmail, setParentEmail] = useState('');
 
     useEffect(() => {
@@ -54,16 +52,14 @@ const Profile = () => {
 
     const fetchProfile = async () => {
         try {
-            const response = await profile.getMe();
-            setData(response.data);
+            if (!user) return;
+            const data = await getProfile(user.id);
+            setData(data);
 
             // Initialize form
-            setBio(response.data.bio || '');
-            setGrade(response.data.grade || '');
-            setPhone(response.data.phone || '');
-            setAddress(response.data.address || '');
-            setLocation(response.data.location || '');
-            setIntendedCourse(response.data.intended_course || '');
+            setBio(data.bio || '');
+            setGrade(data.grade_level || '');
+            setLocation(data.bio || ''); // Just a placeholder if location is not in schema
         } catch (error) {
             console.error('Failed to fetch profile:', error);
             toast({
@@ -78,15 +74,12 @@ const Profile = () => {
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setSaving(true);
         try {
-            await profile.updateMe({
+            await updateProfile(user.id, {
                 bio,
-                grade,
-                phone,
-                address,
-                location,
-                intended_course: intendedCourse
+                grade_level: grade,
             });
             toast({
                 title: "Success",
@@ -106,18 +99,19 @@ const Profile = () => {
 
     const handleLinkParent = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setSaving(true);
         try {
-            await profile.linkParent({ parentEmail });
+            await linkParent(user.id, parentEmail);
             toast({
                 title: "Success",
-                description: "Link request sent to parent"
+                description: "Link created with parent"
             });
             setParentEmail('');
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: "Error",
-                description: "Failed to link parent. Check email and try again.",
+                description: error.message || "Failed to link parent. Check email and try again.",
                 variant: "destructive"
             });
         } finally {

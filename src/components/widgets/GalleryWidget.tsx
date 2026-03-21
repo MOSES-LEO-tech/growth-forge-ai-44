@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { personalGallery, upload } from "@/services/api";
+import { getGalleryEvents, createEvent, deleteEvent, uploadMedia } from "@/lib/supabase/gallery";
+import type { GalleryEvent, GalleryMedia } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,8 +34,9 @@ interface GalleryWidgetProps {
 }
 
 export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWidgetProps) {
+    const { user } = useAuth();
     const { toast } = useToast();
-    const [items, setItems] = useState<GalleryItem[]>([]);
+    const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [openUpload, setOpenUpload] = useState(false);
@@ -46,17 +49,14 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
     const [visibility, setVisibility] = useState('private');
 
     // Lightbox State
-    const [selectedMedia, setSelectedMedia] = useState<GalleryItem | null>(null);
+    const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
 
     const fetchItems = async () => {
         try {
-            let response;
-            if (userId) {
-                response = await personalGallery.getStudentItems(parseInt(userId));
-            } else {
-                response = await personalGallery.getMyItems();
-            }
-            setItems(response.data.items || response.data || []);
+            if (!user) return;
+            const targetId = userId || user.id;
+            const events = await getGalleryEvents(targetId);
+            setItems(events);
         } catch (error) {
             console.error('Error fetching gallery:', error);
         } finally {
@@ -76,35 +76,31 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) {
+        if (!file || !user) {
             toast({ title: "Error", description: "Please select a file", variant: "destructive" });
             return;
         }
 
         setUploading(true);
         try {
-            // 1. Upload file
-            const uploadResponse = await upload.uploadFile(file);
-            const { url, thumbnailUrl, mimetype } = uploadResponse.data;
-            const mediaType = mimetype.startsWith('video/') ? 'video' : 'image';
-
-            // 2. Create gallery item
-            await personalGallery.createItem({
+            // 1. Create event
+            const event = await createEvent({
+                user_id: user.id,
                 title,
                 description,
-                mediaType,
-                mediaUrl: url,
-                thumbnailUrl: thumbnailUrl || (mediaType === 'image' ? url : null),
-                visibility: visibility as 'private' | 'public' | 'parents'
+                is_public: visibility === 'public'
             });
+
+            // 2. Upload media
+            await uploadMedia(event.id, file);
 
             toast({ title: "Success", description: "Item added to gallery" });
             setOpenUpload(false);
             resetForm();
             fetchItems();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Upload failed:', error);
-            toast({ title: "Error", description: "Failed to upload item", variant: "destructive" });
+            toast({ title: "Error", description: error.message || "Failed to upload item", variant: "destructive" });
         } finally {
             setUploading(false);
         }
@@ -117,10 +113,10 @@ export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWid
         setVisibility('private');
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this item?")) return;
         try {
-            await personalGallery.deleteItem(id);
+            await deleteEvent(id);
             setItems(items.filter(item => item.id !== id));
             toast({ title: "Deleted", description: "Item removed" });
         } catch (error) {

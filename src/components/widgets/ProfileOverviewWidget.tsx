@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { profile as profileApi, projects, achievements, type Profile } from "@/services/api";
+import { getProfile, updateProfile } from "@/lib/supabase/profile";
+import { getProjects } from "@/lib/supabase/projects";
+import { getAchievements } from "@/lib/supabase/achievements";
+import type { Profile } from "@/integrations/supabase/types";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { User, Mail, Edit3, Loader2, BookOpen, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,42 +33,41 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
 
     // Fetch full profile to pre-populate bio & interests (not always in the auth token payload)
     useEffect(() => {
-        profileApi.getMe().then((res) => {
-            const data = res.data as any;
+        getProfile(profile.id).then((data) => {
             setEditForm(f => ({
                 ...f,
                 bio: f.bio || data?.bio || '',
                 interests: f.interests || (
-                    Array.isArray(data?.social_links?.interests)
-                        ? data.social_links.interests.join(', ')
+                    Array.isArray(data?.interests)
+                        ? data.interests.join(', ')
                         : ''
                 ),
             }));
         }).catch(() => { /* silently ignore */ });
-    }, []);
+    }, [profile.id]);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [projectsRes, achievementsRes] = await Promise.all([
-                    projects.getAll({}),
-                    achievements.getAll({})
+                const [projectsData, achievementsData] = await Promise.all([
+                    getProjects(profile.id),
+                    getAchievements(profile.id)
                 ]);
                 setStats({
-                    projects: (projectsRes.data as unknown as any[])?.length || 0,
-                    achievements: (achievementsRes.data as unknown as any[])?.length || 0
+                    projects: projectsData?.length || 0,
+                    achievements: achievementsData?.length || 0
                 });
             } catch (error) {
                 console.error("Failed to fetch profile stats:", error);
             }
         };
         fetchStats();
-    }, []);
+    }, [profile.id]);
 
     const handleSaveProfile = async () => {
         setLoading(true);
         try {
-            await profileApi.updateMe({
+            await updateProfile(profile.id, {
                 full_name: editForm.full_name,
                 bio: editForm.bio,
                 interests: editForm.interests.split(',').map(i => i.trim()).filter(Boolean)

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { parent as parentApi } from "@/services/api";
+import { getMessages, sendMessage, markMessageRead } from "@/lib/supabase/messages";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { MessageSquare, Send, Inbox, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,8 @@ type Message = {
 };
 
 export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetProps) {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const { user } = useAuth();
+    const [messages, setMessages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [composing, setComposing] = useState(false);
@@ -38,37 +40,38 @@ export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetP
     const [subject, setSubject] = useState("");
     const [content, setContent] = useState("");
     const [sending, setSending] = useState(false);
-    const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const fetchMessages = useCallback(async () => {
+        if (!user) return;
         try {
             setLoading(true);
             setError(null);
-            const res = await parentApi.getMessages();
-            setMessages(res.data || []);
+            const data = await getMessages(user.id);
+            setMessages(data || []);
         } catch (err: any) {
-            setError(err?.response?.data?.message || "Failed to load messages.");
+            setError(err?.message || "Failed to load messages.");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
     const handleSend = async () => {
-        if (!receiverId || !content.trim()) {
+        if (!user || !receiverId || !content.trim()) {
             toast({ title: "Incomplete message", description: "Recipient ID and message content are required.", variant: "destructive" });
             return;
         }
         try {
             setSending(true);
-            await parentApi.sendMessage(Number(receiverId), content.trim(), subject.trim() || undefined);
+            await sendMessage(user.id, receiverId, content.trim(), subject.trim() || undefined);
             toast({ title: "Message sent!", description: "Your teacher will receive it shortly." });
             setComposing(false);
             setReceiverId(""); setSubject(""); setContent("");
             fetchMessages();
         } catch (err: any) {
-            toast({ title: "Send failed", description: err?.response?.data?.message || "Please try again.", variant: "destructive" });
+            toast({ title: "Send failed", description: err?.message || "Please try again.", variant: "destructive" });
         } finally {
             setSending(false);
         }
@@ -113,7 +116,7 @@ export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetP
 
             {composing && (
                 <div className="p-4 rounded-xl border bg-card space-y-3">
-                    <Input placeholder="Teacher/Admin User ID" value={receiverId} onChange={e => setReceiverId(e.target.value)} type="number" />
+                    <Input placeholder="Teacher/Admin User ID" value={receiverId} onChange={e => setReceiverId(e.target.value)} />
                     <Input placeholder="Subject (optional)" value={subject} onChange={e => setSubject(e.target.value)} />
                     <Textarea placeholder="Your message..." value={content} onChange={e => setContent(e.target.value)} rows={4} />
                     <div className="flex gap-2">

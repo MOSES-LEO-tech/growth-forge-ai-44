@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { schoolGallery, upload } from '../services/api';
-import { useToast } from '../components/ui/use-toast';
-import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { getEventDetails, uploadMedia } from '@/lib/supabase/gallery';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ArrowLeft, Calendar, MapPin, Plus, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
-import { Card, CardContent } from '../components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface EventMedia {
   id: number;
@@ -51,8 +51,8 @@ const EventGallery = () => {
   const fetchEventDetails = async () => {
     try {
       if (!id) return;
-      const response = await schoolGallery.getOne(id);
-      setEvent(response.data);
+      const data = await getEventDetails(id);
+      setEvent(data as any);
     } catch (error) {
       console.error('Fetch event details error:', error);
       toast({ title: "Error", description: "Failed to load event details", variant: "destructive" });
@@ -67,22 +67,7 @@ const EventGallery = () => {
 
     setUploading(true);
     try {
-      // 1. Upload to generic storage
-      const uploadRes = await upload.uploadFile(uploadFile);
-      const { url, mimetype } = uploadRes.data;
-
-      // Determine type if not manually set (simple check)
-      const type = mimetype.startsWith('video/') ? 'video' : 'image';
-
-      // 2. Link to Event
-      await schoolGallery.addMedia(id, {
-        media_type: type as 'image' | 'video',
-        media_url: url,
-        event_id: parseInt(id),
-        title: uploadFile.name,
-        description: 'Event media'
-      });
-
+      await uploadMedia(id, uploadFile);
       toast({ title: "Success", description: "Media added to event" });
       setIsUploadOpen(false);
       setUploadFile(null);

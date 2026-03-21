@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { projects, upload } from '../services/api';
-import { useToast } from '../components/ui/use-toast';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Badge } from '../components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { getProjectDetails, verifyProject, uploadProjectMedia } from '@/lib/supabase/projects';
+import { postProjectComment } from '@/lib/supabase/parent';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, CheckCircle, FileText, Image as ImageIcon, Video as VideoIcon, ArrowLeft, Star, Trash2 } from 'lucide-react';
 
 interface ProjectMedia {
@@ -71,8 +70,8 @@ const ProjectDetails = () => {
     const fetchProject = async () => {
         try {
             if (!id) return;
-            const response = await projects.getOne(id);
-            setProject(response.data as any);
+            const data = await getProjectDetails(id);
+            setProject(data as any);
         } catch (error) {
             console.error('Error fetching project:', error);
             toast({ title: "Error", description: "Failed to load project", variant: "destructive" });
@@ -87,18 +86,7 @@ const ProjectDetails = () => {
 
         setUploading(true);
         try {
-            const uploadResp = await upload.uploadFile(file);
-            const { url, mimetype, originalName, size, thumbnailUrl } = uploadResp.data;
-
-            let mediaType = 'image';
-            if (mimetype.startsWith('video/')) mediaType = 'video';
-            if (mimetype.includes('pdf')) mediaType = 'pdf';
-
-            await projects.addMedia(id, {
-                media_type: mediaType as 'image' | 'video' | 'pdf',
-                media_url: url,
-            });
-
+            await uploadProjectMedia(id, file);
             toast({ title: "Success", description: "Media added to project" });
             setOpenUpload(false);
             setFile(null);
@@ -115,7 +103,7 @@ const ProjectDetails = () => {
         if (!id || !confirm("Verify this project? This confirms authentication by a teacher.")) return;
         setVerifying(true);
         try {
-            await projects.verify(id);
+            await verifyProject(id);
             toast({ title: "Verified", description: "Project marked as verified" });
             fetchProject();
         } catch (error) {
@@ -130,7 +118,7 @@ const ProjectDetails = () => {
         if (!id) return;
         setSubmittingFeedback(true);
         try {
-            await projects.addFeedback(id, { text: comment, rating });
+            await postProjectComment(id, comment);
             toast({ title: "Feedback Added", description: "Thank you for your review" });
             setComment('');
             setRating(5);

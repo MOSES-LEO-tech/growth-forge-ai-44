@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { recommendations } from "@/services/api";
+import { getRecommendations } from "@/lib/supabase/recommendations";
+import type { Recommendation } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,23 +23,33 @@ interface RecommendationsWidgetProps {
 }
 
 export function RecommendationsWidget({ className, defaultExpanded }: RecommendationsWidgetProps) {
-    const [matches, setMatches] = useState<Recommendation[]>([]);
+    const { user } = useAuth();
+    const [matches, setMatches] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
     const generateRecommendations = async (showToast = true) => {
+        if (!user) return;
         setLoading(true);
         try {
-            const response = await recommendations.generate();
-            const data = response.data;
-            setMatches(data.recommendations);
+            // Call the Edge Function to generate recommendations
+            const { data, error } = await supabase.functions.invoke('generate-recommendations', {
+                body: { userId: user.id, type: 'profile' }
+            });
+
+            if (error) throw error;
+
+            // Fetch the newly generated recommendations from the DB
+            const recs = await getRecommendations(user.id);
+            setMatches(recs);
+            
             if (showToast) {
                 toast({
                     title: "Recommendations generated",
                     description: "Here are personalized suggestions for you!",
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error generating recommendations:', error);
             if (showToast) {
                 toast({
@@ -118,19 +131,17 @@ export function RecommendationsWidget({ className, defaultExpanded }: Recommenda
                             >
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 text-primary">
-                                        {getCategoryIcon(rec.category)}
+                                        {getCategoryIcon(rec.type || 'activity')}
                                         <Badge variant="outline" className="uppercase text-[10px] tracking-wider">
-                                            {rec.category}
+                                            {rec.type}
                                         </Badge>
                                     </div>
-                                    <Badge variant={getPriorityColor(rec.priority)}>
-                                        {rec.priority} Priority
-                                    </Badge>
                                 </div>
 
                                 <div>
-                                    <h4 className="font-bold text-lg mb-1">{rec.title}</h4>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">{rec.description}</p>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {typeof rec.content === 'string' ? rec.content : JSON.stringify(rec.content)}
+                                    </p>
                                 </div>
                             </div>
                         ))}

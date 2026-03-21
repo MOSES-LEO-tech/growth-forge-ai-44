@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Loader2, UploadCloud } from "lucide-react";
-import { projects, upload } from "@/services/api";
+import { createProject, updateProject } from "@/lib/supabase/projects";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddProjectModalProps {
@@ -38,32 +39,35 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
 
     try {
       // 1. Create the project
-      const result = await projects.create({
+      const project = await createProject({
+        user_id: userId,
         title: form.title,
         description: form.description,
-        start_date: form.start_date,
-        status: form.status
+        status: form.status as any
       });
 
-      const projectId = result.data.data?.id || result.data.id; // handle unwrapped nested data if returned
+      const projectId = project.id;
 
       // 2. Upload file if selected
       if (file && projectId) {
         setUploadProgress(1); // Indicate start
-        const uploadRes = await upload.uploadFile(file, (pct) => setUploadProgress(pct));
-        const { url, thumbnailUrl, mimetype, filename, size } = uploadRes.data;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}/${projectId}/${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
 
-        let mediaType: 'image' | 'video' | 'pdf' | 'document' = 'document';
-        if (mimetype.startsWith('image/')) mediaType = 'image';
-        else if (mimetype.startsWith('video/')) mediaType = 'video';
-        else if (mimetype.includes('pdf')) mediaType = 'pdf';
+        const { error: uploadError } = await supabase.storage
+          .from('project-media')
+          .upload(filePath, file);
 
-        await projects.addMedia(projectId, {
-          mediaType,
-          mediaUrl: url,
-          fileName: file.name,
-          fileSize: size,
-          thumbnailUrl: thumbnailUrl
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('project-media')
+          .getPublicUrl(filePath);
+
+        // Update project with media URL
+        await updateProject(projectId, {
+          media_urls: [publicUrl]
         });
       }
 
@@ -82,7 +86,7 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
       console.error("Project creation error:", error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to add project",
+        description: error.message || "Failed to add project",
         variant: "destructive"
       });
     } finally {

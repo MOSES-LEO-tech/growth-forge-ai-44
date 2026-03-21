@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { ai } from '../services/api';
-import { useToast } from '../components/ui/use-toast';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Card, CardContent } from '../components/ui/card';
-import { ScrollArea } from '../components/ui/scroll-area';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, Send, User as UserIcon, Loader2, Sparkles, GraduationCap } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -43,45 +43,37 @@ const SmartBuddy = () => {
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setIsLoading(true);
 
-        let assistantMsg = '';
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }]); // Placeholder
-
         try {
-            await ai.chatStream(
-                userMsg,
-                (token) => {
-                    assistantMsg += token;
-                    setMessages(prev => {
-                        const newArr = [...prev];
-                        newArr[newArr.length - 1].content = assistantMsg;
-                        return newArr;
-                    });
-                },
-                (matches) => {
-                    // Handle matches event (optional UI display)
-                    if (matches && matches.length > 0) {
-                        assistantMsg += `\n\nI found ${matches.length} scholarship matches for you!`;
-                    }
-                },
-                (recos) => {
-                    // Handle recommendations (optional UI display)
+            const { data, error } = await supabase.functions.invoke('smartbuddy-chat', {
+                body: { 
+                    message: userMsg,
+                    history: messages.slice(-5)
                 }
-            );
+            });
+
+            if (error) throw error;
+
+            if (data?.text) {
+                setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
+            } else {
+                throw new Error("No response from assistant");
+            }
         } catch (error) {
             console.error(error);
             toast({ title: "Error", description: "Failed to connect to SmartBuddy", variant: "destructive" });
-            setMessages(prev => {
-                const newArr = [...prev];
-                newArr[newArr.length - 1].content = "Sorry, I'm having trouble connecting right now. Please try again.";
-                return newArr;
-            });
+            setMessages(prev => [
+                ...prev, 
+                { role: 'assistant', content: "Sorry, I'm having trouble connecting right now. Please try again." }
+            ]);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="container max-w-4xl mx-auto py-8 h-[calc(100vh-4rem)] flex flex-col">
+        <div className="min-h-screen bg-background">
+            <Navbar />
+            <div className="container max-w-4xl mx-auto py-8 h-[calc(100vh-4rem)] flex flex-col">
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 rounded-full bg-primary/10">
                     <Bot className="h-8 w-8 text-primary" />
@@ -162,6 +154,7 @@ const SmartBuddy = () => {
                     </div>
                 </CardContent>
             </Card>
+        </div>
         </div>
     );
 };

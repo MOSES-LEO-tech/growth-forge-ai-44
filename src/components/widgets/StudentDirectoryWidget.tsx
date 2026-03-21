@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { teacher } from "@/services/api";
+import { getStudentsBySchool } from "@/lib/supabase/teacher";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,23 +35,22 @@ interface StudentDirectoryWidgetProps {
 }
 
 export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDirectoryWidgetProps) {
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [classes, setClasses] = useState<any[]>([]);
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
 
-    // Fetch classes and students
+    // Fetch students
     useEffect(() => {
         const fetchData = async () => {
+            if (!user) return;
             setLoading(true);
             try {
-                const [classesRes, studentsRes] = await Promise.all([
-                    teacher.getClasses(),
-                    teacher.getStudents({ limit: 50 })
-                ]);
-                setClasses(classesRes.data || []);
-                setStudents(studentsRes.data?.students || []);
+                const studentsData = await getStudentsBySchool(user.id);
+                setStudents(studentsData);
+                setClasses([]); // Mocked classes for now
             } catch (error) {
                 console.error("Failed to fetch data", error);
             } finally {
@@ -58,7 +58,7 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
             }
         };
         fetchData();
-    }, []);
+    }, [user]);
 
     // Filter students based on search and class selection
     const filteredStudents = students.filter(student => {

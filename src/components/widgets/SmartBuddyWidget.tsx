@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +60,7 @@ interface SmartBuddyWidgetProps {
 }
 
 export function SmartBuddyWidget({ className, defaultExpanded }: SmartBuddyWidgetProps) {
+    const { user, session } = useAuth();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded || false);
     const [personality, setPersonality] = useState<string>(() => {
         return localStorage.getItem("smartbuddy-personality") || "default";
@@ -87,63 +90,28 @@ export function SmartBuddyWidget({ className, defaultExpanded }: SmartBuddyWidge
     }, [messages, isExpanded]);
 
     const streamChat = async (userMessage: string) => {
-        const CHAT_URL = `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/ai/chat`;
-        const token = localStorage.getItem("token");
-
-        if (!token) {
+        if (!user || !session) {
             toast.error("Please log in to use SmartBuddy");
             throw new Error("Not authenticated");
         }
 
-        const resp = await fetch(CHAT_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ message: userMessage }),
+        const { data, error } = await supabase.functions.invoke('smartbuddy-chat', {
+            body: { 
+                message: userMessage,
+                personality: personality,
+                history: messages.slice(-5) // Send last 5 messages for context
+            }
         });
 
-        if (!resp.ok) {
-            // Handle errors (simplified)
-            throw new Error("Failed to chat");
+        if (error) {
+            console.error("Chat error:", error);
+            throw new Error(error.message || "Failed to chat");
         }
 
-        if (!resp.body) throw new Error("No response body");
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantContent = "";
-
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-        // Simplified stream reading logic for brevity - assume working backend stream
-        // In a real implementation copy the full robust logic from the original SmartBuddy file
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-
-            // Very basic parsing for demo purposes - replace with robust SSE parser
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                    try {
-                        const json = JSON.parse(line.substring(6));
-                        if (json.text) {
-                            assistantContent += json.text;
-                            setMessages((prev) => {
-                                const newMessages = [...prev];
-                                const lastMsg = newMessages[newMessages.length - 1];
-                                if (lastMsg.role === "assistant") {
-                                    lastMsg.content = assistantContent;
-                                }
-                                return newMessages;
-                            });
-                        }
-                    } catch (e) { }
-                }
-            }
+        if (data?.text) {
+            setMessages((prev) => [...prev, { role: "assistant", content: data.text }]);
+        } else {
+            throw new Error("No response from assistant");
         }
     };
 

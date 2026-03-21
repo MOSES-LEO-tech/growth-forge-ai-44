@@ -1,22 +1,15 @@
 import { useState, useEffect } from "react";
-import { teacher } from "@/services/api";
-import { ExpandableWidget } from "@/components/ExpandableWidget";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/supabase/notifications";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Check, CheckCheck, ExternalLink, FileText, Trophy, MessageSquare, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { ExpandableWidget } from "@/components/ExpandableWidget";
+import { Bell, FileText, Trophy, MessageSquare, AlertCircle, CheckCheck, Check } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Notification {
-    id: number;
-    type: string;
-    title: string;
-    message: string | null;
-    resource_type: string | null;
-    resource_id: number | null;
-    read: boolean;
-    created_at: string;
-}
+type Notification = Database['public']['Tables']['notifications']['Row'];
 
 interface NotificationsWidgetProps {
     className?: string;
@@ -24,17 +17,19 @@ interface NotificationsWidgetProps {
 }
 
 export function NotificationsWidget({ className, defaultExpanded }: NotificationsWidgetProps) {
+    const { user } = useAuth();
     const { toast } = useToast();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
     const fetchNotifications = async () => {
+        if (!user) return;
         setLoading(true);
         try {
-            const response = await teacher.getNotifications({ unreadOnly: false, limit: 20 });
-            setNotifications(response.data.notifications || []);
-            setUnreadCount(response.data.unreadCount || 0);
+            const data = await getNotifications(user.id);
+            setNotifications(data.notifications as Notification[] || []);
+            setUnreadCount(data.unreadCount || 0);
         } catch (error) {
             console.error("Failed to fetch notifications", error);
         } finally {
@@ -44,11 +39,11 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
 
     useEffect(() => {
         fetchNotifications();
-    }, []);
+    }, [user]);
 
-    const handleMarkAsRead = async (id: number) => {
+    const handleMarkAsRead = async (id: string) => {
         try {
-            await teacher.markNotificationRead(String(id));
+            await markNotificationRead(id);
             setNotifications(prev => 
                 prev.map(n => n.id === id ? { ...n, read: true } : n)
             );
@@ -60,8 +55,9 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
     };
 
     const handleMarkAllAsRead = async () => {
+        if (!user) return;
         try {
-            await teacher.markAllNotificationsRead();
+            await markAllNotificationsRead(user.id);
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             setUnreadCount(0);
             toast({ title: "All notifications marked as read" });
