@@ -69,10 +69,9 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     try {
       // 1. Create event
       const event = await createEvent({
-        user_id: userId,
+        created_by: userId,
         title: form.title,
         description: form.description,
-        is_public: true // Default to public for now as per original gallery logic
       });
 
       // 2. Upload file if selected
