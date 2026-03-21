@@ -1,7 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Scholarship = Tables<'scholarships'>;
+import type { Scholarship } from '@/integrations/supabase/types';
 
 export const getScholarships = async () => {
   const { data, error } = await supabase
@@ -17,7 +15,7 @@ export const searchScholarships = async (query: string) => {
   const { data, error } = await supabase
     .from('scholarships')
     .select('*')
-    .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+    .or(`title.ilike.%${query}%,requirements.ilike.%${query}%`)
     .order('created_at', { ascending: false });
 
   if (error) throw error;

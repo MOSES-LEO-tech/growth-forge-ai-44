@@ -1,7 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Achievement = Tables<'achievements'>;
+import type { Achievement } from '@/integrations/supabase/types';
 
 export const getAchievements = async (userId: string) => {
   const { data, error } = await supabase
@@ -14,22 +12,10 @@ export const getAchievements = async (userId: string) => {
   return data as Achievement[];
 };
 
-export const createAchievement = async (input: {
-  user_id: string;
-  title: string;
-  description?: string;
-  category: string;
-  date_earned: string;
-}) => {
+export const createAchievement = async (data: Partial<Achievement>) => {
   const { data: achievement, error } = await supabase
     .from('achievements')
-    .insert({
-      user_id: input.user_id,
-      title: input.title,
-      description: input.description || null,
-      category: input.category,
-      date_earned: input.date_earned,
-    })
+    .insert(data)
     .select()
     .single();
 
@@ -48,7 +34,7 @@ export const getPendingAchievements = async () => {
   return data.map(item => ({
     ...item,
     student_name: (item.profiles as any)?.full_name
-  }));
+  })) as (Achievement & { student_name: string })[];
 };
 
 export const verifyAchievement = async (id: string) => {

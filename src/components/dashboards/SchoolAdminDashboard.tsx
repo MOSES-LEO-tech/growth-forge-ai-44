@@ -1,4 +1,4 @@
-import type { Profile } from "@/types";
+import type { Profile } from "@/integrations/supabase/types";
 import { SchoolOverviewWidget } from "@/components/widgets/SchoolOverviewWidget";
 import { UserManagementWidget } from "@/components/widgets/UserManagementWidget";
 import { AcademicStructureWidget } from "@/components/widgets/AcademicStructureWidget";
@@ -12,6 +12,14 @@ import { useSearchParams } from "react-router-dom";
 const SchoolAdminDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
   const activeWidget = searchParams.get("widget");
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

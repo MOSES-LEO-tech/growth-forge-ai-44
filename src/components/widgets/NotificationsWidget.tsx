@@ -7,7 +7,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Bell, FileText, Trophy, MessageSquare, AlertCircle, CheckCheck, Check } from "lucide-react";
-import type { Notification } from "@/types";
+import type { Database } from "@/integrations/supabase/types";
+
+type Notification = Database['public']['Tables']['notifications']['Row'];
 
 interface NotificationsWidgetProps {
     className?: string;
@@ -64,6 +66,49 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
         }
     };
 
+    const getNotificationIcon = (type: string) => {
+        switch (type) {
+            case 'project_submission':
+                return <FileText className="w-4 h-4 text-blue-500" />;
+            case 'achievement_submission':
+                return <Trophy className="w-4 h-4 text-amber-500" />;
+            case 'parent_message':
+                return <MessageSquare className="w-4 h-4 text-green-500" />;
+            case 'deadline_reminder':
+                return <AlertCircle className="w-4 h-4 text-red-500" />;
+            default:
+                return <Bell className="w-4 h-4 text-gray-500" />;
+        }
+    };
+
+    const handleNotificationClick = (notification: Notification) => {
+        // Mark as read when clicked
+        if (!notification.read) {
+            handleMarkAsRead(notification.id);
+        }
+
+        // Navigate to resource if available
+        if (notification.resource_type && notification.resource_id) {
+            // Could implement navigation here
+            console.log('Navigate to:', notification.resource_type, notification.resource_id);
+        }
+    };
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
+    };
+
     const CollapsedContent = () => (
         <div className="flex flex-col h-full items-center justify-center text-center gap-3">
             <div className="relative">
@@ -94,7 +139,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-lg font-semibold">Notifications</h3>
-                    <p className="text-sm text-muted-foreground">Stay updated on activity</p>
+                    <p className="text-sm text-muted-foreground">Stay updated on student activity</p>
                 </div>
                 <div className="flex gap-2">
                     <Button 
@@ -106,11 +151,16 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
                         <CheckCheck className="w-4 h-4 mr-1" />
                         Mark all read
                     </Button>
+                    <Button size="sm" variant="outline" onClick={fetchNotifications} disabled={loading}>
+                        Refresh
+                    </Button>
                 </div>
             </div>
 
             <ScrollArea className="flex-1 h-full pr-4">
-                {notifications.length === 0 ? (
+                {loading ? (
+                    <div className="text-center py-8">Loading...</div>
+                ) : notifications.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
                         <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
                         <p>No notifications yet</p>
@@ -120,18 +170,45 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
                         {notifications.map((notification) => (
                             <div
                                 key={notification.id}
+                                onClick={() => handleNotificationClick(notification)}
                                 className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                                     notification.read 
                                         ? 'bg-card hover:bg-accent' 
                                         : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
                                 }`}
                             >
+                                <div className="mt-0.5">
+                                    {getNotificationIcon(notification.type)}
+                                </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{notification.title}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-medium text-sm truncate">{notification.title}</p>
+                                        {!notification.read && (
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                                        )}
+                                    </div>
                                     {notification.message && (
                                         <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
                                             {notification.message}
                                         </p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {formatTime(notification.created_at)}
+                                    </p>
+                                </div>
+                                <div className="flex-shrink-0">
+                                    {!notification.read && (
+                                        <Button 
+                                            size="sm" 
+                                            variant="ghost" 
+                                            className="h-8 w-8 p-0"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleMarkAsRead(notification.id);
+                                            }}
+                                        >
+                                            <Check className="w-4 h-4" />
+                                        </Button>
                                     )}
                                 </div>
                             </div>

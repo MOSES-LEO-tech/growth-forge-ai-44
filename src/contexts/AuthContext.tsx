@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
-import type { Profile, UserRole } from '@/types';
+import type { Profile, UserRole } from '@/integrations/supabase/types';
 
 interface AuthContextType {
   user: User | null;
@@ -42,55 +42,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    // Initial session check
     const initAuth = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      
-      if (initialSession?.user) {
-        const profileData = await fetchProfile(initialSession.user.id);
-        setProfile(profileData);
+      try {
+        console.log("Initializing auth...");
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Error getting initial session:", sessionError);
+          if (mounted) setIsLoading(false);
+          return;
+        }
+
+        if (mounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
+        }
+        
+        if (initialSession?.user) {
+          const profileData = await fetchProfile(initialSession.user.id);
+          if (mounted) setProfile(profileData);
+        }
+      } catch (error) {
+        console.error('Error in initAuth:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log("Auth state changed:", event, !!currentSession);
+      
+      if (mounted) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
       
       if (currentSession?.user) {
         const profileData = await fetchProfile(currentSession.user.id);
-        setProfile(profileData);
+        if (mounted) setProfile(profileData);
       } else {
-        setProfile(null);
+        if (mounted) setProfile(null);
       }
-      setIsLoading(false);
+      
+      if (mounted) setIsLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        const profileData = await fetchProfile(data.session.user.id);
+        setProfile(profileData);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: role,
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role,
+          },
         },
-      },
-    });
-    if (error) throw error;
+      });
+      if (error) throw error;
+
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        const profileData = await fetchProfile(data.session.user.id);
+        setProfile(profileData);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signOut = async () => {
@@ -123,3 +172,4 @@ export function useAuth() {
   }
   return context;
 }
+

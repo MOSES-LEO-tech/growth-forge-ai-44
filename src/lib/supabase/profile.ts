@@ -1,7 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Profile = Tables<'profiles'>;
+import type { Profile } from '@/integrations/supabase/types';
 
 export const getProfile = async (userId: string) => {
   const { data, error } = await supabase
@@ -14,15 +12,10 @@ export const getProfile = async (userId: string) => {
   return data as Profile;
 };
 
-export const updateProfile = async (userId: string, updates: {
-  full_name?: string;
-  bio?: string;
-  avatar_url?: string;
-  grade_level?: string;
-}) => {
+export const updateProfile = async (userId: string, data: Partial<Profile>) => {
   const { data: profile, error } = await supabase
     .from('profiles')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ ...data, updated_at: new Date().toISOString() })
     .eq('id', userId)
     .select()
     .single();
@@ -34,16 +27,17 @@ export const updateProfile = async (userId: string, updates: {
 export const uploadAvatar = async (userId: string, file: File) => {
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}/avatar.${fileExt}`;
+  const filePath = `${fileName}`;
 
   const { error: uploadError } = await supabase.storage
     .from('avatars')
-    .upload(fileName, file, { upsert: true });
+    .upload(filePath, file, { upsert: true });
 
   if (uploadError) throw uploadError;
 
   const { data: { publicUrl } } = supabase.storage
     .from('avatars')
-    .getPublicUrl(fileName);
+    .getPublicUrl(filePath);
 
   const { data: profile, error: dbError } = await supabase
     .from('profiles')
@@ -54,4 +48,26 @@ export const uploadAvatar = async (userId: string, file: File) => {
 
   if (dbError) throw dbError;
   return profile as Profile;
+};
+
+export const linkParent = async (studentId: string, parentEmail: string) => {
+  // 1. Find parent by email
+  const { data: parent, error: parentError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', parentEmail)
+    .eq('role', 'parent')
+    .single();
+
+  if (parentError) throw new Error('Parent not found with this email');
+
+  // 2. Create link
+  const { error: linkError } = await supabase
+    .from('parent_child_links')
+    .insert({
+      parent_id: parent.id,
+      child_id: studentId
+    });
+
+  if (linkError) throw linkError;
 };

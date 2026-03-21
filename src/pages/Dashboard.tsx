@@ -55,15 +55,22 @@ const Dashboard = () => {
   }
 
   const renderDashboard = () => {
+    if (!authProfile) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
     switch (authProfile?.role) {
       case "student":
         return <StudentDashboard profile={authProfile} />;
       case "parent":
         return <ParentDashboard profile={authProfile} />;
       case "teacher":
-      case "admin":
         return <TeacherDashboard profile={authProfile} />;
-      case "school_admin":
+      case "admin":
         return <SchoolAdminDashboard profile={authProfile} />;
       default:
         return <StudentDashboard profile={authProfile} />;

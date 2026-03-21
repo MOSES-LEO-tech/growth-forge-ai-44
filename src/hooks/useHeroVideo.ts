@@ -9,7 +9,7 @@ export function useHeroVideo() {
     queryKey: ["hero-video"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('site_settings')
+        .from('settings')
         .select('value')
         .eq('key', 'hero_video_url')
         .single();
@@ -25,6 +25,7 @@ export function useHeroVideo() {
       const fileName = `hero-video.${fileExt}`;
       const filePath = `public/${fileName}`;
 
+      // 1. Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('gallery-media')
         .upload(filePath, file, { upsert: true });
@@ -35,8 +36,9 @@ export function useHeroVideo() {
         .from('gallery-media')
         .getPublicUrl(filePath);
       
+      // 2. Update settings
       const { error: settingsError } = await supabase
-        .from('site_settings')
+        .from('settings')
         .upsert({ key: 'hero_video_url', value: publicUrl, updated_at: new Date().toISOString() });
       
       if (settingsError) throw settingsError;
@@ -55,7 +57,7 @@ export function useHeroVideo() {
   const removeVideo = useMutation({
     mutationFn: async () => {
       await supabase
-        .from('site_settings')
+        .from('settings')
         .update({ value: null, updated_at: new Date().toISOString() })
         .eq('key', 'hero_video_url');
     },

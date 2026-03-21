@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getScholarships } from "@/lib/supabase/scholarships";
-import type { Scholarship } from "@/types";
+import type { Scholarship } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

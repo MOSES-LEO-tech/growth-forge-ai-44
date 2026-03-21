@@ -1,22 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Recommendation } from '@/integrations/supabase/types';
 
-// Recommendations don't have a dedicated table yet.
-// The edge function generates them and we can cache in ai_response_cache.
 export const getRecommendations = async (userId: string) => {
   const { data, error } = await supabase
-    .from('ai_response_cache')
+    .from('recommendations')
     .select('*')
     .eq('user_id', userId)
-    .like('cache_key', 'recommendation_%')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data || []).map(item => ({
-    id: item.id,
-    type: item.cache_key.replace('recommendation_', ''),
-    content: item.response_data,
-    created_at: item.created_at,
-  }));
+  return data as Recommendation[];
 };
 
 export const generateRecommendations = async (
@@ -40,4 +33,16 @@ export const generateRecommendations = async (
     console.error('Error generating recommendations:', error);
     return { success: false, error: error.message || 'Failed to generate recommendations' };
   }
+};
+
+export const getRecommendationsByType = async (userId: string, type: 'scholarship' | 'profile' | 'actions') => {
+  const { data, error } = await supabase
+    .from('recommendations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('type', type)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Recommendation[];
 };

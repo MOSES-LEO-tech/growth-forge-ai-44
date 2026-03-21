@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -33,11 +33,18 @@ interface FieldErrors {
 }
 
 const Auth = () => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, authLoading, navigate]);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -126,12 +133,20 @@ const Auth = () => {
         validated.role as any
       );
 
-      toast({
-        title: "Account created!",
-        description: "Welcome to StudentHub. Redirecting to your dashboard..."
-      });
-
-      navigate("/dashboard");
+      // Check if user is signed in (no email confirmation needed) or needs to confirm email
+      if (user) {
+        toast({
+          title: "Account created!",
+          description: "Welcome to StudentHub. Redirecting to your dashboard..."
+        });
+        navigate("/dashboard");
+      } else {
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation link to complete your registration.",
+        });
+        // Stay on auth page
+      }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: FieldErrors = {};
@@ -209,6 +224,15 @@ const Auth = () => {
     setErrors({});
     setTouched({});
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-muted-foreground animate-pulse">Checking authentication...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">

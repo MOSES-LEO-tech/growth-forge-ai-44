@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Profile } from "@/types";
+import type { Profile } from "@/integrations/supabase/types";
 import { AchievementsWidget } from "@/components/widgets/AchievementsWidget";
 import { ProjectsWidget } from "@/components/widgets/ProjectsWidget";
 import { GalleryWidget } from "@/components/widgets/GalleryWidget";
@@ -13,6 +13,14 @@ import { useSearchParams } from "react-router-dom";
 const StudentDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
   const activeWidget = searchParams.get("widget");
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

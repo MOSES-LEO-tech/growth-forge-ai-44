@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, ExternalLink, Calendar } from "lucide-react";
 import { getScholarships } from "@/lib/supabase/scholarships";
-import type { Scholarship } from "@/types";
+import type { Scholarship } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 

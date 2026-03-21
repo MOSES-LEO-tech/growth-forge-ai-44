@@ -39,13 +39,21 @@ type ParentPlan = { tier: string; features: string[]; updatedAt: string | null }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function ParentDashboard() {
+export function ParentDashboard({ profile }: { profile?: any }) {
   const { user } = useAuth();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChild, setSelectedChild] = useState<any | null>(null);
   const [plan, setPlan] = useState<any | null>(null);
   const [loadingChildren, setLoadingChildren] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   // Fetch linked children + parent plan in parallel
   const fetchInitialData = useCallback(async () => {
@@ -188,7 +196,7 @@ export function ParentDashboard() {
           {/* Row 2 */}
           <ProjectsMonitoringWidget childId={selectedChild.id} />
           <AchievementsMonitoringWidget childId={selectedChild.id} />
-          <AnalyticsWidget />
+          <AnalyticsWidget childId={selectedChild.id} />
 
           {/* Row 3 */}
           <div className="md:col-span-2">

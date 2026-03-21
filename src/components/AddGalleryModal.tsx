@@ -69,9 +69,10 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
     try {
       // 1. Create event
       const event = await createEvent({
-        created_by: userId,
+        user_id: userId,
         title: form.title,
         description: form.description,
+        is_public: true // Default to public for now as per original gallery logic
       });
 
       // 2. Upload file if selected
@@ -124,10 +125,12 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
           {/* Media Upload */}
           <div className="space-y-2">
             <Label>Media *</Label>
-            <Input
-              type="file"
+            <FileUpload
               accept="image/*,video/*"
-              onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+              maxSize={50}
+              onFileSelect={handleFileSelect}
+              onUrlChange={handleUrlChange}
+              preview={true}
             />
           </div>
 

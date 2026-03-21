@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getProfile, updateProfile } from "@/lib/supabase/profile";
 import { getProjects } from "@/lib/supabase/projects";
 import { getAchievements } from "@/lib/supabase/achievements";
-import type { Profile } from "@/types";
+import type { Profile } from "@/integrations/supabase/types";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { User, Mail, Edit3, Loader2, BookOpen, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,15 +26,24 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
     const [editForm, setEditForm] = useState({
         full_name: profile.full_name || '',
         bio: profile.bio || '',
+        interests: Array.isArray(profile.social_links?.interests)
+            ? profile.social_links!.interests!.join(', ')
+            : ''
     });
 
+    // Fetch full profile to pre-populate bio & interests (not always in the auth token payload)
     useEffect(() => {
         getProfile(profile.id).then((data) => {
             setEditForm(f => ({
                 ...f,
                 bio: f.bio || data?.bio || '',
+                interests: f.interests || (
+                    Array.isArray(data?.interests)
+                        ? data.interests.join(', ')
+                        : ''
+                ),
             }));
-        }).catch(() => {});
+        }).catch(() => { /* silently ignore */ });
     }, [profile.id]);
 
     useEffect(() => {
@@ -61,6 +70,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
             await updateProfile(profile.id, {
                 full_name: editForm.full_name,
                 bio: editForm.bio,
+                interests: editForm.interests.split(',').map(i => i.trim()).filter(Boolean)
             });
             setIsEditing(false);
             toast.success("Profile updated successfully");
@@ -72,6 +82,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
         }
     };
 
+    // Collapsed view - shown in the card
     const collapsedContent = (
         <div className="flex flex-col h-full gap-4">
             <div className="flex items-center gap-4">
@@ -80,7 +91,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-lg truncate">{profile.full_name || 'Student'}</h3>
-                    <p className="text-sm text-muted-foreground truncate">{profile.role}</p>
+                    <p className="text-sm text-muted-foreground truncate">{profile.email}</p>
                 </div>
             </div>
 
@@ -99,6 +110,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
         </div>
     );
 
+    // Expanded view - shown in the dialog
     const expandedContent = (
         <div className="flex flex-col h-full gap-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -111,11 +123,12 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                         <span className="font-medium">{profile.full_name || 'Not set'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground capitalize">Role: {profile.role}</span>
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{profile.email}</span>
                     </div>
-                    {profile.grade_level && (
+                    {profile.school_name && (
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Grade: {profile.grade_level}</span>
+                            <span className="text-xs text-muted-foreground">🏫 {profile.school_name}</span>
                         </div>
                     )}
                     {editForm.bio && (
@@ -160,12 +173,13 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                 {collapsedContent}
             </ExpandableWidget>
 
+            {/* Edit Profile Dialog - rendered outside ExpandableWidget to prevent blink */}
             <Dialog open={isEditing} onOpenChange={setIsEditing}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>Edit Profile</DialogTitle>
                         <DialogDescription>
-                            Update your personal information.
+                            Update your personal information and preferences.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -184,6 +198,15 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                                 placeholder="Tell us about yourself..."
                                 value={editForm.bio}
                                 onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="interests">Interests (comma separated)</Label>
+                            <Input
+                                id="interests"
+                                placeholder="coding, music, sports..."
+                                value={editForm.interests}
+                                onChange={(e) => setEditForm({ ...editForm, interests: e.target.value })}
                             />
                         </div>
                     </div>
