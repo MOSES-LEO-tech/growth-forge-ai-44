@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Progress } from '../components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, Trophy, Target, Zap, ChevronRight, CheckCircle, ExternalLink } from 'lucide-react';
-import api from '../services/api';
-import { useInView } from '../hooks/useInView';
+import { getRecommendations } from '@/lib/supabase/recommendations';
+import { useInView } from '@/hooks/useInView';
+import type { Recommendation } from '@/integrations/supabase/types';
 
 interface Scholarship {
   id: number;
@@ -42,9 +42,9 @@ interface ProfileCompleteness {
 
 const Recommendations = () => {
   const { user } = useAuth();
-  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
-  const [actions, setActions] = useState<ActionItem[]>([]);
-  const [completeness, setCompleteness] = useState<ProfileCompleteness | null>(null);
+  const [scholarships, setScholarships] = useState<any[]>([]);
+  const [actions, setActions] = useState<any[]>([]);
+  const [completeness, setCompleteness] = useState<any | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,16 +59,17 @@ const Recommendations = () => {
 
       try {
         setLoading(true);
-        const [dashboardRes, skillsRes] = await Promise.all([
-          api.get('/recommendations/dashboard'),
-          api.get('/recommendations/skills'),
-        ]);
+        const data = await getRecommendations(user.id);
+        
+        // Map unified recommendations to separate state buckets
+        const scholarshipRecs = data.filter(r => r.type === 'scholarship').map(r => r.content);
+        const actionRecs = data.filter(r => r.type === 'actions').map(r => r.content);
+        const profileRecs = data.find(r => r.type === 'profile')?.content;
 
-        const data = dashboardRes.data;
-        setScholarships(data.scholarships || []);
-        setActions(data.actions || []);
-        setCompleteness(data.completeness);
-        setSkills(skillsRes.data.skills || []);
+        setScholarships(scholarshipRecs);
+        setActions(actionRecs);
+        setCompleteness(profileRecs?.completeness || null);
+        setSkills(profileRecs?.skills || []);
       } catch (err: any) {
         console.error('Error fetching recommendations:', err);
         setError('Failed to load recommendations');
