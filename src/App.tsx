@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Schools from "./pages/Schools";
+import Scholarships from "./pages/Scholarships";
 import SchoolProfile from "./pages/SchoolProfile";
 import Gallery from "./pages/Gallery";
 import EventGallery from "./pages/EventGallery";
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/features" element={<Features />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/schools" element={<Schools />} />
+              <Route path="/scholarships" element={<Scholarships />} />
               <Route path="/schools/:id" element={<SchoolProfile />} />
                 <Route path="/features" element={<Features />} />
                 <Route path="/gallery" element={<Gallery />} />
