@@ -358,5 +358,6 @@ const Recommendations = () => {
       <Footer />
     </div>
   );
+};
 
 export default Recommendations;
