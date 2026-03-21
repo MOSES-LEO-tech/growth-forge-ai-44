@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
+const isCI = process.env.CI === "true";
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -41,7 +43,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    VitePWA({
+    !isCI && VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
       workbox: {
@@ -87,7 +89,7 @@ export default defineConfig(({ mode }) => ({
         theme_color: "#0ea5e9",
       },
     }),
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
