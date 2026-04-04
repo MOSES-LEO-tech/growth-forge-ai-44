@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/integrations/supabase/types';
+import { uploadProfileAvatar as uploadToStorage } from '@/lib/storage';
 
 export const getProfile = async (userId: string) => {
   const { data, error } = await supabase
@@ -25,19 +26,7 @@ export const updateProfile = async (userId: string, data: Partial<Profile>) => {
 };
 
 export const uploadAvatar = async (userId: string, file: File) => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}/avatar.${fileExt}`;
-  const filePath = `${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('avatars')
-    .upload(filePath, file, { upsert: true });
-
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('avatars')
-    .getPublicUrl(filePath);
+  const publicUrl = await uploadToStorage(file, userId);
 
   const { data: profile, error: dbError } = await supabase
     .from('profiles')

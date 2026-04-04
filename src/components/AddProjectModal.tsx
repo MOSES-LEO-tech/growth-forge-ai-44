@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, UploadCloud } from "lucide-react";
+import { Plus, Loader2, UploadCloud, X, FileText, Film, Image as ImageIcon } from "lucide-react";
 import { createProject, updateProject } from "@/lib/supabase/projects";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadProjectFile } from "@/lib/storage";
+import { Progress } from "@/components/ui/progress";
 
 interface AddProjectModalProps {
   userId: string;
@@ -51,19 +53,10 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
       // 2. Upload file if selected
       if (file && projectId) {
         setUploadProgress(1); // Indicate start
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${userId}/${projectId}/${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('project-media')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('project-media')
-          .getPublicUrl(filePath);
+        
+        const publicUrl = await uploadProjectFile(file, userId, projectId, {
+          onProgress: (p) => setUploadProgress(p)
+        });
 
         // Update project with media URL
         await updateProject(projectId, {
@@ -161,19 +154,66 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
           </div>
 
           {/* File Upload Section */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="file_upload">Attach File (Optional)</Label>
-            <div className="flex items-center gap-3">
-              <Input
-                id="file_upload"
-                type="file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="flex-1"
-                accept="image/*,video/*,.pdf,.doc,.docx"
-              />
-            </div>
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <p className="text-xs text-blue-500">Uploading file: {uploadProgress}%</p>
+            {!file ? (
+              <div 
+                className="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer"
+                onClick={() => document.getElementById('file_upload')?.click()}
+              >
+                <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
+                <p className="text-sm text-slate-600 font-medium">Click to upload or drag and drop</p>
+                <p className="text-xs text-slate-400 mt-1">Images, Video (MP4), or PDF up to 10MB</p>
+                <input
+                  id="file_upload"
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  accept="image/*,video/mp4,application/pdf"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 p-3 border border-slate-200 rounded-lg bg-slate-50 relative group">
+                <div className="w-12 h-12 rounded bg-white flex items-center justify-center border border-slate-100 overflow-hidden">
+                  {file.type.startsWith('image/') ? (
+                    <img 
+                      src={URL.createObjectURL(file)} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : file.type === 'application/pdf' ? (
+                    <FileText className="w-6 h-6 text-red-500" />
+                  ) : file.type.startsWith('video/') ? (
+                    <Film className="w-6 h-6 text-blue-500" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
+                  <p className="text-xs text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full" 
+                  onClick={() => setFile(null)}
+                  disabled={loading}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+            
+            {uploadProgress > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-blue-600 font-medium">Uploading...</span>
+                  <span className="text-slate-500">{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-1" />
+              </div>
             )}
           </div>
 

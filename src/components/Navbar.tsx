@@ -2,8 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import SettingsDropdown from "@/components/SettingsDropdown";
+import { useAuth } from "@/contexts/AuthContext";
+import { Sparkles } from "lucide-react";
 
 const Navbar = () => {
+  const { user } = useAuth();
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b transition-colors duration-500">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -22,6 +26,17 @@ const Navbar = () => {
           <Link to="/scholarships" className="text-sm font-medium hover:text-primary transition-colors">
             Scholarships
           </Link>
+          {user && (
+            <Link to="/my-applications" className="text-sm font-medium hover:text-primary transition-colors">
+              My Apps
+            </Link>
+          )}
+          {user && (
+            <Link to="/recommendations" className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1.5 text-primary">
+              <Sparkles className="w-4 h-4" />
+              AI Insights
+            </Link>
+          )}
           <Link to="/contact" className="text-sm font-medium hover:text-primary transition-colors">
             Contact
           </Link>
@@ -29,12 +44,20 @@ const Navbar = () => {
 
         <div className="flex items-center gap-2">
           <SettingsDropdown />
-          <Link to="/auth">
-            <Button variant="ghost">Sign In</Button>
-          </Link>
-          <Link to="/auth">
-            <Button>Get Started</Button>
-          </Link>
+          {!user ? (
+            <>
+              <Link to="/auth">
+                <Button variant="ghost">Sign In</Button>
+              </Link>
+              <Link to="/auth">
+                <Button>Get Started</Button>
+              </Link>
+            </>
+          ) : (
+            <Link to="/dashboard">
+              <Button>Dashboard</Button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

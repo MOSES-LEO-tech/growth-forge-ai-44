@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getScholarships, searchScholarships } from "@/lib/supabase/scholarships";
 import { useToast } from "@/hooks/use-toast";
 import { useInView } from "@/hooks/useInView";
+import { useApplicationStatus, useBookmarkScholarship } from "@/hooks/useScholarshipApplications";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -36,14 +37,13 @@ const ScholarshipCard = ({ scholarship, index, gridInView }: { scholarship: any,
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  
+  const { data: status } = useApplicationStatus(scholarship.id);
+  const bookmarkMutation = useBookmarkScholarship();
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('saved_scholarships') || '[]');
-    setIsBookmarked(saved.includes(scholarship.id));
-  }, [scholarship.id]);
+  const isBookmarked = !!status;
 
-  const handleBookmark = (e: React.MouseEvent) => {
+  const handleBookmark = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       toast({
@@ -55,17 +55,20 @@ const ScholarshipCard = ({ scholarship, index, gridInView }: { scholarship: any,
       return;
     }
 
-    const saved = JSON.parse(localStorage.getItem('saved_scholarships') || '[]');
-    let newSaved;
-    if (isBookmarked) {
-      newSaved = saved.filter((id: string) => id !== scholarship.id);
-      toast({ title: "Removed", description: "Scholarship removed from your saved list." });
-    } else {
-      newSaved = [...saved, scholarship.id];
-      toast({ title: "Saved!", description: "Scholarship saved to your list." });
+    try {
+      if (isBookmarked) {
+        toast({ title: "Already saved", description: "This scholarship is already in your list." });
+      } else {
+        await bookmarkMutation.mutateAsync(scholarship.id);
+        toast({ title: "Saved!", description: "Scholarship saved to your list." });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save scholarship. Please try again.",
+        variant: "destructive"
+      });
     }
-    localStorage.setItem('saved_scholarships', JSON.stringify(newSaved));
-    setIsBookmarked(!isBookmarked);
   };
 
   const handleApply = () => {
@@ -181,6 +184,7 @@ const Scholarships = () => {
   const { data: scholarships, isLoading, error } = useQuery({
     queryKey: ['scholarships', searchQuery],
     queryFn: () => searchQuery ? searchScholarships(searchQuery) : getScholarships(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const filteredAndSortedScholarships = (scholarships || []).filter(s => {
