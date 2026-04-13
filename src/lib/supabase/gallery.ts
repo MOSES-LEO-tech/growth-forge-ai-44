@@ -3,7 +3,7 @@ import type { GalleryEvent, GalleryMedia } from '@/integrations/supabase/types';
 
 export const getGalleryEvents = async (userId: string) => {
   const { data, error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .select('*')
     .eq('user_id', userId)
     .is('deleted_at', null)
@@ -15,7 +15,7 @@ export const getGalleryEvents = async (userId: string) => {
 
 export const getPublicEvents = async () => {
   const { data, error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .select('*')
     .eq('is_public', true)
     .is('deleted_at', null)
@@ -27,7 +27,7 @@ export const getPublicEvents = async () => {
 
 export const createEvent = async (data: Partial<GalleryEvent>) => {
   const { data: event, error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .insert(data)
     .select()
     .single();
@@ -38,7 +38,7 @@ export const createEvent = async (data: Partial<GalleryEvent>) => {
 
 export const deleteEvent = async (id: string) => {
   const { error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id);
 
@@ -47,7 +47,7 @@ export const deleteEvent = async (id: string) => {
 
 export const updateEvent = async (id: string, data: Partial<GalleryEvent>) => {
   const { data: event, error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .update(data)
     .eq('id', id)
     .select()
@@ -59,7 +59,7 @@ export const updateEvent = async (id: string, data: Partial<GalleryEvent>) => {
 
 export const getAllEvents = async () => {
   const { data, error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .select('*, gallery_media(url)')
     .is('deleted_at', null)
     .order('event_date', { ascending: false });
@@ -74,7 +74,7 @@ export const getAllEvents = async () => {
 
 export const getEventDetails = async (id: string) => {
   const { data, error } = await supabase
-    .from('gallery_events')
+    .from('events')
     .select('*, gallery_media(*), profiles(full_name, schools(name))')
     .eq('id', id)
     .single();

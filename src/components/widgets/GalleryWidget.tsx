@@ -31,15 +31,22 @@ interface GalleryWidgetProps {
     className?: string;
     defaultExpanded?: boolean;
     userId?: string;
+    openUploadExternal?: boolean;
+    onOpenUploadChange?: (open: boolean) => void;
 }
 
-export function GalleryWidget({ className, defaultExpanded, userId }: GalleryWidgetProps) {
+export function GalleryWidget({ className, defaultExpanded, userId, openUploadExternal, onOpenUploadChange }: GalleryWidgetProps) {
     const { user } = useAuth();
     const { toast } = useToast();
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
-    const [openUpload, setOpenUpload] = useState(false);
+    const [internalOpenUpload, setInternalOpenUpload] = useState(false);
+    const isControlled = openUploadExternal !== undefined;
+    const openUpload = isControlled ? openUploadExternal : internalOpenUpload;
+    const setOpenUpload = isControlled
+        ? (onOpenUploadChange ?? (() => {}))
+        : setInternalOpenUpload;
     const [searchQuery, setSearchQuery] = useState("");
 
     // Upload Form State

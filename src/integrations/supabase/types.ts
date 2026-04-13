@@ -143,7 +143,7 @@ export interface Database {
       projects: {
         Row: {
           id: string
-          user_id: string | null
+          owner_id: string | null
           title: string
           description: string | null
           tags: string[] | null
@@ -155,7 +155,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          user_id?: string | null
+          owner_id?: string | null
           title: string
           description?: string | null
           tags?: string[] | null
@@ -167,7 +167,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          user_id?: string | null
+          owner_id?: string | null
           title?: string
           description?: string | null
           tags?: string[] | null
@@ -230,7 +230,7 @@ export interface Database {
           created_at?: string
         }
       }
-      gallery_events: {
+      events: {
         Row: {
           id: string
           user_id: string | null
@@ -419,5 +419,5 @@ export type Achievement = Database['public']['Tables']['achievements']['Row']
 export type Project = Database['public']['Tables']['projects']['Row']
 export type Scholarship = Database['public']['Tables']['scholarships']['Row']
 export type Recommendation = Database['public']['Tables']['recommendations']['Row']
-export type GalleryEvent = Database['public']['Tables']['gallery_events']['Row']
+export type GalleryEvent = Database['public']['Tables']['events']['Row']
 export type GalleryMedia = Database['public']['Tables']['gallery_media']['Row']

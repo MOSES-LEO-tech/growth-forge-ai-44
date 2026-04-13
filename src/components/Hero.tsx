@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
-import heroBackground from "@/assets/hero-background.jpg";
 import { useInView } from "@/hooks/useInView";
 import { useHeroVideo } from "@/hooks/useHeroVideo";
 
@@ -27,12 +26,7 @@ const Hero = () => {
         </video>
       ) : (
         <div 
-          className="absolute inset-0 w-full h-full"
-          style={{
-            backgroundImage: `url(${heroBackground})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
+          className="absolute inset-0 w-full h-full bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/10"
         />
       )}
       

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfileOverviewWidgetProps {
     className?: string;
@@ -20,14 +21,15 @@ interface ProfileOverviewWidgetProps {
 }
 
 export function ProfileOverviewWidget({ className, defaultExpanded, profile }: ProfileOverviewWidgetProps) {
+    const { user } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({ projects: 0, achievements: 0 });
     const [editForm, setEditForm] = useState({
         full_name: profile.full_name || '',
         bio: profile.bio || '',
-        interests: Array.isArray(profile.social_links?.interests)
-            ? profile.social_links!.interests!.join(', ')
+        interests: Array.isArray(profile.interests)
+            ? profile.interests.join(', ')
             : ''
     });
 
@@ -91,7 +93,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-lg truncate">{profile.full_name || 'Student'}</h3>
-                    <p className="text-sm text-muted-foreground truncate">{profile.email}</p>
+                    <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
                 </div>
             </div>
 
@@ -124,7 +126,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                     </div>
                     <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{profile.email}</span>
+                        <span className="text-muted-foreground">{user?.email}</span>
                     </div>
                     {profile.school_name && (
                         <div className="flex items-center gap-2">

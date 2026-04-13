@@ -43,52 +43,52 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    !isCI && VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "auto",
-      workbox: {
-        navigateFallback: "index.html",
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) =>
-              url.origin === "http://localhost:8080" && url.pathname.startsWith("/api/"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              networkTimeoutSeconds: 10,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-            },
-          },
-          {
-            urlPattern: ({ request }) => request.destination === "image",
-            handler: "CacheFirst",
-            options: {
-              cacheName: "image-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith("/"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "page-cache",
-              networkTimeoutSeconds: 10,
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 30 },
-            },
-          },
-        ],
-      },
-      manifest: {
-        name: "Growth Forge AI",
-        short_name: "GrowthForge",
-        description: "Track achievements, projects, and opportunities with AI.",
-        start_url: "/",
-        display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#0ea5e9",
-      },
-    }),
+    // !isCI && VitePWA({
+    //   registerType: "autoUpdate",
+    //   injectRegister: "auto",
+    //   workbox: {
+    //     navigateFallback: "index.html",
+    //     globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
+    //     runtimeCaching: [
+    //       {
+    //         urlPattern: ({ url }) =>
+    //           url.origin === "http://localhost:8080" && url.pathname.startsWith("/api/"),
+    //         handler: "NetworkFirst",
+    //         options: {
+    //           cacheName: "api-cache",
+    //           networkTimeoutSeconds: 10,
+    //           expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+    //         },
+    //       },
+    //       {
+    //         urlPattern: ({ request }) => request.destination === "image",
+    //         handler: "CacheFirst",
+    //         options: {
+    //           cacheName: "image-cache",
+    //           expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+    //         },
+    //       },
+    //       {
+    //         urlPattern: ({ url }) => url.pathname.startsWith("/"),
+    //         handler: "NetworkFirst",
+    //         options: {
+    //           cacheName: "page-cache",
+    //           networkTimeoutSeconds: 10,
+    //           expiration: { maxEntries: 20, maxAgeSeconds: 60 * 30 },
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   manifest: {
+    //     name: "Growth Forge AI",
+    //     short_name: "GrowthForge",
+    //     description: "Track achievements, projects, and opportunities with AI.",
+    //     start_url: "/",
+    //     display: "standalone",
+    //     background_color: "#0f172a",
+    //     theme_color: "#0ea5e9",
+    //   },
+    // }),
   ].filter(Boolean),
   resolve: {
     alias: {

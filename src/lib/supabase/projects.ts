@@ -5,7 +5,7 @@ export const getProjects = async (userId: string) => {
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .eq('user_id', userId)
+    .eq('owner_id', userId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 

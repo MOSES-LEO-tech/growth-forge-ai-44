@@ -15,10 +15,15 @@ import { Progress } from "@/components/ui/progress";
 interface AddProjectModalProps {
   userId: string;
   onProjectAdded?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function AddProjectModal({ userId, onProjectAdded }: AddProjectModalProps) {
-  const [open, setOpen] = useState(false);
+export default function AddProjectModal({ userId, onProjectAdded, open: controlledOpen, onOpenChange }: AddProjectModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -42,7 +47,7 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
     try {
       // 1. Create the project
       const project = await createProject({
-        user_id: userId,
+        owner_id: userId,
         title: form.title,
         description: form.description,
         status: form.status as any
@@ -89,12 +94,14 @@ export default function AddProjectModal({ userId, onProjectAdded }: AddProjectMo
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
-          <Plus className="w-4 h-4" />
-          New Project
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
+            <Plus className="w-4 h-4" />
+            New Project
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="text-2xl">Create New Project</DialogTitle>
