@@ -19,31 +19,54 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Helper function to create profile directly in database
 const createProfileInDb = async (userId: string, fullName: string, role: UserRole, email?: string): Promise<Profile | null> => {
   try {
-    // Use upsert with onConflict to handle race conditions
+    // Use insert directly (not upsert) since profile shouldn't exist yet
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        full_name: fullName,
+        role: role,
+        email: email
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Profile insert error:', error.message);
+      // Try upsert as fallback
+      return upsertProfile(userId, fullName, role, email);
+    }
+    return data as Profile;
+  } catch (error) {
+    console.warn('Error in createProfileInDb:', error);
+    return upsertProfile(userId, fullName, role, email);
+  }
+};
+
+// Fallback upsert function
+const upsertProfile = async (userId: string, fullName: string, role: UserRole, email?: string): Promise<Profile | null> => {
+  try {
     const { data, error } = await supabase
       .from('profiles')
       .upsert({
         id: userId,
         full_name: fullName,
         role: role,
-        email: email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'id'
-      })
+        email: email
+      }, { onConflict: 'id' })
       .select()
       .single();
 
     if (error) {
-      // Log the error but don't throw - profile may be created by trigger
-      console.warn('Profile upsert error (will retry):', error.message);
-      return null;
+      console.warn('Profile upsert error:', error.message);
+      // Last resort - just return with basic data
+      return { id: userId, full_name: fullName, role: role, email: email || null } as Profile;
     }
     return data as Profile;
   } catch (error) {
-    console.warn('Error in createProfileInDb:', error);
-    return null;
+    console.warn('Error in upsertProfile:', error);
+    // Return basic profile object as last resort
+    return { id: userId, full_name: fullName, role: role, email: email || null } as Profile;
   }
 };
 
@@ -176,8 +199,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(signInData.session);
         setUser(signInData.session.user);
         
-        // Fetch profile - if fails, user can still use app
-        const profileData = await fetchProfile(signInData.session.user.id);
+        // Fetch profile
+        let profileData = await fetchProfile(signInData.session.user.id);
+        
+        // If profile doesn't exist, create one
+        if (!profileData) {
+          console.log('Creating missing profile after sign in...');
+          profileData = await createProfileInDb(signInData.session.user.id, 'User', 'student', email);
+        }
         
         if (profileData) {
           setProfile(profileData);
@@ -252,14 +281,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(data.session);
         setUser(data.session.user);
         
-        // Try to fetch profile
-        try {
-          const profileData = await fetchProfile(data.session.user.id);
-          if (profileData) {
-            setProfile(profileData);
-          }
-        } catch (profileError) {
-          console.warn('Profile fetch failed after signup:', profileError);
+        // Try to fetch or create profile
+        let profileData = await fetchProfile(data.session.user.id);
+        
+        // If profile doesn't exist, create one
+        if (!profileData) {
+          console.log('Creating missing profile after signup...');
+          profileData = await createProfileInDb(data.session.user.id, fullName, role, email);
+        }
+        
+        if (profileData) {
+          setProfile(profileData);
         }
         
         return { requiresConfirmation: false };
