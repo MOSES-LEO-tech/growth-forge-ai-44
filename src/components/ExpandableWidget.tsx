@@ -12,6 +12,8 @@ interface ExpandableWidgetProps {
     expandedContent: ReactNode; // Content for the expanded/full view
     className?: string;
     defaultExpanded?: boolean;
+    expanded?: boolean;
+    onExpandedChange?: (expanded: boolean) => void;
     onExpandChange?: (expanded: boolean) => void;
 }
 
@@ -22,9 +24,16 @@ export function ExpandableWidget({
     expandedContent,
     className,
     defaultExpanded = false,
+    expanded: controlledExpanded,
+    onExpandedChange,
     onExpandChange,
 }: ExpandableWidgetProps) {
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+    const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+    const isControlled = controlledExpanded !== undefined;
+    const isExpanded = isControlled ? controlledExpanded : internalExpanded;
+    const setIsExpanded = isControlled
+        ? (onExpandedChange ?? (() => {}))
+        : setInternalExpanded;
 
     const handleToggle = (open: boolean) => {
         setIsExpanded(open);

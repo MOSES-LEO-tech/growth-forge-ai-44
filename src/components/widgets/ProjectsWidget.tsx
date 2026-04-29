@@ -16,10 +16,20 @@ interface ProjectsWidgetProps {
     className?: string;
     defaultExpanded?: boolean;
     userId?: string;
+    openAddExternal?: boolean;
+    onOpenAddChange?: (open: boolean) => void;
 }
 
-export function ProjectsWidget({ className, defaultExpanded, userId }: ProjectsWidgetProps) {
+export function ProjectsWidget({ className, defaultExpanded, userId, openAddExternal, onOpenAddChange }: ProjectsWidgetProps) {
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Internal modal control
+    const [internalOpenAdd, setInternalOpenAdd] = useState(false);
+    const isControlled = openAddExternal !== undefined;
+    const openAdd = isControlled ? openAddExternal : internalOpenAdd;
+    const setOpenAdd = isControlled
+        ? (onOpenAddChange ?? (() => {}))
+        : setInternalOpenAdd;
 
     // We can use the same query key as the page to share cache
     const { data: projects, isLoading, refetch } = useQuery<Project[]>({
@@ -93,7 +103,7 @@ export function ProjectsWidget({ className, defaultExpanded, userId }: ProjectsW
                             className="pl-9"
                         />
                     </div>
-                    <AddProjectModal userId={userId} onProjectAdded={refetch} />
+                    <AddProjectModal userId={userId} onProjectAdded={refetch} open={openAdd} onOpenChange={setOpenAdd} />
                 </div>
 
                 <Tabs defaultValue="all" className="flex-1 flex flex-col">

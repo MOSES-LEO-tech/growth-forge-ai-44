@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardProvider, useDashboard } from "@/contexts/DashboardContext";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
 import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
@@ -78,23 +79,21 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader profile={authProfile} onSignOut={handleSignOut} />
+    <DashboardProvider>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader profile={authProfile} onSignOut={handleSignOut} />
 
-      <main id="main-content" role="main">
-        {renderDashboard()}
-      </main>
+        <main id="main-content" role="main">
+          {renderDashboard()}
+        </main>
 
-      {/* Quick Actions FAB */}
-      <QuickActions
-        onAddAchievement={() => toast({ title: "Add Achievement", description: "Feature coming soon!" })}
-        onAddProject={() => toast({ title: "Add Project", description: "Feature coming soon!" })}
-        onAddEvent={() => toast({ title: "Add Event", description: "Feature coming soon!" })}
-      />
+        {/* Quick Actions FAB — uses DashboardContext directly */}
+        <QuickActions />
 
-      {/* Onboarding Modal */}
-      <OnboardingModal isOpen={showOnboarding} onClose={handleOnboardingClose} />
-    </div>
+        {/* Onboarding Modal */}
+        <OnboardingModal isOpen={showOnboarding} onClose={handleOnboardingClose} />
+      </div>
+    </DashboardProvider>
   );
 };
 

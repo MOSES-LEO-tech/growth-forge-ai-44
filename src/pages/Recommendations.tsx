@@ -1,91 +1,41 @@
-import { useAuth } from '@/contexts/AuthContext';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Trophy, Target, Zap, ChevronRight, CheckCircle, ExternalLink, RefreshCw, Sparkles, AlertCircle, Bell, Clock } from 'lucide-react';
-import { getRecommendations, generateRecommendations } from '@/lib/supabase/recommendations';
-import { useInView } from '@/hooks/useInView';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-
-interface ScholarshipRecommendation {
-  scholarship_title: string;
-  match_score: number;
-  reason: string;
-  action: string;
-}
-
-interface ProfileSuggestion {
-  area: string;
-  suggestion: string;
-  priority: 'high' | 'medium' | 'low';
-}
-
-interface ActionItem {
-  action: string;
-  category: string;
-  urgency: 'high' | 'medium' | 'low';
-  deadline_related: boolean;
-}
+import { RefreshCcw, AlertCircle, CheckCircle2, Trophy, Target, Sparkles, UserCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { useRecommendations, useRefreshRecommendations } from "@/hooks/useRecommendations";
+import { cn } from "@/lib/utils";
 
 const Recommendations = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { data, isLoading, isError, error, refetch } = useRecommendations();
+  const refreshMutation = useRefreshRecommendations();
 
-  const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.1 });
-  const { ref: scholarRef, isInView: scholarInView } = useInView({ threshold: 0.1 });
-  const { ref: profileRef, isInView: profileInView } = useInView({ threshold: 0.1 });
-  const { ref: actionRef, isInView: actionInView } = useInView({ threshold: 0.1 });
-
-  const { data: recommendations, isLoading, error } = useQuery({
-    queryKey: ['recommendations', user?.id],
-    queryFn: () => getRecommendations(user!.id),
-    enabled: !!user?.id,
-  });
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const result = await generateRecommendations('all');
-      if (result.success) {
-        toast({
-          title: "Success!",
-          description: "Your personalized recommendations have been generated.",
-        });
-        queryClient.invalidateQueries({ queryKey: ['recommendations', user?.id] });
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to generate recommendations",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleRefresh = async () => {
+    await refreshMutation.mutateAsync();
   };
 
-  if (isLoading) {
+  const isRefreshing = refreshMutation.isPending;
+
+  if (isError) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-slate-50 flex flex-col">
         <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8 space-y-8">
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-1/3" />
-            <Skeleton className="h-6 w-1/2" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-64 w-full" />)}
+        <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center space-y-4 max-w-md px-4">
+            <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">AI Recommendations Unavailable</h2>
+            <p className="text-slate-500">
+              {error instanceof Error ? error.message : "We encountered an error while generating your personalized recommendations. Please try again later."}
+            </p>
+            <Button onClick={() => refetch()} variant="outline" className="mt-4">
+              <RefreshCcw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
           </div>
         </main>
         <Footer />
@@ -93,266 +43,208 @@ const Recommendations = () => {
     );
   }
 
-  const scholarshipRecs = (recommendations?.find(r => r.type === 'scholarship')?.content as any) as ScholarshipRecommendation[] || [];
-  const profileRec = (recommendations?.find(r => r.type === 'profile')?.content as any) || null;
-  const actionRecs = (recommendations?.find(r => r.type === 'actions')?.content as any) as ActionItem[] || [];
-
-  const hasData = scholarshipRecs.length > 0 || profileRec || actionRecs.length > 0;
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
-      
-      <main className="flex-1 container mx-auto px-4 py-8 space-y-12">
-        {/* Hero Section */}
-        <section 
-          ref={heroRef}
-          className={`space-y-6 transition-all duration-700 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight">AI Recommendations</h1>
-              <p className="text-xl text-muted-foreground">
-                Personalized guidance powered by Claude to accelerate your academic journey.
+
+      <main className="flex-grow pt-24 pb-16">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+                AI Recommendations
+              </h1>
+              <p className="text-slate-500 font-medium">
+                Personalized insights and opportunities based on your Growth Forge profile.
               </p>
             </div>
             <Button 
-              size="lg" 
-              className="group relative overflow-hidden bg-primary hover:bg-primary/90 transition-all"
-              onClick={handleGenerate}
-              disabled={isGenerating}
+              onClick={handleRefresh} 
+              disabled={isLoading || isRefreshing}
+              variant="outline"
+              className="bg-white shadow-sm border-slate-200"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Claude is analysing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5 animate-pulse text-yellow-400" />
-                  Generate AI Recommendations
-                </>
-              )}
+              <RefreshCcw className={cn("w-4 h-4 mr-2", (isLoading || isRefreshing) && "animate-spin")} />
+              {isRefreshing ? "Analyzing..." : "Refresh Insights"}
             </Button>
           </div>
-        </section>
 
-        {!hasData && !isGenerating ? (
-          <section className="py-20 text-center space-y-6">
-            <div className="bg-primary/5 rounded-full p-8 w-fit mx-auto">
-              <Sparkles className="h-16 w-16 text-primary/40" />
-            </div>
-            <div className="space-y-2 max-w-md mx-auto">
-              <h2 className="text-2xl font-semibold">Ready to get started?</h2>
-              <p className="text-muted-foreground text-lg">
-                Generate your first set of personalized recommendations based on your profile, achievements, and projects.
-              </p>
-            </div>
-            <Button size="lg" onClick={handleGenerate} className="px-8">
-              Generate Recommendations
-            </Button>
-          </section>
-        ) : (
-          <div className="space-y-16">
-            {/* Scholarship Section */}
-            <section 
-              ref={scholarRef}
-              className={`space-y-6 transition-all duration-700 delay-100 ${scholarInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Trophy className="h-6 w-6 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold">Top Scholarship Matches</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {scholarshipRecs.length > 0 ? scholarshipRecs.map((rec, idx) => (
-                  <Card key={idx} className="group hover:border-primary/50 transition-colors">
-                    <CardHeader>
-                      <div className="flex justify-between items-start mb-2">
-                        <Link to="/scholarships" className="hover:underline">
-                          <CardTitle className="text-lg line-clamp-2">{rec.scholarship_title}</CardTitle>
-                        </Link>
-                        <Badge variant="outline" className="ml-2">
-                          Match
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Match Score</span>
-                          <span className={`font-medium ${rec.match_score >= 80 ? 'text-green-600' : rec.match_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                            {rec.match_score}%
-                          </span>
-                        </div>
-                        <Progress 
-                          value={rec.match_score} 
-                          className="h-2"
-                          indicatorClassName={`${rec.match_score >= 80 ? 'bg-green-500' : rec.match_score >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {rec.reason}
-                      </p>
-                      <div className="bg-muted/50 p-3 rounded-md space-y-1">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pro-tip</span>
-                        <p className="text-xs italic leading-relaxed">{rec.action}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )) : (
-                  [1, 2, 3].map(i => <Skeleton key={i} className="h-64 w-full" />)
-                )}
-              </div>
-            </section>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Profile Section */}
-              <section 
-                ref={profileRef}
-                className={`space-y-6 transition-all duration-700 delay-200 ${profileInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-secondary/10 rounded-lg">
-                    <Target className="h-6 w-6 text-secondary" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Profile Completeness</h2>
-                </div>
-
-                <Card className="h-full">
-                  <CardHeader className="flex flex-row items-center gap-6">
-                    <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle
-                          cx="48"
-                          cy="48"
-                          r="40"
-                          fill="transparent"
-                          stroke="currentColor"
-                          strokeWidth="8"
-                          className="text-muted/20"
-                        />
-                        <circle
-                          cx="48"
-                          cy="48"
-                          r="40"
-                          fill="transparent"
-                          stroke="currentColor"
-                          strokeWidth="8"
-                          strokeDasharray={251.2}
-                          strokeDashoffset={251.2 - (251.2 * (profileRec?.completeness_score || 0)) / 100}
-                          className="text-primary transition-all duration-1000 ease-out"
-                        />
-                      </svg>
-                      <span className="absolute text-xl font-bold">{profileRec?.completeness_score || 0}%</span>
-                    </div>
-                    <div className="space-y-2">
-                      <CardTitle>Analysis Results</CardTitle>
-                      <CardDescription>
-                        {profileRec?.missing_fields?.length > 0 ? (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {profileRec.missing_fields.map((field: string, idx: number) => (
-                              <Badge key={idx} variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none text-[10px] uppercase font-bold">
-                                <AlertCircle className="w-3 h-3 mr-1" /> Missing: {field}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          "Your profile is looking great! See suggestions below for further refinement."
-                        )}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <h3 className="font-semibold text-lg border-b pb-2">Improvement Suggestions</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column: Profile Completeness & Action Items */}
+            <div className="lg:col-span-1 space-y-8">
+              {/* Profile Completeness Gauge */}
+              <Card className="border-none shadow-sm overflow-hidden bg-white">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <UserCircle className="w-5 h-5 text-primary" />
+                    Profile Completeness
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isLoading ? (
                     <div className="space-y-4">
-                      {profileRec?.suggestions?.sort((a: any, b: any) => {
-                        const priorities = { high: 0, medium: 1, low: 2 };
-                        return priorities[a.priority as keyof typeof priorities] - priorities[b.priority as keyof typeof priorities];
-                      }).map((s: ProfileSuggestion, idx: number) => (
-                        <div key={idx} className="flex gap-4 items-start p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
-                          <Badge 
-                            variant="secondary" 
-                            className={`shrink-0 mt-0.5 ${
-                              s.priority === 'high' ? 'bg-red-100 text-red-700' : 
-                              s.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 
-                              'bg-blue-100 text-blue-700'
-                            }`}
-                          >
-                            {s.priority}
-                          </Badge>
-                          <div className="space-y-1">
-                            <span className="text-xs font-bold text-muted-foreground uppercase">{s.area}</span>
-                            <p className="text-sm leading-relaxed">{s.suggestion}</p>
-                          </div>
-                        </div>
-                      ))}
+                      <Skeleton className="h-32 w-32 rounded-full mx-auto" />
+                      <Skeleton className="h-4 w-full" />
                     </div>
-                  </CardContent>
-                </Card>
-              </section>
+                  ) : (
+                    <>
+                      <div className="relative flex items-center justify-center py-4">
+                        <svg className="w-32 h-32 transform -rotate-90">
+                          <circle
+                            className="text-slate-100"
+                            strokeWidth="8"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="58"
+                            cx="64"
+                            cy="64"
+                          />
+                          <circle
+                            className="text-primary transition-all duration-1000 ease-out"
+                            strokeWidth="8"
+                            strokeDasharray={364}
+                            strokeDashoffset={364 - (364 * (data?.profile_completeness || 0)) / 100}
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="58"
+                            cx="64"
+                            cy="64"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-3xl font-black text-slate-900">{data?.profile_completeness}%</span>
+                        </div>
+                      </div>
 
-              {/* Action Items Section */}
-              <section 
-                ref={actionRef}
-                className={`space-y-6 transition-all duration-700 delay-300 ${actionInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-accent/10 rounded-lg">
-                    <Zap className="h-6 w-6 text-accent-foreground" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Priority Action Items</h2>
-                </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Missing Fields</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {data?.missing_profile_fields.map((field) => (
+                            <Badge key={field} variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100 py-1 px-3">
+                              {field.replace('_', ' ')}
+                            </Badge>
+                          ))}
+                          {data?.missing_profile_fields.length === 0 && (
+                            <div className="flex items-center gap-2 text-emerald-600 font-medium text-sm">
+                              <CheckCircle2 className="w-4 h-4" />
+                              Profile is fully complete!
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle>Next Steps</CardTitle>
-                    <CardDescription>Actionable tasks to boost your scholarship eligibility.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {actionRecs.map((item, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`flex items-center gap-4 p-4 rounded-xl border transition-all hover:translate-x-1 ${
-                            item.urgency === 'high' ? 'border-l-4 border-l-red-500 bg-red-50/30' : 
-                            item.urgency === 'medium' ? 'border-l-4 border-l-yellow-500 bg-yellow-50/30' : 
-                            'border-l-4 border-l-green-500 bg-green-50/30'
-                          }`}
-                        >
-                          <div className="shrink-0">
-                            {item.deadline_related ? (
-                              <div className="p-2 bg-red-100 rounded-full">
-                                <Bell className="h-4 w-4 text-red-600" />
-                              </div>
-                            ) : (
-                              <div className="p-2 bg-muted rounded-full">
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                              </div>
+              {/* Action Items List */}
+              <Card className="border-none shadow-sm bg-white">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    Priority Action Items
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isLoading ? (
+                    [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
+                  ) : (
+                    data?.action_items.map((item, i) => (
+                      <div key={i} className="p-4 rounded-xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all space-y-2 group">
+                        <div className="flex items-center justify-between">
+                          <Badge 
+                            className={cn(
+                              "text-[10px] uppercase font-bold px-2 py-0.5 border-none",
+                              item.priority === 'high' ? "bg-red-100 text-red-700" :
+                              item.priority === 'medium' ? "bg-amber-100 text-amber-700" :
+                              "bg-blue-100 text-blue-700"
                             )}
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <p className="font-medium text-sm leading-tight">{item.action}</p>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px] h-4 uppercase">{item.category}</Badge>
-                              {item.deadline_related && (
-                                <span className="text-[10px] text-red-600 font-bold flex items-center gap-1 uppercase">
-                                  <Clock className="w-3 h-3" /> Time Sensitive
-                                </span>
-                              )}
+                          >
+                            {item.priority}
+                          </Badge>
+                        </div>
+                        <h5 className="font-bold text-slate-900 group-hover:text-primary transition-colors leading-tight">
+                          {item.title}
+                        </h5>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column: Scholarship Matches */}
+            <div className="lg:col-span-2">
+              <Card className="border-none shadow-sm bg-white h-full">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 pb-6 mb-6">
+                  <div>
+                    <CardTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <Trophy className="w-6 h-6 text-amber-500" />
+                      AI Scholarship Matches
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 mt-1">
+                      Based on your GPA, interests, and current grade level.
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isLoading ? (
+                    [...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
+                  ) : (
+                    data?.scholarship_matches.sort((a, b) => b.match_score - a.match_score).map((match) => (
+                      <div key={match.scholarship_id} className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:border-primary/20 transition-all duration-300 group">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-3 flex-grow">
+                            <div className="flex items-center gap-3">
+                              <h4 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
+                                {match.title}
+                              </h4>
+                              <Badge 
+                                className={cn(
+                                  "font-bold px-3 py-1 rounded-full border-none",
+                                  match.match_score >= 80 ? "bg-emerald-50 text-emerald-700" :
+                                  match.match_score >= 50 ? "bg-amber-50 text-amber-700" :
+                                  "bg-red-50 text-red-700"
+                                )}
+                              >
+                                {match.match_score}% Match
+                              </Badge>
+                            </div>
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                              <span className="font-semibold text-slate-900">Why this matches:</span> {match.reason}
+                            </p>
+                            <div className="pt-2">
+                              <Button variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80 font-semibold text-sm">
+                                View Scholarship Details →
+                              </Button>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))
+                  )}
+
+                  {!isLoading && data?.scholarship_matches.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Trophy className="w-8 h-8 text-slate-300" />
+                      </div>
+                      <h4 className="text-xl font-bold text-slate-900">No Scholarship Matches Yet</h4>
+                      <p className="text-slate-500 max-w-sm mx-auto mt-2">
+                        Complete more of your profile and add projects to unlock AI scholarship matching.
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              </section>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
-        )}
+        </div>
       </main>
 
       <Footer />

@@ -18,21 +18,28 @@ interface AchievementsWidgetProps {
     className?: string;
     defaultExpanded?: boolean;
     userId?: string;
+    openAddExternal?: boolean;
+    onOpenAddChange?: (open: boolean) => void;
 }
 
 type AchievementWithCategory = Achievement & { category?: string };
 
 const CATEGORIES = ["academic", "sports", "leadership", "arts", "technology", "community"];
 
-export function AchievementsWidget({ className, defaultExpanded, userId }: AchievementsWidgetProps) {
+export function AchievementsWidget({ className, defaultExpanded, userId, openAddExternal, onOpenAddChange }: AchievementsWidgetProps) {
     const [achievements, setAchievements] = useState<AchievementWithCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("all");
 
-    // Add achievement form state
-    const [addOpen, setAddOpen] = useState(false);
+    // Add achievement form state — supports both internal and external control
+    const [internalAddOpen, setInternalAddOpen] = useState(false);
+    const isControlled = openAddExternal !== undefined;
+    const addOpen = isControlled ? openAddExternal : internalAddOpen;
+    const setAddOpen = isControlled
+        ? (onOpenAddChange ?? (() => {}))
+        : setInternalAddOpen;
     const [submitting, setSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [form, setForm] = useState({

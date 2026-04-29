@@ -2,41 +2,32 @@ import { useState } from "react";
 import { Plus, Award, FolderPlus, Image, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useDashboard } from "@/contexts/DashboardContext";
 
-interface QuickActionsProps {
-    onAddAchievement?: () => void;
-    onAddProject?: () => void;
-    onAddEvent?: () => void;
-}
-
-export const QuickActions = ({ onAddAchievement, onAddProject, onAddEvent }: QuickActionsProps) => {
+export const QuickActions = () => {
+    const { openAchievementModal, openProjectModal, openEventModal } = useDashboard();
     const [isOpen, setIsOpen] = useState(false);
 
     const actions = [
         {
             label: "Add Achievement",
             icon: Award,
-            onClick: onAddAchievement,
-            color: "from-amber-500 to-orange-500"
+            color: "from-amber-500 to-orange-500",
+            onClick: () => { openAchievementModal(); setIsOpen(false); }
         },
         {
             label: "Add Project",
             icon: FolderPlus,
-            onClick: onAddProject,
-            color: "from-blue-500 to-cyan-500"
+            color: "from-blue-500 to-cyan-500",
+            onClick: () => { openProjectModal(); setIsOpen(false); }
         },
         {
             label: "Add Event",
             icon: Image,
-            onClick: onAddEvent,
-            color: "from-purple-500 to-pink-500"
+            color: "from-purple-500 to-pink-500",
+            onClick: () => { openEventModal(); setIsOpen(false); }
         }
     ];
-
-    const handleAction = (action: typeof actions[0]) => {
-        action.onClick?.();
-        setIsOpen(false);
-    };
 
     return (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">

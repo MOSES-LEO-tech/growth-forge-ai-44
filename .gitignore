@@ -22,15 +22,12 @@ tests/
 
 # Supabase / Local Data
 uploads/
+supabase/
 legacy-backend/
 legacy-frontend-api/
 .env
-.env.local
-.env.development
-.env.production
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
 # Package lock (using bun.lockb)
 package-lock.json

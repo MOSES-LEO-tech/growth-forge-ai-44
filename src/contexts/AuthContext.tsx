@@ -43,16 +43,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let hasTimedOut = false;
+
+    // Safety timeout: if auth doesn't initialize within 10s, proceed anyway
+    const timeoutId = setTimeout(() => {
+      if (mounted && !hasTimedOut) {
+        console.warn("Auth initialization timed out, proceeding with current state");
+        hasTimedOut = true;
+        setIsLoading(false);
+      }
+    }, 10000);
 
     // Initial session check
     const initAuth = async () => {
       try {
         console.log("Initializing auth...");
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError) {
           console.error("Error getting initial session:", sessionError);
-          if (mounted) setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+            hasTimedOut = true;
+          }
           return;
         }
 
@@ -60,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
         }
-        
+
         if (initialSession?.user) {
           const profileData = await fetchProfile(initialSession.user.id);
           if (mounted) setProfile(profileData);
@@ -68,7 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Error in initAuth:', error);
       } finally {
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          clearTimeout(timeoutId);
+          setIsLoading(false);
+          hasTimedOut = true;
+        }
       }
     };
 
@@ -77,24 +94,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log("Auth state changed:", event, !!currentSession);
-      
-      if (mounted) {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      }
-      
+
+      if (!mounted) return;
+
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+
       if (currentSession?.user) {
         const profileData = await fetchProfile(currentSession.user.id);
         if (mounted) setProfile(profileData);
       } else {
         if (mounted) setProfile(null);
       }
-      
-      if (mounted) setIsLoading(false);
     });
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);

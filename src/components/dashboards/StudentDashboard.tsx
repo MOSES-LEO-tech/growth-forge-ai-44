@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import type { Profile } from "@/integrations/supabase/types";
+import { type Profile } from "@/integrations/supabase/types";
 import { AchievementsWidget } from "@/components/widgets/AchievementsWidget";
 import { ProjectsWidget } from "@/components/widgets/ProjectsWidget";
 import { GalleryWidget } from "@/components/widgets/GalleryWidget";
@@ -9,10 +8,16 @@ import { SmartBuddyWidget } from "@/components/widgets/SmartBuddyWidget";
 import { GrowthAnalyticsWidget } from "@/components/widgets/GrowthAnalyticsWidget";
 import { ProfileOverviewWidget } from "@/components/widgets/ProfileOverviewWidget";
 import { useSearchParams } from "react-router-dom";
+import { useDashboard } from "@/contexts/DashboardContext";
 
 const StudentDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
   const activeWidget = searchParams.get("widget");
+  const {
+    achievementModalOpen, closeAchievementModal,
+    projectModalOpen, closeProjectModal,
+    eventModalOpen, closeEventModal,
+  } = useDashboard();
 
   if (!profile) {
     return (
@@ -41,7 +46,9 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
         {/* Row 2: Achievements & AI Buddy */}
         <AchievementsWidget
           className="md:col-span-2 lg:col-span-2"
-          defaultExpanded={activeWidget === 'achievements'}
+          defaultExpanded={activeWidget === 'achievements' || achievementModalOpen}
+          openAddExternal={achievementModalOpen}
+          onOpenAddChange={(open) => { if (!open) closeAchievementModal(); }}
         />
 
         <SmartBuddyWidget
@@ -52,14 +59,18 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
         {/* Row 3: Main Content Areas */}
         <ProjectsWidget
           className="md:col-span-2 lg:col-span-2"
-          defaultExpanded={activeWidget === 'projects'}
+          defaultExpanded={activeWidget === 'projects' || projectModalOpen}
           userId={profile.id}
+          openAddExternal={projectModalOpen}
+          onOpenAddChange={(open) => { if (!open) closeProjectModal(); }}
         />
 
         {/* Row 4: Gallery & Discovery */}
         <GalleryWidget
           className="md:col-span-2 lg:col-span-2"
-          defaultExpanded={activeWidget === 'gallery'}
+          defaultExpanded={activeWidget === 'gallery' || eventModalOpen}
+          openUploadExternal={eventModalOpen}
+          onOpenUploadChange={(open) => { if (!open) closeEventModal(); }}
         />
 
         <ScholarshipsWidget
