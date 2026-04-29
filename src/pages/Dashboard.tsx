@@ -7,6 +7,7 @@ import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import ParentDashboard from "@/components/dashboards/ParentDashboard";
 import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
 import SchoolAdminDashboard from "@/components/dashboards/SchoolAdminDashboard";
+import SuperAdminDashboard from "@/components/dashboards/SuperAdminDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
 import { QuickActions } from "@/components/QuickActions";
 import { OnboardingModal } from "@/components/OnboardingModal";
@@ -73,6 +74,8 @@ const Dashboard = () => {
         return <TeacherDashboard profile={authProfile} />;
       case "admin":
         return <SchoolAdminDashboard profile={authProfile} />;
+      case "super_admin":
+        return <SuperAdminDashboard profile={authProfile} />;
       default:
         return <StudentDashboard profile={authProfile} />;
     }

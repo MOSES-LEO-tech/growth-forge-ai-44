@@ -414,7 +414,7 @@ export interface Database {
   }
 }
 
-export type UserRole = 'student' | 'parent' | 'teacher' | 'admin'
+export type UserRole = 'student' | 'parent' | 'teacher' | 'admin' | 'super_admin'
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type School = Database['public']['Tables']['schools']['Row']
 export type StudentLevel = Database['public']['Tables']['student_levels']['Row']

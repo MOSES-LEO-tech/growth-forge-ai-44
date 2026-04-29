@@ -22,9 +22,11 @@ tests/
 
 # Supabase / Local Data
 uploads/
-supabase/
 legacy-backend/
 legacy-frontend-api/
+supabase/.temp
+supabase/.branches
+supabase/.config
 .env
 .env.*
 !.env.example
