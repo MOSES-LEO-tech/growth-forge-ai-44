@@ -1,5 +1,5 @@
 -- Profiles (extends Supabase auth.users)
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT,
   avatar_url TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE profiles (
 );
 
 -- Schools
-CREATE TABLE schools (
+CREATE TABLE IF NOT EXISTS schools (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   location TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE schools (
 );
 
 -- Student levels (gamification)
-CREATE TABLE student_levels (
+CREATE TABLE IF NOT EXISTS student_levels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   points INTEGER DEFAULT 0,
@@ -35,7 +35,7 @@ CREATE TABLE student_levels (
 );
 
 -- Achievements
-CREATE TABLE achievements (
+CREATE TABLE IF NOT EXISTS achievements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE achievements (
 );
 
 -- Projects
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE projects (
 );
 
 -- Scholarships
-CREATE TABLE scholarships (
+CREATE TABLE IF NOT EXISTS scholarships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   amount DECIMAL(10,2),
@@ -73,7 +73,7 @@ CREATE TABLE scholarships (
 );
 
 -- Recommendations
-CREATE TABLE recommendations (
+CREATE TABLE IF NOT EXISTS recommendations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   type TEXT CHECK (type IN ('scholarship','profile','actions')),
@@ -82,7 +82,7 @@ CREATE TABLE recommendations (
 );
 
 -- Gallery Events
-CREATE TABLE gallery_events (
+CREATE TABLE IF NOT EXISTS gallery_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE gallery_events (
 );
 
 -- Gallery Media
-CREATE TABLE gallery_media (
+CREATE TABLE IF NOT EXISTS gallery_media (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID REFERENCES gallery_events(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
@@ -190,7 +190,7 @@ CREATE POLICY "Event owner manages media" ON gallery_media FOR ALL
   ));
 
 -- Notifications
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
@@ -203,10 +203,10 @@ CREATE TABLE notifications (
 );
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own notifications" ON notifications FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own notifications" ON notifications FOR ALL USING (auth.uid() = user_id);
 
 -- Parent-Child links
-CREATE TABLE parent_child_links (
+CREATE TABLE IF NOT EXISTS parent_child_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   parent_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   child_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -215,11 +215,11 @@ CREATE TABLE parent_child_links (
 );
 
 ALTER TABLE parent_child_links ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Parents view own links" ON parent_child_links FOR SELECT
+CREATE POLICY "Parents can view own links" ON parent_child_links FOR SELECT
   USING (auth.uid() = parent_id);
 
 -- Messages
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -230,12 +230,12 @@ CREATE TABLE messages (
 );
 
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users view own messages" ON messages FOR SELECT
+CREATE POLICY "Users can view own messages" ON messages FOR SELECT
   USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
-CREATE POLICY "Users send messages" ON messages FOR INSERT
+CREATE POLICY "Users can send messages" ON messages FOR INSERT
   WITH CHECK (auth.uid() = sender_id);
 -- Comments
-CREATE TABLE comments (
+CREATE TABLE IF NOT EXISTS comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   resource_type TEXT NOT NULL,
@@ -251,7 +251,7 @@ CREATE POLICY "Users can post comments" ON comments FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Settings
-CREATE TABLE settings (
+CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value JSONB,
   updated_at TIMESTAMPTZ DEFAULT NOW()
