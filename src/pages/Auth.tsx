@@ -126,26 +126,35 @@ const Auth = () => {
 
       setLoading(true);
 
-      await signUp(
+      // Call signUp and get result
+      const result = await signUp(
         validated.email,
         validated.password,
         validated.fullName,
         validated.role as any
       );
 
-      // Check if user is signed in (no email confirmation needed) or needs to confirm email
-      if (user) {
+      // Handle based on whether email confirmation is required
+      if (result.requiresConfirmation) {
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation link. Please click the link in your email to activate your account.",
+        });
+        // Stay on auth page
+      } else if (user) {
+        // User is signed in without confirmation needed
         toast({
           title: "Account created!",
           description: "Welcome to StudentHub. Redirecting to your dashboard..."
         });
         navigate("/dashboard");
       } else {
+        // Unexpected state - should either have required confirmation or be signed in
         toast({
-          title: "Check your email",
-          description: "We've sent you a confirmation link to complete your registration.",
+          title: "Account created!",
+          description: "Please sign in to continue."
         });
-        // Stay on auth page
+        setActiveTab("signin");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {

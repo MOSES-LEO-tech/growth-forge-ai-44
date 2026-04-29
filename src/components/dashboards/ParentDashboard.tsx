@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type LinkedChild = {
-  id: number;
+  id: string;
   full_name: string;
   email: string;
   avatar_url: string | null;

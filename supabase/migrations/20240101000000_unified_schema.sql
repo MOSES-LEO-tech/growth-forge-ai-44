@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   gpa DECIMAL(3,2),
   interests TEXT[],
   extracurriculars TEXT[],
-  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student','parent','teacher','admin')),
+  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student','parent','teacher','admin','super_admin')),
   school_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -24,10 +24,15 @@ CREATE TABLE IF NOT EXISTS schools (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add foreign key from profiles to schools after schools exist
+ALTER TABLE public.profiles
+  ADD CONSTRAINT IF NOT EXISTS profiles_school_id_fkey
+  FOREIGN KEY (school_id) REFERENCES public.schools(id) ON DELETE SET NULL;
+
 -- Student levels (gamification)
 CREATE TABLE IF NOT EXISTS student_levels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   points INTEGER DEFAULT 0,
   level INTEGER DEFAULT 1,
   badges TEXT[],
@@ -50,7 +55,7 @@ CREATE TABLE IF NOT EXISTS achievements (
 -- Projects
 CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   tags TEXT[],
@@ -81,23 +86,23 @@ CREATE TABLE IF NOT EXISTS recommendations (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Gallery Events
-CREATE TABLE IF NOT EXISTS gallery_events (
+-- Gallery Events (renamed to events)
+CREATE TABLE IF NOT EXISTS public.events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   location TEXT,
-  event_date DATE,
+  event_date TIMESTAMPTZ,
   is_public BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
 
 -- Gallery Media
-CREATE TABLE IF NOT EXISTS gallery_media (
+CREATE TABLE IF NOT EXISTS public.gallery_media (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id UUID REFERENCES gallery_events(id) ON DELETE CASCADE,
+  event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
   type TEXT CHECK (type IN ('image','video','document')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -113,8 +118,13 @@ BEGIN
     NEW.id,
     NEW.raw_user_meta_data->>'full_name',
     COALESCE(NEW.raw_user_meta_data->>'role', 'student')
-  );
-  INSERT INTO student_levels (user_id) VALUES (NEW.id);
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO student_levels (user_id, points, level, badges)
+  VALUES (NEW.id, 0, 1, ARRAY[]::text[])
+  ON CONFLICT (user_id) DO NOTHING;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -163,14 +173,14 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users manage own projects' AND tablename = 'projects') THEN
-        CREATE POLICY "Users manage own projects" ON projects FOR ALL USING (auth.uid() = user_id);
+        CREATE POLICY "Users manage own projects" ON projects FOR ALL USING (auth.uid() = owner_id);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Teachers view school student projects' AND tablename = 'projects') THEN
         CREATE POLICY "Teachers view school student projects" ON projects FOR SELECT
           USING (EXISTS (
             SELECT 1 FROM profiles teacher, profiles student
             WHERE teacher.id = auth.uid() AND teacher.role = 'teacher'
-            AND student.id = projects.user_id
+            AND student.id = projects.owner_id
             AND student.school_id = teacher.school_id
           ));
     END IF;
@@ -237,29 +247,32 @@ BEGIN
     END IF;
 END $$;
 
--- Gallery Events
-ALTER TABLE gallery_events ENABLE ROW LEVEL SECURITY;
+-- Gallery Events (now 'events')
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users manage own events' AND tablename = 'gallery_events') THEN
-        CREATE POLICY "Users manage own events" ON gallery_events FOR ALL USING (auth.uid() = user_id);
+    -- Users can manage own events
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users manage own events' AND tablename = 'events') THEN
+        CREATE POLICY "Users manage own events" ON public.events FOR ALL USING (auth.uid() = user_id);
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view public events' AND tablename = 'gallery_events') THEN
-        CREATE POLICY "Anyone can view public events" ON gallery_events FOR SELECT
+
+    -- Anyone can view public events (non-deleted)
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view public events' AND tablename = 'events') THEN
+        CREATE POLICY "Anyone can view public events" ON public.events FOR SELECT
           USING (is_public = TRUE AND deleted_at IS NULL);
     END IF;
 END $$;
 
 -- Gallery Media
-ALTER TABLE gallery_media ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gallery_media ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Event owner manages media' AND tablename = 'gallery_media') THEN
-        CREATE POLICY "Event owner manages media" ON gallery_media FOR ALL
+        CREATE POLICY "Event owner manages media" ON public.gallery_media FOR ALL
           USING (EXISTS (
-            SELECT 1 FROM gallery_events WHERE id = gallery_media.event_id AND user_id = auth.uid()
+            SELECT 1 FROM public.events WHERE id = gallery_media.event_id AND user_id = auth.uid()
           ));
     END IF;
 END $$;
@@ -289,8 +302,8 @@ END $$;
 -- Parent-Child links
 CREATE TABLE IF NOT EXISTS parent_child_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  parent_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  child_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  parent_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  child_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(parent_id, child_id)
 );

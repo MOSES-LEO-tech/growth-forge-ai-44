@@ -23,9 +23,9 @@ BEGIN
 END $$;
 
 -- 2. PROFILES TABLE
+-- Create profiles table if it doesn't exist (basic structure from unified_schema)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email TEXT UNIQUE,
     full_name TEXT,
     avatar_url TEXT,
     bio TEXT,
@@ -38,6 +38,23 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure email column exists (added in PWA migration, may be missing from older schema)
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+
+-- Copy email from auth.users if null (for existing rows)
+UPDATE public.profiles p
+SET email = au.email
+FROM auth.users au
+WHERE p.id = au.id
+  AND p.email IS NULL
+  AND au.email IS NOT NULL;
+
+-- Create unique index for non-null emails (for partial uniqueness)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_email_unique
+    ON public.profiles(email)
+    WHERE email IS NOT NULL;
 
 -- Enable RLS on profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -103,7 +120,7 @@ BEGIN
 END;
 $$;
 
--- 8. TRIGGER FOR NEW USER
+-- 8. TRIGGER FOR NEW USER (comprehensive: profiles, student_levels, user_roles)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -111,6 +128,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- Insert/update profile
   INSERT INTO public.profiles (id, full_name, role, email)
   VALUES (
     new.id,
@@ -122,6 +140,26 @@ BEGIN
     full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
     role = COALESCE(EXCLUDED.role, public.profiles.role),
     email = COALESCE(EXCLUDED.email, public.profiles.email);
+
+  -- Ensure student_levels exists
+  INSERT INTO public.student_levels (user_id, points, level, badges)
+  VALUES (new.id, 0, 1, ARRAY[]::text[])
+  ON CONFLICT (user_id) DO NOTHING;
+
+  -- Attempt to insert into user_roles if table/enum exist (ignore errors if missing)
+  BEGIN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (
+      new.id,
+      COALESCE((new.raw_user_meta_data->>'role')::public.app_role, 'student'::public.app_role)
+    )
+    ON CONFLICT (user_id, role) DO NOTHING;
+  EXCEPTION
+    WHEN undefined_table THEN
+      NULL;
+    WHEN undefined_object THEN
+      NULL;
+  END;
 
   RETURN new;
 END;

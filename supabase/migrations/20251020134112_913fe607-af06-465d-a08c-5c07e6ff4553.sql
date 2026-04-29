@@ -65,30 +65,47 @@ BEGIN
     END IF;
 END $$;
 
--- Create events table
+-- Create events table (matches types.ts and frontend usage)
 CREATE TABLE IF NOT EXISTS public.events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  event_date TIMESTAMPTZ NOT NULL,
   location TEXT,
-  created_by UUID REFERENCES public.profiles(id),
-  verified BOOLEAN DEFAULT false,
+  event_date TIMESTAMPTZ,
+  is_public BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  deleted_at TIMESTAMPTZ
 );
 
+-- Enable RLS on events
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
+-- RLS Policies for events
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view verified events' AND tablename = 'events') THEN
-        CREATE POLICY "Anyone can view verified events" ON public.events FOR SELECT USING (verified = true OR auth.uid() = created_by);
+    -- Users can view their own events or public events
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own events' AND tablename = 'events') THEN
+        CREATE POLICY "Users can view own events" ON public.events FOR SELECT
+          USING (auth.uid() = user_id OR is_public = TRUE);
     END IF;
+
+    -- Authenticated users can create events
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can create events' AND tablename = 'events') THEN
-        CREATE POLICY "Authenticated users can create events" ON public.events FOR INSERT WITH CHECK (auth.uid() = created_by);
+        CREATE POLICY "Authenticated users can create events" ON public.events FOR INSERT
+          WITH CHECK (auth.uid() = user_id);
+    END IF;
+
+    -- Users can update their own events
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own events' AND tablename = 'events') THEN
+        CREATE POLICY "Users can update own events" ON public.events FOR UPDATE
+          USING (auth.uid() = user_id);
     END IF;
 END $$;
+
+-- Indexes for events
+CREATE INDEX IF NOT EXISTS idx_events_user_id ON public.events(user_id);
+CREATE INDEX IF NOT EXISTS idx_events_is_public_created_at ON public.events(is_public, created_at DESC) WHERE is_public = TRUE;
 
 -- Create media gallery table
 CREATE TABLE IF NOT EXISTS public.media_items (
@@ -119,19 +136,46 @@ END $$;
 -- Create projects table with skill tracking
 CREATE TABLE IF NOT EXISTS public.projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   start_date DATE NOT NULL,
   end_date DATE,
   status public.project_status NOT NULL DEFAULT 'pending',
-  skills_tracked JSONB DEFAULT '{}', -- {teamwork: 4, leadership: 3, problem_solving: 5}
+  skills_tracked JSONB DEFAULT '{}',
   media_id UUID REFERENCES public.media_items(id),
   verified BOOLEAN DEFAULT false,
-  collaborators UUID[], -- Array of profile IDs
+  collaborators UUID[],
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Add/debug owner_id column (renamed from legacy 'user_id')
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'projects' AND column_name = 'owner_id'
+    ) THEN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'projects' AND column_name = 'user_id'
+        ) THEN
+            ALTER TABLE public.projects RENAME COLUMN user_id TO owner_id;
+        ELSE
+            ALTER TABLE public.projects ADD COLUMN owner_id UUID;
+        END IF;
+    END IF;
+
+    -- Make NOT NULL and add FK if not already present
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.constraint_column_usage
+        WHERE table_name = 'projects' AND column_name = 'owner_id'
+    ) THEN
+        ALTER TABLE public.projects
+          ALTER COLUMN owner_id SET NOT NULL,
+          ADD CONSTRAINT projects_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 

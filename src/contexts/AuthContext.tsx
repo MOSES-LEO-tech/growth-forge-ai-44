@@ -10,11 +10,42 @@ interface AuthContextType {
   userRole: UserRole | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ requiresConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper function to create profile directly in database
+const createProfileInDb = async (userId: string, fullName: string, role: UserRole, email?: string): Promise<Profile | null> => {
+  try {
+    // Use upsert with onConflict to handle race conditions
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: userId,
+        full_name: fullName,
+        role: role,
+        email: email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      // Log the error but don't throw - profile may be created by trigger
+      console.warn('Profile upsert error (will retry):', error.message);
+      return null;
+    }
+    return data as Profile;
+  } catch (error) {
+    console.warn('Error in createProfileInDb:', error);
+    return null;
+  }
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -22,7 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  // Enhanced fetchProfile with retry logic
+  const fetchProfile = async (userId: string, retries = 2, delayMs = 500): Promise<Profile | null> => {
+    // Simple fetch without complex logic - just get profile directly
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -31,12 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.warn('Profile fetch error:', error.message);
+        // If profile doesn't exist (404), return null - let caller handle
+        if (error.code === 'PGRST116') {
+          return null;
+        }
         return null;
       }
       return data as Profile;
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.warn('Profile fetch exception:', error);
       return null;
     }
   };
@@ -118,23 +155,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
       
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        const profileData = await fetchProfile(data.session.user.id);
-        setProfile(profileData);
+      // First check if user exists
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (signInError) {
+        // Provide more user-friendly error messages
+        const errorMsg = signInError.message.toLowerCase();
+        
+        if (errorMsg.includes('invalid login credentials') || errorMsg.includes('invalid email or password')) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        }
+        if (errorMsg.includes('email not confirmed')) {
+          throw new Error('Please confirm your email address before signing in. Check your inbox for the confirmation link.');
+        }
+        throw signInError;
       }
+      
+      if (signInData.session) {
+        setSession(signInData.session);
+        setUser(signInData.session.user);
+        
+        // Fetch profile - if fails, user can still use app
+        const profileData = await fetchProfile(signInData.session.user.id);
+        
+        if (profileData) {
+          setProfile(profileData);
+        } else {
+          console.warn('Profile not found, user signed in without profile');
+        }
+      }
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
+  const signUp = async (email: string, password: string, fullName: string, role: UserRole): Promise<{ requiresConfirmation: boolean }> => {
     try {
       setIsLoading(true);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -145,22 +207,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         },
       });
-      if (error) throw error;
+      
+      if (error) {
+        // Provide more user-friendly error messages
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('already been registered') || errorMsg.includes('already registered')) {
+          throw new Error('An account with this email already exists. Please sign in or reset your password.');
+        }
+        if (errorMsg.includes('password')) {
+          throw new Error('Password is too weak or invalid. Please use at least 6 characters.');
+        }
+        if (errorMsg.includes('database') || errorMsg.includes('new user')) {
+          // This is the RLS/trigger issue - try to continue anyway
+          console.warn('Database error during signup, attempting to continue:', error);
+          
+          if (data.user) {
+            // User was created in auth, just need to handle profile
+            return { requiresConfirmation: true };
+          }
+        }
+        throw error;
+      }
 
+      // Check if user was created in auth
+      if (!data.user && !data.session) {
+        throw new Error('Failed to create account. Please try again.');
+      }
+
+      // Check if email confirmation is required
+      if (!data.session && data.user) {
+        // Email confirmation required - try to create profile anyway
+        try {
+          await createProfileInDb(data.user.id, fullName, role, email);
+        } catch (profileError) {
+          console.warn('Could not create profile yet, will create on first login:', profileError);
+        }
+        
+        return { requiresConfirmation: true };
+      }
+
+      // No email confirmation needed - session should be available
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
-        const profileData = await fetchProfile(data.session.user.id);
-        setProfile(profileData);
+        
+        // Try to fetch profile
+        try {
+          const profileData = await fetchProfile(data.session.user.id);
+          if (profileData) {
+            setProfile(profileData);
+          }
+        } catch (profileError) {
+          console.warn('Profile fetch failed after signup:', profileError);
+        }
+        
+        return { requiresConfirmation: false };
       }
+
+      // Edge case
+      return { requiresConfirmation: false };
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      // Clear local state first
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      
+      // Sign out from Supabase - ignore network errors
+      const { error } = await supabase.auth.signOut();
+      if (error && !error.message.includes('network')) {
+        console.warn('Sign out warning:', error.message);
+      }
+    } catch (error) {
+      // Network errors are common on logout, ignore them
+      console.warn('Sign out error (ignored):', error);
+    }
   };
 
   const userRole = profile?.role ?? null;

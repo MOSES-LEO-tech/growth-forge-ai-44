@@ -50,9 +50,9 @@ export const getTeacherAnalytics = async (teacherId: string) => {
     { data: recentProjects, error: recentProjectsError },
     { data: recentAchievements, error: recentAchievementsError }
   ] = await Promise.all([
-    supabase.from('projects').select('*', { count: 'exact', head: true }).in('user_id', studentIds).eq('status', 'pending'),
+    supabase.from('projects').select('*', { count: 'exact', head: true }).in('owner_id', studentIds).eq('status', 'pending'),
     supabase.from('achievements').select('*', { count: 'exact', head: true }).in('user_id', studentIds).eq('verified', false),
-    supabase.from('projects').select('id, title, created_at, user_id, profiles(full_name)').in('user_id', studentIds).order('created_at', { ascending: false }).limit(5),
+    supabase.from('projects').select('id, title, created_at, owner_id, profiles(full_name)').in('owner_id', studentIds).order('created_at', { ascending: false }).limit(5),
     supabase.from('achievements').select('id, title, created_at, user_id, profiles(full_name)').in('user_id', studentIds).order('created_at', { ascending: false }).limit(5)
   ]);
 
