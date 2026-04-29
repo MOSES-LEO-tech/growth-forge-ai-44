@@ -9,20 +9,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    // Proxy API requests to backend - prevents CORS and port mismatch issues
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-      },
-      // Proxy uploads to backend so images/videos are served correctly
-      '/uploads': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
     // Diagnostic: Enable detailed error logging
     hmr: {
       overlay: true,
@@ -50,16 +36,6 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
         runtimeCaching: [
-          {
-            urlPattern: ({ url }) =>
-              url.origin === "http://localhost:3000" && url.pathname.startsWith("/api/"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              networkTimeoutSeconds: 10,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-            },
-          },
           {
             urlPattern: ({ request }) => request.destination === "image",
             handler: "CacheFirst",
