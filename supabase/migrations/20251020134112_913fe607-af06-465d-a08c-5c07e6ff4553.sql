@@ -1,10 +1,19 @@
 -- Create enum types for roles and status
-CREATE TYPE public.user_role AS ENUM ('student', 'parent', 'teacher', 'admin');
-CREATE TYPE public.project_status AS ENUM ('pending', 'ongoing', 'complete');
-CREATE TYPE public.skill_type AS ENUM ('teamwork', 'leadership', 'problem_solving', 'creativity', 'communication', 'technical');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE public.user_role AS ENUM ('student', 'parent', 'teacher', 'admin');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'project_status') THEN
+        CREATE TYPE public.project_status AS ENUM ('pending', 'ongoing', 'complete');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'skill_type') THEN
+        CREATE TYPE public.skill_type AS ENUM ('teamwork', 'leadership', 'problem_solving', 'creativity', 'communication', 'technical');
+    END IF;
+END $$;
 
 -- Create profiles table with role and age-based personalization
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role public.user_role NOT NULL DEFAULT 'student',
   full_name TEXT NOT NULL,
@@ -21,20 +30,21 @@ CREATE TABLE public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
-CREATE POLICY "Users can view their own profile"
-  ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can update their own profile"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert their own profile"
-  ON public.profiles FOR INSERT
-  WITH CHECK (auth.uid() = id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view their own profile' AND tablename = 'profiles') THEN
+        CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update their own profile' AND tablename = 'profiles') THEN
+        CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert their own profile' AND tablename = 'profiles') THEN
+        CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+    END IF;
+END $$;
 
 -- Create parent-student relationships table
-CREATE TABLE public.parent_student_relationships (
+CREATE TABLE IF NOT EXISTS public.parent_student_relationships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   parent_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -45,16 +55,18 @@ CREATE TABLE public.parent_student_relationships (
 
 ALTER TABLE public.parent_student_relationships ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Parents can view their relationships"
-  ON public.parent_student_relationships FOR SELECT
-  USING (auth.uid() = parent_id);
-
-CREATE POLICY "Students can view their parent relationships"
-  ON public.parent_student_relationships FOR SELECT
-  USING (auth.uid() = student_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Parents can view their relationships' AND tablename = 'parent_student_relationships') THEN
+        CREATE POLICY "Parents can view their relationships" ON public.parent_student_relationships FOR SELECT USING (auth.uid() = parent_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Students can view their parent relationships' AND tablename = 'parent_student_relationships') THEN
+        CREATE POLICY "Students can view their parent relationships" ON public.parent_student_relationships FOR SELECT USING (auth.uid() = student_id);
+    END IF;
+END $$;
 
 -- Create events table
-CREATE TABLE public.events (
+CREATE TABLE IF NOT EXISTS public.events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
@@ -68,16 +80,18 @@ CREATE TABLE public.events (
 
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view verified events"
-  ON public.events FOR SELECT
-  USING (verified = true OR auth.uid() = created_by);
-
-CREATE POLICY "Authenticated users can create events"
-  ON public.events FOR INSERT
-  WITH CHECK (auth.uid() = created_by);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view verified events' AND tablename = 'events') THEN
+        CREATE POLICY "Anyone can view verified events" ON public.events FOR SELECT USING (verified = true OR auth.uid() = created_by);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can create events' AND tablename = 'events') THEN
+        CREATE POLICY "Authenticated users can create events" ON public.events FOR INSERT WITH CHECK (auth.uid() = created_by);
+    END IF;
+END $$;
 
 -- Create media gallery table
-CREATE TABLE public.media_items (
+CREATE TABLE IF NOT EXISTS public.media_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -92,16 +106,18 @@ CREATE TABLE public.media_items (
 
 ALTER TABLE public.media_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view verified media"
-  ON public.media_items FOR SELECT
-  USING (verified = true OR auth.uid() = uploaded_by);
-
-CREATE POLICY "Authenticated users can upload media"
-  ON public.media_items FOR INSERT
-  WITH CHECK (auth.uid() = uploaded_by);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view verified media' AND tablename = 'media_items') THEN
+        CREATE POLICY "Anyone can view verified media" ON public.media_items FOR SELECT USING (verified = true OR auth.uid() = uploaded_by);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can upload media' AND tablename = 'media_items') THEN
+        CREATE POLICY "Authenticated users can upload media" ON public.media_items FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
+    END IF;
+END $$;
 
 -- Create projects table with skill tracking
-CREATE TABLE public.projects (
+CREATE TABLE IF NOT EXISTS public.projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -119,20 +135,21 @@ CREATE TABLE public.projects (
 
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own projects"
-  ON public.projects FOR SELECT
-  USING (auth.uid() = owner_id OR auth.uid() = ANY(collaborators));
-
-CREATE POLICY "Users can create their own projects"
-  ON public.projects FOR INSERT
-  WITH CHECK (auth.uid() = owner_id);
-
-CREATE POLICY "Users can update their own projects"
-  ON public.projects FOR UPDATE
-  USING (auth.uid() = owner_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view their own projects' AND tablename = 'projects') THEN
+        CREATE POLICY "Users can view their own projects" ON public.projects FOR SELECT USING (auth.uid() = owner_id OR auth.uid() = ANY(collaborators));
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can create their own projects' AND tablename = 'projects') THEN
+        CREATE POLICY "Users can create their own projects" ON public.projects FOR INSERT WITH CHECK (auth.uid() = owner_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update their own projects' AND tablename = 'projects') THEN
+        CREATE POLICY "Users can update their own projects" ON public.projects FOR UPDATE USING (auth.uid() = owner_id);
+    END IF;
+END $$;
 
 -- Create achievements table
-CREATE TABLE public.achievements (
+CREATE TABLE IF NOT EXISTS public.achievements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -147,22 +164,24 @@ CREATE TABLE public.achievements (
 
 ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own achievements"
-  ON public.achievements FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Parents can view their children's achievements"
-  ON public.achievements FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.parent_student_relationships
-      WHERE parent_id = auth.uid() AND student_id = achievements.user_id
-    )
-  );
-
-CREATE POLICY "Users can create their own achievements"
-  ON public.achievements FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view their own achievements' AND tablename = 'achievements') THEN
+        CREATE POLICY "Users can view their own achievements" ON public.achievements FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Parents can view their children''s achievements' AND tablename = 'achievements') THEN
+        CREATE POLICY "Parents can view their children's achievements" ON public.achievements FOR SELECT
+          USING (
+            EXISTS (
+              SELECT 1 FROM public.parent_student_relationships
+              WHERE parent_id = auth.uid() AND student_id = achievements.user_id
+            )
+          );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can create their own achievements' AND tablename = 'achievements') THEN
+        CREATE POLICY "Users can create their own achievements" ON public.achievements FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
 
 -- Create function to handle new user profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -177,12 +196,20 @@ BEGIN
     new.id,
     COALESCE(new.raw_user_meta_data->>'full_name', 'User'),
     COALESCE((new.raw_user_meta_data->>'role')::public.user_role, 'student')
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$;
 
 -- Trigger to create profile on user signup
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created') THEN
+        DROP TRIGGER on_auth_user_created ON auth.users;
+    END IF;
+END $$;
+
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -200,17 +227,15 @@ END;
 $$;
 
 -- Add triggers for updated_at
-CREATE TRIGGER set_profiles_updated_at
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
-CREATE TRIGGER set_events_updated_at
-  BEFORE UPDATE ON public.events
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
-CREATE TRIGGER set_projects_updated_at
-  BEFORE UPDATE ON public.projects
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_profiles_updated_at') THEN
+        CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_events_updated_at') THEN
+        CREATE TRIGGER set_events_updated_at BEFORE UPDATE ON public.events FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_projects_updated_at') THEN
+        CREATE TRIGGER set_projects_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+    END IF;
+END $$;
