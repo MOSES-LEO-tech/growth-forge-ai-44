@@ -13,10 +13,12 @@ import ProjectCard from "@/components/ProjectCard";
 // Duplicate imports removed
 import { useInView } from "@/hooks/useInView";
 import { useToast } from "@/hooks/use-toast";
+import AddProjectModal from "@/components/AddProjectModal";
 
 const Projects = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const { ref: heroRef, isInView: heroInView } = useInView({ threshold: 0.2 });
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
   const { toast } = useToast();
@@ -79,11 +81,19 @@ const Projects = () => {
                   className="pl-12 pr-4 py-6 text-lg"
                 />
               </div>
-              <Button size="lg" className="gap-2">
+              <Button size="lg" className="gap-2" onClick={() => setCreateOpen(true)} disabled={!user}>
                 <Plus className="w-5 h-5" />
                 New Project
               </Button>
             </div>
+
+            {user && (
+              <AddProjectModal
+                userId={user.id}
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+              />
+            )}
 
             {/* Tabs */}
             <Tabs defaultValue="all" className="w-full">

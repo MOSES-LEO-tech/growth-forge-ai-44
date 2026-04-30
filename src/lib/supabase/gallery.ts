@@ -1,89 +1,178 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { GalleryEvent, GalleryMedia } from '@/integrations/supabase/types';
 
-export const getGalleryEvents = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('gallery_events')
-    .select('*')
-    .eq('user_id', userId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+const EVENT_TABLES = ['gallery_events', 'events'] as const;
 
-  if (error) throw error;
-  return data as GalleryEvent[];
+type EventTable = (typeof EVENT_TABLES)[number];
+
+type EventRow = GalleryEvent & {
+  gallery_media?: GalleryMedia[];
+  media?: GalleryMedia[];
+  media_count?: number;
+  media_type?: 'image' | 'video' | 'document';
+  media_url?: string;
+  thumbnail_url?: string;
+  visibility?: 'private' | 'public' | 'parents';
+};
+
+const isSchemaError = (error: any) => {
+  const message = String(error?.message || '').toLowerCase();
+  return error?.code === '42P01' || message.includes('schema cache') || message.includes('does not exist');
+};
+
+const queryEvents = async (
+  build: (table: EventTable) => any,
+  allowMissingDeletedAt = false
+) => {
+  let lastError: any;
+
+  for (const table of EVENT_TABLES) {
+    const { data, error } = await build(table);
+
+    if (!error) {
+      return { data: data || [], table };
+    }
+
+    lastError = error;
+
+    if (allowMissingDeletedAt && String(error.message || '').includes('deleted_at')) {
+      const { data: fallbackData, error: fallbackError } = await build(table).throwOnError?.() ?? { data: null, error };
+      if (!fallbackError) {
+        return { data: fallbackData || [], table };
+      }
+      lastError = fallbackError;
+    }
+
+    if (!isSchemaError(error)) {
+      throw error;
+    }
+  }
+
+  throw lastError;
+};
+
+const withActiveFilter = (query: any) => query.is('deleted_at', null);
+
+const getMediaForEvents = async (eventIds: string[]) => {
+  if (eventIds.length === 0) return new Map<string, GalleryMedia[]>();
+
+  const { data, error } = await (supabase as any)
+    .from('gallery_media')
+    .select('*')
+    .in('event_id', eventIds)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).reduce((map: Map<string, GalleryMedia[]>, media: GalleryMedia) => {
+    if (!media.event_id) return map;
+    const list = map.get(media.event_id) || [];
+    list.push(media);
+    map.set(media.event_id, list);
+    return map;
+  }, new Map<string, GalleryMedia[]>());
+};
+
+const normalizeEvents = async (events: GalleryEvent[]) => {
+  const mediaByEventId = await getMediaForEvents(events.map((event) => event.id));
+
+  return events.map((event) => {
+    const media = mediaByEventId.get(event.id) || [];
+    const primary = media[0];
+
+    return {
+      ...event,
+      gallery_media: media,
+      media,
+      media_count: media.length,
+      media_type: (primary?.type || 'image') as EventRow['media_type'],
+      media_url: primary?.url || '',
+      thumbnail_url: primary?.url || undefined,
+      visibility: event.is_public ? 'public' : 'private',
+    };
+  }) as EventRow[];
+};
+
+export const getGalleryEvents = async (userId: string) => {
+  const { data } = await queryEvents((table) =>
+    withActiveFilter((supabase as any).from(table).select('*').eq('user_id', userId))
+      .order('created_at', { ascending: false })
+  );
+
+  return normalizeEvents(data as GalleryEvent[]);
 };
 
 export const getPublicEvents = async () => {
-  const { data, error } = await supabase
-    .from('gallery_events')
-    .select('*')
-    .eq('is_public', true)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+  const { data } = await queryEvents((table) =>
+    withActiveFilter((supabase as any).from(table).select('*').eq('is_public', true))
+      .order('created_at', { ascending: false })
+  );
 
-  if (error) throw error;
-  return data as GalleryEvent[];
+  return normalizeEvents(data as GalleryEvent[]);
 };
 
 export const createEvent = async (data: Partial<GalleryEvent>) => {
-  const { data: event, error } = await supabase
-    .from('gallery_events')
-    .insert(data)
-    .select()
-    .single();
+  const { data: event } = await queryEvents((table) =>
+    (supabase as any)
+      .from(table)
+      .insert(data)
+      .select()
+      .single()
+  );
 
-  if (error) throw error;
   return event as GalleryEvent;
 };
 
 export const deleteEvent = async (id: string) => {
-  const { error } = await supabase
-    .from('gallery_events')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (error) throw error;
+  await queryEvents((table) =>
+    (supabase as any)
+      .from(table)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+  );
 };
 
 export const updateEvent = async (id: string, data: Partial<GalleryEvent>) => {
-  const { data: event, error } = await supabase
-    .from('gallery_events')
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
+  const { data: event } = await queryEvents((table) =>
+    (supabase as any)
+      .from(table)
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+  );
 
-  if (error) throw error;
   return event as GalleryEvent;
 };
 
 export const getAllEvents = async () => {
-  const { data, error } = await supabase
-    .from('gallery_events')
-    .select('*, gallery_media(url)')
-    .is('deleted_at', null)
-    .order('event_date', { ascending: false });
+  const { data } = await queryEvents((table) =>
+    withActiveFilter((supabase as any).from(table).select('*'))
+      .order('event_date', { ascending: false })
+  );
 
-  if (error) throw error;
-  return data.map(event => ({
-    ...event,
-    media_count: (event.gallery_media as any)?.length || 0,
-    thumbnail_url: (event.gallery_media as any)?.[0]?.url
-  }));
+  return normalizeEvents(data as GalleryEvent[]);
 };
 
 export const getEventDetails = async (id: string) => {
-  const { data, error } = await supabase
-    .from('gallery_events')
-    .select('*, gallery_media(*), profiles(full_name, schools(name))')
-    .eq('id', id)
-    .single();
+  const { data } = await queryEvents((table) =>
+    (supabase as any)
+      .from(table)
+      .select('*, profiles(full_name, schools(name))')
+      .eq('id', id)
+      .single()
+  );
 
-  if (error) throw error;
+  const normalized = await normalizeEvents([data as GalleryEvent]);
+  const event = normalized[0] as EventRow & { profiles?: any };
+
   return {
-    ...data,
-    school_name: (data.profiles as any)?.schools?.name || 'No school',
-    media: data.gallery_media
+    ...event,
+    school_name: event.profiles?.schools?.name || 'No school',
+    media: event.media || [],
   };
 };
 
@@ -93,24 +182,23 @@ export const uploadMedia = async (eventId: string, file: File) => {
 
   const fileExt = file.name.split('.').pop();
   const fileName = `${user.id}/${eventId}/${Math.random()}.${fileExt}`;
-  const filePath = `${fileName}`;
 
   const { error: uploadError } = await supabase.storage
-    .from('portfolio-media')
-    .upload(filePath, file);
+    .from('gallery-media')
+    .upload(fileName, file, { upsert: false });
 
   if (uploadError) throw uploadError;
 
   const { data: { publicUrl } } = supabase.storage
-    .from('portfolio-media')
-    .getPublicUrl(filePath);
+    .from('gallery-media')
+    .getPublicUrl(fileName);
 
-  const { data: media, error: dbError } = await supabase
+  const { data: media, error: dbError } = await (supabase as any)
     .from('gallery_media')
     .insert({
       event_id: eventId,
       url: publicUrl,
-      type: file.type.startsWith('video') ? 'video' : 'image'
+      type: file.type.startsWith('video') ? 'video' : file.type === 'application/pdf' ? 'document' : 'image'
     })
     .select()
     .single();

@@ -32,6 +32,7 @@ const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
 const SchoolGallery = lazy(() => import("./pages/SchoolGallery"));
 const Achievements = lazy(() => import("./pages/Achievements"));
 const SmartBuddy = lazy(() => import("./pages/SmartBuddy"));
+const StudentQaSeed = lazy(() => import("./pages/StudentQaSeed"));
 
 const PageLoader = () => (
   <div className="h-screen w-screen flex items-center justify-center bg-slate-50/50">
@@ -84,6 +85,7 @@ const App = () => (
                     <Route path="/school/gallery" element={<SchoolGallery />} />
                     <Route path="/school/gallery/:id" element={<EventGallery />} />
                     <Route path="/gallery/personal" element={<StudentGallery />} />
+                    <Route path="/qa/student-seed" element={<StudentQaSeed />} />
                   </Route>
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

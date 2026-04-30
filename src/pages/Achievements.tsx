@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAchievements, createAchievement, verifyAchievement } from '@/lib/supabase/achievements';
 import { supabase } from '@/integrations/supabase/client';

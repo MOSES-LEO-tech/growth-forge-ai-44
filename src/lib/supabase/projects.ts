@@ -2,15 +2,36 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/integrations/supabase/types';
 
 export const getProjects = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('user_id', userId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+  const attempts = [
+    { ownerColumn: 'owner_id', includeDeletedFilter: true },
+    { ownerColumn: 'owner_id', includeDeletedFilter: false },
+    { ownerColumn: 'user_id', includeDeletedFilter: true },
+    { ownerColumn: 'user_id', includeDeletedFilter: false },
+  ];
 
-  if (error) throw error;
-  return data as Project[];
+  let lastError: unknown;
+
+  for (const attempt of attempts) {
+    let query = (supabase as any)
+      .from('projects')
+      .select('*')
+      .eq(attempt.ownerColumn, userId)
+      .order('created_at', { ascending: false });
+
+    if (attempt.includeDeletedFilter) {
+      query = query.is('deleted_at', null);
+    }
+
+    const { data, error } = await query;
+
+    if (!error) {
+      return data as Project[];
+    }
+
+    lastError = error;
+  }
+
+  throw lastError;
 };
 
 export const createProject = async (data: Partial<Project>) => {
@@ -37,11 +58,10 @@ export const updateProject = async (id: string, data: Partial<Project>) => {
 };
 
 export const getPendingProjects = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('projects')
     .select('*, profiles(full_name)')
     .eq('status', 'pending')
-    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -61,17 +81,36 @@ export const verifyProject = async (id: string) => {
 };
 
 export const getProjectDetails = async (id: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('projects')
     .select('*, comments(*, profiles(full_name, avatar_url))')
     .eq('id', id)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    const { data: fallbackData, error: fallbackError } = await (supabase as any)
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fallbackError) throw fallbackError;
+
+    return {
+      ...fallbackData,
+      feedback: [],
+      media: (fallbackData.media_urls || []).map((url: string, idx: number) => ({
+        id: idx,
+        media_url: url,
+        media_type: url.endsWith('.pdf') ? 'pdf' : url.match(/\.(mp4|webm|ogg|mov)$/i) ? 'video' : 'image',
+        file_name: `File ${idx + 1}`
+      }))
+    };
+  }
 
   return {
     ...data,
-    feedback: (data.comments || []).map(c => ({
+    feedback: (data.comments || []).map((c: any) => ({
       id: c.id,
       reviewer_name: (c.profiles as any)?.full_name || 'Unknown',
       reviewer_avatar: (c.profiles as any)?.avatar_url,

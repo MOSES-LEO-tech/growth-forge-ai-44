@@ -1,342 +1,303 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { supabase, getCurrentUser } from '@/integrations/supabase/client';
+import type { User, Session, AuthToken } from '@supabase/supabase-js';
 import type { Profile, UserRole } from '@/integrations/supabase/types';
 
-interface AuthContextType {
+interface AuthState {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   userRole: UserRole | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  isAuthenticated: boolean;
+}
+
+interface AuthContextType extends AuthState {
+  signIn: (email: string, password: string) => Promise<{ needsProfileCompletion: boolean }>;
   signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ requiresConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  hasPermission: (requiredRole: UserRole | UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to create profile directly in database
-const createProfileInDb = async (userId: string, fullName: string, role: UserRole, email?: string): Promise<Profile | null> => {
+const ROLE_HIERARCHY: Record<UserRole, number> = {
+  student: 0,
+  parent: 1,
+  teacher: 2,
+  admin: 3,
+  super_admin: 4,
+};
+
+const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
-    // Use insert directly (not upsert) since profile shouldn't exist yet
     const { data, error } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        full_name: fullName,
-        role: role,
-        email: email
-      })
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      console.warn('Profile fetch error:', error.message);
+      return null;
+    }
+    return data as Profile;
+  } catch (error) {
+    console.warn('Profile fetch exception:', error);
+    return null;
+  }
+};
+
+const ensureProfile = async (userId: string, email?: string): Promise<Profile | null> => {
+  let profileData = await fetchProfile(userId);
+  
+  if (!profileData) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({ id: userId, email, role: 'student' })
       .select()
       .single();
 
     if (error) {
       console.warn('Profile insert error:', error.message);
-      // Try upsert as fallback
-      return upsertProfile(userId, fullName, role, email);
+      const { data: upsertData } = await supabase
+        .from('profiles')
+        .upsert({ id: userId, email, role: 'student' }, { onConflict: 'id' })
+        .select()
+        .single();
+      return upsertData as Profile | null;
     }
-    return data as Profile;
-  } catch (error) {
-    console.warn('Error in createProfileInDb:', error);
-    return upsertProfile(userId, fullName, role, email);
+    profileData = data as Profile | null;
   }
-};
-
-// Fallback upsert function
-const upsertProfile = async (userId: string, fullName: string, role: UserRole, email?: string): Promise<Profile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: userId,
-        full_name: fullName,
-        role: role,
-        email: email
-      }, { onConflict: 'id' })
-      .select()
-      .single();
-
-    if (error) {
-      console.warn('Profile upsert error:', error.message);
-      // Last resort - just return with basic data
-      return { id: userId, full_name: fullName, role: role, email: email || null } as Profile;
-    }
-    return data as Profile;
-  } catch (error) {
-    console.warn('Error in upsertProfile:', error);
-    // Return basic profile object as last resort
-    return { id: userId, full_name: fullName, role: role, email: email || null } as Profile;
-  }
+  
+  return profileData;
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    session: null,
+    profile: null,
+    userRole: null,
+    isLoading: true,
+    isAuthenticated: false,
+  });
 
-  // Enhanced fetchProfile with retry logic
-  const fetchProfile = async (userId: string, retries = 2, delayMs = 500): Promise<Profile | null> => {
-    // Simple fetch without complex logic - just get profile directly
+  const updateState = useCallback((updates: Partial<AuthState>) => {
+    setState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const initializeAuth = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
       if (error) {
-        console.warn('Profile fetch error:', error.message);
-        // If profile doesn't exist (404), return null - let caller handle
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        return null;
+        console.warn('Session error:', error.message);
+        updateState({ isLoading: false });
+        return;
       }
-      return data as Profile;
+
+      if (session?.user) {
+        const profileData = await fetchProfile(session.user.id);
+        updateState({
+          user: session.user,
+          session,
+          profile: profileData,
+          userRole: profileData?.role ?? null,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } else {
+        updateState({ isLoading: false });
+      }
     } catch (error) {
-      console.warn('Profile fetch exception:', error);
-      return null;
+      console.error('Auth init error:', error);
+      updateState({ isLoading: false });
     }
-  };
+  }, [updateState]);
 
   useEffect(() => {
     let mounted = true;
-    let hasTimedOut = false;
+    let authTimeout: ReturnType<typeof setTimeout>;
 
-    // Safety timeout: if auth doesn't initialize within 10s, proceed anyway
-    const timeoutId = setTimeout(() => {
-      if (mounted && !hasTimedOut) {
-        console.warn("Auth initialization timed out, proceeding with current state");
-        hasTimedOut = true;
-        setIsLoading(false);
-      }
-    }, 10000);
-
-    // Initial session check
-    const initAuth = async () => {
-      try {
-        console.log("Initializing auth...");
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error("Error getting initial session:", sessionError);
-          if (mounted) {
-            setIsLoading(false);
-            hasTimedOut = true;
-          }
-          return;
-        }
-
+    const init = async () => {
+      authTimeout = setTimeout(() => {
         if (mounted) {
-          setSession(initialSession);
-          setUser(initialSession?.user ?? null);
+          console.warn('Auth init timeout');
+          updateState({ isLoading: false });
         }
-
-        if (initialSession?.user) {
-          const profileData = await fetchProfile(initialSession.user.id);
-          if (mounted) setProfile(profileData);
-        }
-      } catch (error) {
-        console.error('Error in initAuth:', error);
-      } finally {
-        if (mounted) {
-          clearTimeout(timeoutId);
-          setIsLoading(false);
-          hasTimedOut = true;
-        }
-      }
+      }, 8000);
+      await initializeAuth();
+      clearTimeout(authTimeout);
     };
 
-    initAuth();
+    init();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("Auth state changed:", event, !!currentSession);
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      if (event === 'SIGNED_OUT') {
+        updateState({
+          user: null,
+          session: null,
+          profile: null,
+          userRole: null,
+          isAuthenticated: false,
+        });
+        return;
+      }
 
-      if (currentSession?.user) {
-        const profileData = await fetchProfile(currentSession.user.id);
-        if (mounted) setProfile(profileData);
-      } else {
-        if (mounted) setProfile(null);
+      if (session?.user) {
+        const profileData = await fetchProfile(session.user.id);
+        updateState({
+          user: session.user,
+          session,
+          profile: profileData,
+          userRole: profileData?.role ?? null,
+          isAuthenticated: true,
+        });
       }
     });
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initializeAuth, updateState]);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      
-      // First check if user exists
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (signInError) {
-        // Provide more user-friendly error messages
-        const errorMsg = signInError.message.toLowerCase();
-        
-        if (errorMsg.includes('invalid login credentials') || errorMsg.includes('invalid email or password')) {
-          throw new Error('Invalid email or password. Please check your credentials and try again.');
-        }
-        if (errorMsg.includes('email not confirmed')) {
-          throw new Error('Please confirm your email address before signing in. Check your inbox for the confirmation link.');
-        }
-        throw signInError;
+    updateState(s => ({ ...s, isLoading: true }));
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      updateState(s => ({ ...s, isLoading: false }));
+      const msg = error.message.toLowerCase();
+      if (msg.includes('invalid') || msg.includes('email or password')) {
+        throw new Error('Invalid email or password');
       }
-      
-      if (signInData.session) {
-        setSession(signInData.session);
-        setUser(signInData.session.user);
-        
-        // Fetch profile
-        let profileData = await fetchProfile(signInData.session.user.id);
-        
-        // If profile doesn't exist, create one
-        if (!profileData) {
-          console.log('Creating missing profile after sign in...');
-          profileData = await createProfileInDb(signInData.session.user.id, 'User', 'student', email);
-        }
-        
-        if (profileData) {
-          setProfile(profileData);
-        } else {
-          console.warn('Profile not found, user signed in without profile');
-        }
+      if (msg.includes('email not confirmed')) {
+        throw new Error('Please confirm your email first');
       }
-    } catch (error: any) {
-      console.error('Sign in error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
+
+    if (data.session) {
+      let profileData = await fetchProfile(data.session.user.id);
+      const needsProfileCompletion = !profileData;
+      
+      if (needsProfileCompletion && data.session.user.email) {
+        profileData = await ensureProfile(data.session.user.id, data.session.user.email);
+      }
+
+      updateState({
+        user: data.session.user,
+        session: data.session,
+        profile: profileData,
+        userRole: profileData?.role ?? null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      return { needsProfileCompletion };
+    }
+
+    updateState(s => ({ ...s, isLoading: false }));
+    throw new Error('Sign in failed');
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: UserRole): Promise<{ requiresConfirmation: boolean }> => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: role,
-          },
-        },
-      });
-      
-      if (error) {
-        // Provide more user-friendly error messages
-        const errorMsg = error.message.toLowerCase();
-        
-        if (errorMsg.includes('already been registered') || errorMsg.includes('already registered')) {
-          throw new Error('An account with this email already exists. Please sign in or reset your password.');
-        }
-        if (errorMsg.includes('password')) {
-          throw new Error('Password is too weak or invalid. Please use at least 6 characters.');
-        }
-        if (errorMsg.includes('database') || errorMsg.includes('new user')) {
-          // This is the RLS/trigger issue - try to continue anyway
-          console.warn('Database error during signup, attempting to continue:', error);
-          
-          if (data.user) {
-            // User was created in auth, just need to handle profile
-            return { requiresConfirmation: true };
-          }
-        }
-        throw error;
-      }
+  const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
+    updateState(s => ({ ...s, isLoading: true }));
 
-      // Check if user was created in auth
-      if (!data.user && !data.session) {
-        throw new Error('Failed to create account. Please try again.');
-      }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName, role } },
+    });
 
-      // Check if email confirmation is required
-      if (!data.session && data.user) {
-        // Email confirmation required - try to create profile anyway
-        try {
-          await createProfileInDb(data.user.id, fullName, role, email);
-        } catch (profileError) {
-          console.warn('Could not create profile yet, will create on first login:', profileError);
-        }
-        
-        return { requiresConfirmation: true };
+    if (error) {
+      updateState(s => ({ ...s, isLoading: false }));
+      const msg = error.message.toLowerCase();
+      if (msg.includes('already registered')) {
+        throw new Error('Account already exists');
       }
-
-      // No email confirmation needed - session should be available
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        
-        // Try to fetch or create profile
-        let profileData = await fetchProfile(data.session.user.id);
-        
-        // If profile doesn't exist, create one
-        if (!profileData) {
-          console.log('Creating missing profile after signup...');
-          profileData = await createProfileInDb(data.session.user.id, fullName, role, email);
-        }
-        
-        if (profileData) {
-          setProfile(profileData);
-        }
-        
-        return { requiresConfirmation: false };
+      if (msg.includes('password')) {
+        throw new Error('Password too weak');
       }
-
-      // Edge case
-      return { requiresConfirmation: false };
-    } catch (error: any) {
-      console.error('Sign up error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
+
+    if (!data.user && !data.session) {
+      updateState(s => ({ ...s, isLoading: false }));
+      throw new Error('Sign up failed');
+    }
+
+    updateState(s => ({ ...s, isLoading: false }));
+
+    if (!data.session && data.user) {
+      if (data.user.email) {
+        await ensureProfile(data.user.id, data.user.email);
+      }
+      return { requiresConfirmation: true };
+    }
+
+    if (data.session) {
+      let profileData = await fetchProfile(data.session.user.id);
+      if (!profileData) {
+        profileData = await ensureProfile(data.session.user.id, data.session.user.email);
+      }
+      updateState({
+        user: data.session.user,
+        session: data.session,
+        profile: profileData,
+        userRole: profileData?.role ?? null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    }
+
+    return { requiresConfirmation: false };
   };
 
   const signOut = async () => {
-    try {
-      // Clear local state first
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      
-      // Sign out from Supabase - ignore network errors
-      const { error } = await supabase.auth.signOut();
-      if (error && !error.message.includes('network')) {
-        console.warn('Sign out warning:', error.message);
-      }
-    } catch (error) {
-      // Network errors are common on logout, ignore them
-      console.warn('Sign out error (ignored):', error);
-    }
+    updateState(s => ({ ...s, isLoading: true }));
+    
+    await supabase.auth.signOut();
+    
+    updateState({
+      user: null,
+      session: null,
+      profile: null,
+      userRole: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
   };
 
-  const userRole = profile?.role ?? null;
+  const refreshProfile = async () => {
+    if (!state.user) return;
+    const profileData = await fetchProfile(state.user.id);
+    updateState({ profile: profileData, userRole: profileData?.role ?? null });
+  };
+
+  const hasPermission = useCallback((requiredRole: UserRole | UserRole[]): boolean => {
+    if (!state.userRole) return false;
+    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    const userLevel = ROLE_HIERARCHY[state.userRole];
+    return roles.some(role => ROLE_HIERARCHY[role] <= userLevel);
+  }, [state.userRole]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      profile, 
-      userRole, 
-      isLoading, 
-      signIn, 
-      signUp, 
-      signOut 
+    <AuthContext.Provider value={{
+      ...state,
+      signIn,
+      signUp,
+      signOut,
+      refreshProfile,
+      hasPermission,
     }}>
       {children}
     </AuthContext.Provider>
@@ -346,9 +307,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
 }
 
-
+export type { UserRole };

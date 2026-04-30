@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProjectDetails, verifyProject, uploadProjectMedia } from '@/lib/supabase/projects';
 import { postProjectComment } from '@/lib/supabase/parent';
@@ -218,7 +220,7 @@ const ProjectDetails = () => {
                             <div>
                                 <Label className="text-xs text-muted-foreground uppercase">Date</Label>
                                 <div className="font-medium">
-                                    {new Date(project.start_date).toLocaleDateString()}
+                                    {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'No start date'}
                                     {project.end_date ? ` - ${new Date(project.end_date).toLocaleDateString()}` : ' - Present'}
                                 </div>
                             </div>

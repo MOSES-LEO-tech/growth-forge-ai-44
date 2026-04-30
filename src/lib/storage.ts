@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const BUCKET_NAME = 'portfolio-media';
+const BUCKET_NAME = 'project-media';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   'image/jpeg', 

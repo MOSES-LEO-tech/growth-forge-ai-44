@@ -9,6 +9,7 @@ import { ImagePlus, Loader2 } from "lucide-react";
 import { createEvent, uploadMedia } from "@/lib/supabase/gallery";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { FileUpload } from "@/components/FileUpload";
 
 interface AddGalleryModalProps {
   userId: string;
