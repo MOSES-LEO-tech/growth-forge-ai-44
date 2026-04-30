@@ -33,8 +33,8 @@ const Contact = () => {
       answer: "Click 'Get Started' on the homepage, choose your role (Student, Parent, Teacher, or Admin), and fill in your details. School admins can verify your account."
     },
     {
-      question: "Is MILESTONE free to use?",
-      answer: "MILESTONE offers a free tier with essential features. Premium features for advanced analytics and unlimited storage are available through our subscription plans."
+      question: "Is Milestone Studio free to use?",
+      answer: "Milestone Studio offers a free tier with essential features. Premium features for advanced analytics and unlimited storage are available through our subscription plans."
     },
     {
       question: "How does achievement verification work?",
@@ -58,9 +58,8 @@ const Contact = () => {
               titleInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             }`}
           >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Get in <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Touch</span>
-            </h1>
+            <p className="editorial-kicker mb-3">Contact</p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Get in Touch</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               We'd love to hear from you. Reach out with questions, feedback, or partnership inquiries.
             </p>

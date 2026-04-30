@@ -9,6 +9,7 @@ import { GrowthAnalyticsWidget } from "@/components/widgets/GrowthAnalyticsWidge
 import { ProfileOverviewWidget } from "@/components/widgets/ProfileOverviewWidget";
 import { useSearchParams } from "react-router-dom";
 import { useDashboard } from "@/contexts/DashboardContext";
+import { BookOpenCheck } from "lucide-react";
 
 const StudentDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
@@ -29,36 +30,49 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]">
+      <section className="dashboard-hero flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <p className="editorial-kicker mb-2">Student workspace</p>
+          <h1 className="text-3xl md:text-4xl">Welcome back, {profile.full_name}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Keep achievements, projects, media, scholarships, and recommendations in one polished portfolio.
+          </p>
+        </div>
+        <div className="flat-icon h-12 w-12 shrink-0">
+          <BookOpenCheck className="h-6 w-6" />
+        </div>
+      </section>
+
+      <div className="dashboard-grid auto-rows-[minmax(190px,auto)]">
         {/* Row 1: Profile & Analytics */}
         <ProfileOverviewWidget
-          className="md:col-span-1 lg:col-span-1"
+          className="md:col-span-1 xl:col-span-1"
           profile={profile}
           defaultExpanded={activeWidget === 'profile'}
         />
 
         <GrowthAnalyticsWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           userId={profile.id}
           defaultExpanded={activeWidget === 'analytics'}
         />
 
-        {/* Row 2: Achievements & AI Buddy */}
+        {/* Row 2: Achievements & Smart Buddy */}
         <AchievementsWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'achievements' || achievementModalOpen}
           openAddExternal={achievementModalOpen}
           onOpenAddChange={(open) => { if (!open) closeAchievementModal(); }}
         />
 
         <SmartBuddyWidget
-          className="md:col-span-2 lg:col-span-2 row-span-2"
+          className="md:col-span-2 xl:col-span-2 row-span-2"
           defaultExpanded={activeWidget === 'buddy'}
         />
 
         {/* Row 3: Main Content Areas */}
         <ProjectsWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'projects' || projectModalOpen}
           userId={profile.id}
           openAddExternal={projectModalOpen}
@@ -67,19 +81,19 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
 
         {/* Row 4: Gallery & Discovery */}
         <GalleryWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'gallery' || eventModalOpen}
           openUploadExternal={eventModalOpen}
           onOpenUploadChange={(open) => { if (!open) closeEventModal(); }}
         />
 
         <ScholarshipsWidget
-          className="md:col-span-1 lg:col-span-1"
+          className="md:col-span-1 xl:col-span-1"
           defaultExpanded={activeWidget === 'scholarships'}
         />
 
         <RecommendationsWidget
-          className="md:col-span-1 lg:col-span-1"
+          className="md:col-span-1 xl:col-span-1"
           defaultExpanded={activeWidget === 'recommendations'}
         />
       </div>

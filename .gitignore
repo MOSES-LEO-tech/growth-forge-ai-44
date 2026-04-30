@@ -18,7 +18,6 @@ src/assets/*.png
 
 # Test results
 test-results/
-tests/
 
 # Supabase / Local Data
 uploads/

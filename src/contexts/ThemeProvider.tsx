@@ -106,12 +106,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--accent", hexToHSL(colors.accent));
     root.style.setProperty("--background", hexToHSL(colors.background));
     root.style.setProperty("--foreground", hexToHSL(colors.foreground));
-    
-    // Generate gradient
-    root.style.setProperty(
-      "--gradient-hero",
-      `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`
-    );
   }, []);
 
   const clearCustomStyles = useCallback(() => {
@@ -121,7 +115,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.removeProperty("--accent");
     root.style.removeProperty("--background");
     root.style.removeProperty("--foreground");
-    root.style.removeProperty("--gradient-hero");
   }, []);
 
   useEffect(() => {

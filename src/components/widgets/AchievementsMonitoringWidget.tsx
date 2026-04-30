@@ -131,7 +131,7 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
                         <div className="space-y-3 pr-2">
                             {achievements.map(achievement => (
                                 <div key={achievement.id} className="p-4 rounded-xl border bg-card flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-accent">
                                         <Award className="w-5 h-5 text-white" />
                                     </div>
                                     <div className="flex-1 min-w-0">

@@ -1,6 +1,6 @@
 import { Profile } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, School, FolderRoot, Trophy, BrainCircuit, Activity, ShieldAlert } from "lucide-react";
+import { Users, School, FolderRoot, Compass, Activity, ShieldAlert } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SuperAdminDashboardProps {
@@ -10,19 +10,20 @@ interface SuperAdminDashboardProps {
 const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <section className="dashboard-hero flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Platform Mission Control</h1>
-          <p className="text-muted-foreground">Global overview and management for Growth Forge AI platform.</p>
+          <p className="editorial-kicker mb-2">Platform workspace</p>
+          <h1 className="text-3xl md:text-4xl">Platform Mission Control</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Global overview and management for the Milestone platform.</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+        <div className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
           <ShieldAlert className="w-4 h-4" />
           Super Admin Access
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="luxury-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -32,7 +33,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
             <p className="text-xs text-muted-foreground">Active across all roles</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="luxury-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Partner Schools</CardTitle>
             <School className="h-4 w-4 text-muted-foreground" />
@@ -42,7 +43,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
             <p className="text-xs text-muted-foreground">Registered institutions</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="luxury-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
             <FolderRoot className="h-4 w-4 text-muted-foreground" />
@@ -52,10 +53,10 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
             <p className="text-xs text-muted-foreground">Student portfolios</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="luxury-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AI Requests</CardTitle>
-            <BrainCircuit className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Guidance Requests</CardTitle>
+            <Compass className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">--</div>
@@ -70,12 +71,12 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
           <TabsTrigger value="schools">Schools</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="content">Content Moderation</TabsTrigger>
-          <TabsTrigger value="ai">AI Usage</TabsTrigger>
+          <TabsTrigger value="ai">Guidance Usage</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="col-span-1">
+            <Card className="col-span-1 luxury-card">
               <CardHeader>
                 <CardTitle>System Activity</CardTitle>
                 <CardDescription>Live telemetry across the platform</CardDescription>
@@ -87,7 +88,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="col-span-1">
+            <Card className="col-span-1 luxury-card">
               <CardHeader>
                 <CardTitle>Top Performing Schools</CardTitle>
                 <CardDescription>Schools with highest engagement</CardDescription>
@@ -100,7 +101,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
         </TabsContent>
 
         <TabsContent value="schools">
-          <Card>
+          <Card className="luxury-card">
             <CardHeader>
               <CardTitle>Institutional Management</CardTitle>
               <CardDescription>Onboard, verify, and manage school accounts.</CardDescription>
@@ -114,18 +115,18 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
         </TabsContent>
 
         <TabsContent value="ai">
-          <Card>
+          <Card className="luxury-card">
             <CardHeader>
-              <CardTitle>AI Token & Usage Governance</CardTitle>
+              <CardTitle>Guidance Usage Governance</CardTitle>
               <CardDescription>Monitor LLM usage and API costs.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-4 bg-slate-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <BrainCircuit className="w-5 h-5 text-primary" />
+                    <Compass className="w-5 h-5 text-primary" />
                     <div>
-                      <p className="font-medium">Total AI Consumption</p>
+                    <p className="font-medium">Total Guidance Consumption</p>
                       <p className="text-xs text-muted-foreground">Aggregated across all schools</p>
                     </div>
                   </div>

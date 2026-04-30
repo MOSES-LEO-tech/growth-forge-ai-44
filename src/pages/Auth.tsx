@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Loader2, CheckCircle2, WifiOff, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordStrength, calculatePasswordStrength } from "@/components/PasswordStrength";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BrandMark } from "@/components/Logo";
+import { brand } from "@/lib/brand";
 
 const signUpSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -145,7 +147,7 @@ const Auth = () => {
         // User is signed in without confirmation needed
         toast({
           title: "Account created!",
-          description: "Welcome to StudentHub. Redirecting to your dashboard..."
+          description: `Welcome to ${brand.name}. Redirecting to your dashboard...`
         });
         navigate("/dashboard");
       } else {
@@ -236,7 +238,7 @@ const Auth = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-muted-foreground animate-pulse">Checking authentication...</p>
       </div>
@@ -244,15 +246,13 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md luxury-card">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <GraduationCap className="w-10 h-10 text-white" />
-            </div>
+            <BrandMark className="h-16 w-16" />
           </div>
-          <CardTitle className="text-2xl">Welcome to StudentHub</CardTitle>
+          <CardTitle className="text-2xl">Welcome to {brand.name}</CardTitle>
           <CardDescription>Create your account or sign in to continue</CardDescription>
         </CardHeader>
         <CardContent>

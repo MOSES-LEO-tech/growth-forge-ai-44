@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Sparkles, TrendingUp, RefreshCw } from "lucide-react";
+import { Lightbulb, Compass, TrendingUp, RefreshCw } from "lucide-react";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -72,7 +72,7 @@ export function RecommendationsWidget({ className, defaultExpanded }: Recommenda
     const getCategoryIcon = (category: string) => {
         switch (category) {
             case 'project': return <TrendingUp className="w-4 h-4" />;
-            case 'skill': return <Sparkles className="w-4 h-4" />;
+            case 'skill': return <Compass className="w-4 h-4" />;
             case 'activity': return <Lightbulb className="w-4 h-4" />;
             default: return <Lightbulb className="w-4 h-4" />;
         }
@@ -90,8 +90,8 @@ export function RecommendationsWidget({ className, defaultExpanded }: Recommenda
     const CollapsedContent = () => (
         <div className="flex flex-col h-full gap-4">
             <div className="flex-1 flex flex-col items-center justify-center text-center p-2">
-                <Sparkles className="w-8 h-8 text-amber-500 mb-2 opacity-80" />
-                <p className="text-sm font-medium">Get AI Suggestions</p>
+                <Compass className="w-8 h-8 text-primary mb-2 opacity-80" />
+                <p className="text-sm font-medium">Get Suggestions</p>
                 <p className="text-xs text-muted-foreground mt-1">
                     {matches.length > 0 ? `${matches.length} fresh ideas for you` : "Unlock your next step"}
                 </p>
@@ -107,7 +107,7 @@ export function RecommendationsWidget({ className, defaultExpanded }: Recommenda
             <div className="flex justify-between items-center">
                 <div>
                     <h3 className="text-lg font-semibold">Personalized Recommendations</h3>
-                    <p className="text-sm text-muted-foreground">AI-powered suggestions to help you grow</p>
+                    <p className="text-sm text-muted-foreground">Suggestions to help you grow</p>
                 </div>
                 <Button onClick={() => generateRecommendations()} disabled={loading} size="sm" variant="outline">
                     <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />

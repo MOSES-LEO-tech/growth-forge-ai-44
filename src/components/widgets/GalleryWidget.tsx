@@ -142,11 +142,11 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
     // Collapsed view - shown in the card
     const collapsedContent = (
         <div className="flex flex-col h-full gap-4 min-w-0">
-            <div className="grid grid-cols-2 gap-2 h-full max-h-[140px] min-w-0">
+            <div className="grid h-full max-h-[150px] min-w-0 grid-cols-3 gap-2">
                 {items.slice(0, 4).map((item) => (
                     <div
                         key={item.id}
-                        className="relative aspect-square rounded overflow-hidden bg-muted group cursor-pointer"
+                        className={`group relative cursor-pointer overflow-hidden rounded-md bg-muted ${items.indexOf(item) === 0 ? 'col-span-2 row-span-2' : 'aspect-square'}`}
                         onClick={() => setSelectedMedia(item)}
                     >
                         {item.media_type === 'video' ? (
@@ -157,13 +157,13 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
                             <img
                                 src={item.thumbnail_url || item.media_url}
                                 alt={item.title}
-                                className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                             />
                         )}
                     </div>
                 ))}
                 {items.length === 0 && (
-                    <div className="col-span-2 flex flex-col items-center justify-center text-muted-foreground h-full bg-muted/20 rounded">
+                    <div className="col-span-3 flex h-full flex-col items-center justify-center rounded-md bg-muted/30 text-muted-foreground">
                         <ImageIcon className="w-8 h-8 opacity-50 mb-2" />
                         <span className="text-xs">No photos yet</span>
                     </div>
@@ -310,20 +310,20 @@ function GalleryGrid({ items, onDelete, onSelectMedia }: { items: GalleryItem[],
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-6 min-w-0">
-            {items.map((item) => (
+        <div className="grid min-w-0 grid-cols-1 gap-5 pb-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {items.map((item, index) => (
                 <Card
                     key={item.id}
-                    className="overflow-hidden group relative hover:shadow-lg transition-shadow cursor-pointer min-w-0 flex flex-col"
+                    className={`media-tile group relative flex min-w-0 cursor-pointer flex-col ${index === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}
                     onClick={() => onSelectMedia(item)}
                 >
-                    <div className="aspect-square relative bg-muted shrink-0 w-full overflow-hidden">
+                    <div className={`${index === 0 ? 'aspect-[4/3]' : 'aspect-square'} relative w-full shrink-0 overflow-hidden bg-muted`}>
                         {item.media_type === 'video' ? (
                             <div className="w-full h-full flex items-center justify-center bg-black/5">
                                 <Video className="w-12 h-12 text-muted-foreground opacity-50" />
                             </div>
                         ) : (
-                            <img src={item.media_url} alt={item.title} className="object-cover w-full h-full transition-transform group-hover:scale-105" />
+                            <img src={item.media_url} alt={item.title} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" />
                         )}
                         <div className="absolute top-2 right-2">
                             <Badge variant={item.visibility === 'public' ? 'default' : 'secondary'} className="opacity-90">

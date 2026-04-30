@@ -1,4 +1,4 @@
-import { RefreshCcw, AlertCircle, CheckCircle2, Trophy, Target, Sparkles, UserCircle } from "lucide-react";
+import { RefreshCcw, AlertCircle, CheckCircle2, Trophy, Target, Compass, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,7 @@ const Recommendations = () => {
             <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
               <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">AI Recommendations Unavailable</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Guidance Unavailable</h2>
             <p className="text-slate-500">
               {error instanceof Error ? error.message : "We encountered an error while generating your personalized recommendations. Please try again later."}
             </p>
@@ -44,7 +44,7 @@ const Recommendations = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
       <main className="flex-grow pt-24 pb-16">
@@ -52,11 +52,11 @@ const Recommendations = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div className="space-y-1">
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                <Sparkles className="w-8 h-8 text-primary animate-pulse" />
-                AI Recommendations
+                <Compass className="w-8 h-8 text-primary" />
+                Guidance
               </h1>
               <p className="text-slate-500 font-medium">
-                Personalized insights and opportunities based on your Growth Forge profile.
+                Personalized insights and opportunities based on your Milestone profile.
               </p>
             </div>
             <Button 
@@ -185,7 +185,7 @@ const Recommendations = () => {
                   <div>
                     <CardTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                       <Trophy className="w-6 h-6 text-amber-500" />
-                      AI Scholarship Matches
+                      Scholarship Matches
                     </CardTitle>
                     <CardDescription className="text-slate-500 mt-1">
                       Based on your GPA, interests, and current grade level.
@@ -236,7 +236,7 @@ const Recommendations = () => {
                       </div>
                       <h4 className="text-xl font-bold text-slate-900">No Scholarship Matches Yet</h4>
                       <p className="text-slate-500 max-w-sm mx-auto mt-2">
-                        Complete more of your profile and add projects to unlock AI scholarship matching.
+                        Complete more of your profile and add projects to unlock scholarship matching.
                       </p>
                     </div>
                   )}

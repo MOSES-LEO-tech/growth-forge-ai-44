@@ -8,18 +8,29 @@ const benefits = [
   {
     icon: Shield,
     title: "Verified Achievements",
-    description: "Maintain authenticity with admin-approved verification system"
+    description: "Keep records credible with admin-approved verification and publishing controls.",
   },
   {
     icon: Users,
     title: "Student Engagement",
-    description: "Increase participation in extracurricular activities and events"
+    description: "Make extracurricular, project, and event participation visible to families.",
   },
   {
     icon: BarChart,
     title: "Analytics Dashboard",
-    description: "Track student growth and program effectiveness school-wide"
-  }
+    description: "Track student growth and program momentum across the school community.",
+  },
+];
+
+const included = [
+  "Unlimited student accounts",
+  "Event management and media gallery",
+  "Admin verification dashboard",
+  "Parent access portal",
+  "Analytics and reporting",
+  "Secure data storage",
+  "Custom branding options",
+  "Dedicated support team",
 ];
 
 const ForSchools = () => {
@@ -27,39 +38,37 @@ const ForSchools = () => {
   const { ref: rightRef, isInView: rightInView } = useInView({ threshold: 0.2 });
 
   return (
-    <section id="for-schools" className="py-24 bg-muted/30">
+    <section id="for-schools" className="section-band py-24">
       <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <div
             ref={leftRef}
-            className={`transition-all duration-1000 ${
-              leftInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
+            className={`transition-all duration-700 ${
+              leftInView ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"
             }`}
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Built for
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Modern Schools</span>
-            </h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Empower your institution with tools to showcase student excellence, manage events, and provide verified credentials that matter.
+            <p className="editorial-kicker mb-3">For schools</p>
+            <h2>Modern records without the institutional coldness.</h2>
+            <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
+              Give administrators and teachers a clear way to showcase student excellence while keeping review, privacy, and publishing controlled.
             </p>
 
-            <div className="space-y-6 mb-8">
+            <div className="my-8 space-y-4">
               {benefits.map((benefit, index) => {
                 const Icon = benefit.icon;
                 return (
-                  <div 
+                  <div
                     key={benefit.title}
-                    className={`flex gap-4 items-start transition-all duration-700 ${
-                      leftInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
+                    className={`flex gap-4 transition-all duration-700 ${
+                      leftInView ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"
                     }`}
-                    style={{ transitionDelay: leftInView ? `${index * 100}ms` : '0ms' }}
+                    style={{ transitionDelay: leftInView ? `${index * 90}ms` : "0ms" }}
                   >
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-6 h-6 text-white" />
+                    <div className="flat-icon h-12 w-12 shrink-0">
+                      <Icon className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-1">{benefit.title}</h3>
+                      <h3 className="text-lg">{benefit.title}</h3>
                       <p className="text-sm text-muted-foreground">{benefit.description}</p>
                     </div>
                   </div>
@@ -67,39 +76,28 @@ const ForSchools = () => {
               })}
             </div>
 
-            <Link to="/auth">
-              <Button size="lg" className="text-lg px-8">
-                Get Started for Your School
-              </Button>
-            </Link>
+            <Button size="lg" asChild>
+              <Link to="/auth">Get Started for Your School</Link>
+            </Button>
           </div>
 
-          <Card 
+          <Card
             ref={rightRef}
-            className={`p-8 bg-[var(--gradient-card)] border-border/50 transition-all duration-1000 ${
-              rightInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+            className={`luxury-card p-7 transition-all duration-700 ${
+              rightInView ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0"
             }`}
           >
-            <h3 className="text-2xl font-bold mb-6">What's Included</h3>
+            <h3 className="mb-6 text-2xl">Included</h3>
             <ul className="space-y-4">
-              {[
-                "Unlimited student accounts",
-                "Event management & media gallery",
-                "Admin verification dashboard",
-                "Parent access portal",
-                "Analytics and reporting",
-                "Secure data storage",
-                "Custom branding options",
-                "Dedicated support team"
-              ].map((feature, index) => (
-                <li 
+              {included.map((feature, index) => (
+                <li
                   key={feature}
-                  className={`flex items-center gap-3 transition-all duration-700 ${
-                    rightInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+                  className={`flex items-center gap-3 text-sm transition-all duration-700 ${
+                    rightInView ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0"
                   }`}
-                  style={{ transitionDelay: rightInView ? `${index * 50}ms` : '0ms' }}
+                  style={{ transitionDelay: rightInView ? `${index * 45}ms` : "0ms" }}
                 >
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
                   <span>{feature}</span>
                 </li>
               ))}

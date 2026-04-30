@@ -1,13 +1,13 @@
 import { Card } from "@/components/ui/card";
-import { 
-  Award, 
-  Brain, 
-  Calendar, 
-  GraduationCap, 
-  LineChart, 
+import {
+  Award,
+  Calendar,
+  Compass,
+  GraduationCap,
+  LineChart,
   Shield,
   Users,
-  Zap
+  Zap,
 } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
 
@@ -15,51 +15,43 @@ const features = [
   {
     icon: Award,
     title: "Achievement Tracking",
-    description: "Document and showcase verified achievements across academics, sports, arts, and leadership.",
-    gradient: "from-accent to-amber-500"
+    description: "Document verified achievements across academics, sports, arts, service, and leadership.",
   },
   {
-    icon: Brain,
-    title: "AI-Powered Guidance",
-    description: "Receive personalized recommendations for activities, scholarships, and skill development.",
-    gradient: "from-secondary to-purple-400"
+    icon: Compass,
+    title: "Guided Pathways",
+    description: "Turn student activity into next-step suggestions for skills, scholarships, and enrichment.",
   },
   {
     icon: LineChart,
     title: "Skill Analytics",
-    description: "Track growth across teamwork, leadership, problem-solving, and creative competencies.",
-    gradient: "from-primary to-blue-500"
+    description: "Track growth across teamwork, leadership, problem-solving, creativity, and initiative.",
   },
   {
     icon: GraduationCap,
     title: "Digital Portfolio",
-    description: "Auto-generated, verified portfolios ready for college applications and opportunities.",
-    gradient: "from-emerald-500 to-teal-500"
+    description: "Create polished student profiles ready for applications, reviews, and opportunities.",
   },
   {
     icon: Calendar,
     title: "Event Gallery",
-    description: "Multimedia archive of school events, projects, and memorable moments.",
-    gradient: "from-rose-500 to-pink-500"
+    description: "Keep a visual archive of school events, projects, performances, and milestones.",
   },
   {
     icon: Users,
     title: "Parent Dashboard",
-    description: "Parents can monitor progress and celebrate their child's growth journey.",
-    gradient: "from-indigo-500 to-purple-500"
+    description: "Give families a clear, calm view of progress, achievements, and school activity.",
   },
   {
     icon: Shield,
-    title: "Verified by Schools",
-    description: "All achievements and projects verified by trusted school administrators.",
-    gradient: "from-cyan-500 to-blue-500"
+    title: "School Verification",
+    description: "Protect trust with admin-approved achievements, projects, and gallery publishing.",
   },
   {
     icon: Zap,
-    title: "Adaptive Experience",
-    description: "Interface adapts to user age, role, and skill level for optimal experience.",
-    gradient: "from-orange-500 to-red-500"
-  }
+    title: "Role-Based Workspace",
+    description: "Students, parents, teachers, and admins get focused dashboards built around their jobs.",
+  },
 ];
 
 const Features = () => {
@@ -67,41 +59,36 @@ const Features = () => {
   const { ref: gridRef, isInView: gridInView } = useInView({ threshold: 0.1 });
 
   return (
-    <section id="features" className="py-24 bg-muted/30">
+    <section id="features" className="section-band py-24">
       <div className="container mx-auto px-4">
-        <div 
+        <div
           ref={titleRef}
-          className={`text-center mb-16 transition-all duration-1000 ${
-            titleInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          className={`mx-auto mb-14 max-w-3xl text-center transition-all duration-700 ${
+            titleInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           }`}
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Everything You Need to
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Succeed</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A comprehensive platform designed for students, parents, and educators to track and celebrate growth.
+          <p className="editorial-kicker mb-3">The workspace</p>
+          <h2>Portfolio clarity for every role.</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
+            A unified system for students, families, and schools to collect proof of growth without visual clutter.
           </p>
         </div>
 
-        <div 
-          ref={gridRef}
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
+        <div ref={gridRef} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <Card 
+              <Card
                 key={feature.title}
-                className={`p-6 hover:shadow-xl transition-all duration-700 hover:-translate-y-1 bg-[var(--gradient-card)] border-border/50 ${
-                  gridInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                className={`luxury-card p-6 transition-all duration-700 ${
+                  gridInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
                 }`}
-                style={{ transitionDelay: gridInView ? `${index * 100}ms` : '0ms' }}
+                style={{ transitionDelay: gridInView ? `${index * 70}ms` : "0ms" }}
               >
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className="flat-icon mb-5 h-12 w-12">
+                  <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                <h3 className="mb-2 text-lg">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </Card>
             );

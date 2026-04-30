@@ -1,26 +1,26 @@
-# Growth Forge AI 🎓
+# Milestone Studio
 
-Growth Forge AI is a comprehensive StudentHub platform designed to empower students through digital portfolio building, AI-driven career insights, and centralized scholarship tracking.
+Milestone Studio is a student portfolio platform for schools, students, and parents. It helps teams document achievements, collect projects, manage galleries, track scholarship opportunities, and keep verified growth records in one place.
 
-## 👥 User Roles
+## User Roles
 
-- **Students**: Build portfolios, track achievements, and receive AI-driven scholarship recommendations.
+- **Students**: Build portfolios, track achievements, manage projects, and discover opportunities.
 - **Parents**: Monitor student progress, view achievements, and stay updated on school events.
 - **Teachers**: Review student projects, verify achievements, and manage school-wide galleries.
 - **Admins**: Manage school data, configure global settings, and oversee platform integrity.
 
-## ✨ Key Features
+## Key Features
 
-- **Digital Portfolio**: Show-case projects and achievements with full media support (Images, Videos, PDFs).
-- **AI Recommendations**: Personalized scholarship matches and profile improvement tips powered by Anthropic Claude.
-- **Scholarship Tracker**: Kanban-style board to manage the end-to-end scholarship application journey.
+- **Digital Portfolio**: Showcase projects and achievements with media support.
+- **Guidance**: Personalized scholarship matches and profile improvement tips.
+- **Scholarship Tracker**: Kanban-style board to manage scholarship applications.
 - **School Network**: Profiles for partner institutions with student population and achievement metrics.
-- **Gamification**: Earn XP and level up as you complete your profile and apply for opportunities.
+- **Growth Analytics**: Track progress and portfolio completeness over time.
 
-## 🛠️ Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
-- [Bun](https://bun.sh/) (Recommended) or Node.js (v20+)
+- [Bun](https://bun.sh/) (recommended) or Node.js (v20+)
 - [Supabase CLI](https://supabase.com/docs/guides/cli)
 - Docker (for local Supabase instance)
 
@@ -53,11 +53,11 @@ Growth Forge AI is a comprehensive StudentHub platform designed to empower stude
    bun run dev
    ```
 
-## 🧪 Testing
+## Testing
 Run E2E tests with Playwright:
 ```bash
 bun x playwright test
 ```
 
-## 📜 License
+## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

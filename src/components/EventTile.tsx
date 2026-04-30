@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Image as ImageIcon } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ interface Event {
   event_date: string;
   location: string | null;
   verified: boolean;
+  thumbnail_url?: string | null;
 }
 
 interface EventTileProps {
@@ -21,27 +22,39 @@ const EventTile = ({ event }: EventTileProps) => {
   const navigate = useNavigate();
 
   return (
-    <Card 
-      className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
+    <Card
+      className="media-tile group cursor-pointer"
       onClick={() => navigate(`/gallery/${event.id}`)}
     >
-      {/* Cover Image Placeholder */}
-      <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-        <ImageIcon className="w-16 h-16 text-primary/40" />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+      <div className="relative aspect-[4/3] bg-muted">
+        {event.thumbnail_url ? (
+          <img
+            src={event.thumbnail_url}
+            alt={event.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-secondary">
+            <ImageIcon className="h-12 w-12 text-secondary-foreground/55" />
+          </div>
+        )}
+        {event.verified && (
+          <Badge className="absolute left-3 top-3 gap-1 bg-card text-foreground shadow-sm">
+            <CheckCircle2 className="h-3 w-3 text-primary" />
+            Verified
+          </Badge>
+        )}
       </div>
 
       <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+        <div className="mb-2 flex items-start justify-between">
+          <h3 className="line-clamp-1 text-lg font-semibold transition-colors group-hover:text-primary">
             {event.title}
           </h3>
-          {event.verified && (
-            <Badge variant="secondary" className="ml-2">Verified</Badge>
-          )}
         </div>
 
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
           {event.description || "No description available"}
         </p>
 
@@ -53,7 +66,7 @@ const EventTile = ({ event }: EventTileProps) => {
           {event.location && (
             <div className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
-              <span className="line-clamp-1">{event.location}</span>
+              <span className="truncate">{event.location}</span>
             </div>
           )}
         </div>

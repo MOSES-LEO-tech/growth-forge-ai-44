@@ -55,17 +55,14 @@ const Projects = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-16 bg-gradient-to-b from-primary/5 to-background">
+      <section className="border-b pt-32 pb-16">
         <div className="container mx-auto px-4">
           <div
             ref={heroRef}
             className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
           >
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Project
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Hub</span>
-              <span className="ml-3">🚀</span>
-            </h1>
+            <p className="editorial-kicker mb-3">Student work</p>
+            <h1 className="mb-6 text-5xl font-semibold md:text-6xl">Project Hub</h1>
             <p className="text-xl text-muted-foreground mb-8">
               Manage your projects, track progress, and showcase your achievements.
             </p>

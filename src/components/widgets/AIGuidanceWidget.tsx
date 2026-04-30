@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
-import { Brain, Send, Bot, User, Lock } from "lucide-react";
+import { Compass, Send, Bot, User, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -91,10 +91,10 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
 
     const CollapsedContent = () => (
         <div className="flex flex-col items-center justify-center gap-2 h-full text-center py-4">
-            <Brain className={`w-10 h-10 ${isLocked ? 'text-muted-foreground opacity-40' : 'text-violet-500'}`} />
+                    <Compass className={`w-10 h-10 ${isLocked ? 'text-muted-foreground opacity-40' : 'text-primary'}`} />
             {isLocked ? (
                 <>
-                    <p className="text-sm text-muted-foreground">AI Guidance requires Plus plan</p>
+                    <p className="text-sm text-muted-foreground">Guidance requires Plus plan</p>
                     <Badge variant="outline" className="text-xs"><Lock className="w-3 h-3 mr-1" />Upgrade to unlock</Badge>
                 </>
             ) : (
@@ -111,9 +111,9 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
                         <Lock className="w-8 h-8 text-violet-400" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-lg">AI Guidance is a Plus feature</h3>
+                        <h3 className="font-semibold text-lg">Guidance is a Plus feature</h3>
                         <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                            Upgrade to Plus to chat with our AI and get personalized advice for supporting your child's academic journey.
+                            Upgrade to Plus to get personalized advice for supporting your child's academic journey.
                         </p>
                     </div>
                     <Button variant="outline" className="border-violet-400 text-violet-700 hover:bg-violet-50">
@@ -127,7 +127,7 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
                         {messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center gap-4 py-6">
                                 <Bot className="w-12 h-12 text-violet-400 opacity-60" />
-                                <p className="text-sm text-muted-foreground text-center">Hi! I'm your AI guidance assistant. Ask me anything about supporting your child.</p>
+                                <p className="text-sm text-muted-foreground text-center">Hi! Ask me anything about supporting your child.</p>
                                 <div className="flex flex-col gap-2 w-full max-w-sm">
                                     {SUGGESTIONS.map(s => (
                                         <button
@@ -186,8 +186,8 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
 
     return (
         <ExpandableWidget
-            title="AI Guidance"
-            icon={<Brain className="w-5 h-5 text-violet-500" />}
+            title="Guidance"
+            icon={<Compass className="w-5 h-5 text-primary" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

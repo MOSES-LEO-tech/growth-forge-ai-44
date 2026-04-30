@@ -33,7 +33,7 @@ export function AnalyticsWidget({ className = "", defaultExpanded = false, schoo
         setReports([
           { id: "student-performance", name: "Student Performance Report", description: "Overall academic performance and growth metrics", lastGenerated: "2026-02-20" },
           { id: "teacher-engagement", name: "Teacher Engagement Report", description: "Teacher activity and student interaction metrics", lastGenerated: "2026-02-18" },
-          { id: "ai-usage", name: "AI Usage Report", description: "AI feature adoption and usage patterns", lastGenerated: "2026-02-15" },
+          { id: "guidance-usage", name: "Guidance Usage Report", description: "Guidance feature adoption and usage patterns", lastGenerated: "2026-02-15" },
           { id: "growth-analytics", name: "Growth Analytics", description: "Student growth over time and achievement trends", lastGenerated: "2026-02-10" },
         ]);
         setLoading(false);
@@ -89,7 +89,7 @@ export function AnalyticsWidget({ className = "", defaultExpanded = false, schoo
                     <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                       {report.id === "student-performance" ? <Users className="h-5 w-5 text-blue-600" /> :
                        report.id === "teacher-engagement" ? <Users className="h-5 w-5 text-green-600" /> :
-                       report.id === "ai-usage" ? <BarChart3 className="h-5 w-5 text-purple-600" /> :
+                       report.id === "guidance-usage" ? <BarChart3 className="h-5 w-5 text-purple-600" /> :
                        <FileText className="h-5 w-5 text-orange-600" />}
                     </div>
                     <div>

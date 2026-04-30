@@ -5,7 +5,7 @@ import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles, Settings, Bot } from "lucide-react";
+import { Send, Settings, Bot } from "lucide-react";
 import { toast } from "sonner";
 import {
     Select,
@@ -41,7 +41,7 @@ const personalities: Personality[] = [
         id: "default",
         name: "SmartBuddy",
         emoji: "🌟",
-        greeting: "Hey there, superstar! 👋 I'm SmartBuddy, your friendly AI companion. How can I help make your day awesome? 😄",
+        greeting: "Hey there, superstar. I'm SmartBuddy, your friendly learning companion. How can I help make your day easier?",
         description: "Friendly, encouraging, and supportive"
     },
     {

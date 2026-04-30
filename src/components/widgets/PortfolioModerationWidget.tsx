@@ -36,7 +36,7 @@ export function PortfolioModerationWidget({ className = "", defaultExpanded = fa
       
       setTimeout(() => {
         setProjects([
-          { id: 1, title: "AI-powered Garden Monitor", studentName: "John Smith", status: "pending", featured: false, flagged: false, submittedAt: "2026-02-20" },
+  { id: 1, title: "Sensor Garden Monitor", studentName: "John Smith", status: "pending", featured: false, flagged: false, submittedAt: "2026-02-20" },
           { id: 2, title: "Sustainable Energy Project", studentName: "Jane Doe", status: "approved", featured: true, flagged: false, submittedAt: "2026-02-18" },
           { id: 3, title: "Mobile App Development", studentName: "Mike Johnson", status: "pending", featured: false, flagged: true, submittedAt: "2026-02-15" },
           { id: 4, title: "Robotics Competition Entry", studentName: "Sarah Williams", status: "approved", featured: false, flagged: false, submittedAt: "2026-02-10" },

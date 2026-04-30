@@ -84,7 +84,7 @@ const SchoolProfile = () => {
 
           {/* Hero Section */}
           <div className="relative mb-12">
-            <div className="h-48 md:h-64 w-full bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl overflow-hidden shadow-inner">
+            <div className="h-48 md:h-64 w-full bg-secondary rounded-3xl overflow-hidden shadow-inner">
               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
             </div>
             <div className="absolute -bottom-8 left-8 flex flex-col md:flex-row md:items-end gap-6 w-full px-4 md:px-0">
@@ -188,7 +188,7 @@ const SchoolProfile = () => {
                 </CardHeader>
                 <CardContent className="p-8">
                   <p className="text-slate-600 text-lg leading-relaxed whitespace-pre-wrap">
-                    {school.description || "No description provided for this school. This institution is a valued partner of Growth Forge AI, committed to academic excellence and student development."}
+                  {school.description || "No description provided for this school. This institution is a valued Milestone partner committed to academic excellence and student development."}
                   </p>
                 </CardContent>
               </Card>

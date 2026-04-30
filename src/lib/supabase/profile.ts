@@ -18,11 +18,10 @@ export const updateProfile = async (userId: string, data: Partial<Profile>) => {
     .from('profiles')
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq('id', userId)
-    .select()
-    .single();
+    .select();
 
   if (error) throw error;
-  return profile as Profile;
+  return (profile && profile.length > 0) ? profile[0] as Profile : null;
 };
 
 export const uploadAvatar = async (userId: string, file: File) => {
@@ -32,11 +31,10 @@ export const uploadAvatar = async (userId: string, file: File) => {
     .from('profiles')
     .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
     .eq('id', userId)
-    .select()
-    .single();
+    .select();
 
   if (dbError) throw dbError;
-  return profile as Profile;
+  return (profile && profile.length > 0) ? profile[0] as Profile : null;
 };
 
 export const linkParent = async (studentId: string, parentEmail: string) => {

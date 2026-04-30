@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllEvents, createEvent } from '@/lib/supabase/gallery';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar, MapPin, Plus, School } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
+import { useNavigate } from 'react-router-dom';
 
 interface SchoolEvent {
     id: number;
@@ -79,11 +81,12 @@ const SchoolGallery = () => {
     return (
         <div className="min-h-screen bg-background">
             <Navbar />
-            <div className="container mx-auto py-8">
-                <div className="flex justify-between items-center mb-8">
+            <div className="container mx-auto px-4 py-8">
+                <section className="dashboard-hero mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div>
-                        <h1 className="text-3xl font-bold">School Gallery</h1>
-                        <p className="text-muted-foreground">Recent events and highlights from our schools</p>
+                        <p className="editorial-kicker mb-2">School life archive</p>
+                        <h1 className="text-3xl md:text-4xl">School Gallery</h1>
+                        <p className="mt-2 text-sm text-muted-foreground">Recent events and highlights from our schools</p>
                     </div>
                     {canCreate && (
                         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -136,21 +139,21 @@ const SchoolGallery = () => {
                             </DialogContent>
                         </Dialog>
                     )}
-                </div>
+                </section>
 
                 {isLoading ? (
                     <div className="text-center py-12">Loading events...</div>
                 ) : eventsList.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">No events found.</div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {eventsList.map(event => (
-                            <Card key={event.id} className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden" onClick={() => navigate(`/school/gallery/${event.id}`)}>
-                                <div className="h-48 bg-muted relative">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        {eventsList.map((event, index) => (
+                            <Card key={event.id} className={`media-tile cursor-pointer ${index === 0 ? 'lg:col-span-2' : ''}`} onClick={() => navigate(`/school/gallery/${event.id}`)}>
+                                <div className={`${index === 0 ? 'aspect-[16/8]' : 'aspect-[4/3]'} relative bg-muted`}>
                                     {event.thumbnail_url ? (
                                         <img src={event.thumbnail_url} alt={event.title} className="w-full h-full object-cover" loading="lazy" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-secondary/20">
+                                        <div className="w-full h-full flex items-center justify-center bg-secondary">
                                             <School className="h-12 w-12 text-muted-foreground/50" />
                                         </div>
                                     )}

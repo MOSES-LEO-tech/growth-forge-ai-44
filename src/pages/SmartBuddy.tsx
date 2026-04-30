@@ -83,7 +83,7 @@ const SmartBuddy = () => {
                     <h1 className="text-3xl font-bold flex items-center gap-2">
                         SmartBuddy <Sparkles className="h-5 w-5 text-yellow-500" />
                     </h1>
-                    <p className="text-muted-foreground">Your AI-powered academic assistant</p>
+                    <p className="text-muted-foreground">Your academic guidance assistant</p>
                 </div>
             </div>
 
@@ -149,7 +149,7 @@ const SmartBuddy = () => {
                         </form>
                         <div className="text-center mt-2">
                             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                                <GraduationCap className="h-3 w-3" /> SmartBuddy uses AI and may make mistakes. Verify important info.
+                                <GraduationCap className="h-3 w-3" /> SmartBuddy may make mistakes. Verify important info.
                             </p>
                         </div>
                     </div>

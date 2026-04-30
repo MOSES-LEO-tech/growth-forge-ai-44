@@ -21,7 +21,7 @@ const PLAN_CONFIG = {
         bg: "bg-slate-50 dark:bg-slate-900/30",
         border: "border-slate-200 dark:border-slate-700",
         icon: Shield,
-        gradient: "from-slate-400 to-slate-600",
+        iconBg: "bg-muted text-muted-foreground",
         badgeVariant: "secondary" as const,
     },
     plus: {
@@ -30,7 +30,7 @@ const PLAN_CONFIG = {
         bg: "bg-blue-50 dark:bg-blue-950/30",
         border: "border-blue-200 dark:border-blue-800",
         icon: Zap,
-        gradient: "from-blue-400 to-indigo-600",
+        iconBg: "bg-primary text-primary-foreground",
         badgeVariant: "default" as const,
     },
     pro: {
@@ -39,7 +39,7 @@ const PLAN_CONFIG = {
         bg: "bg-amber-50 dark:bg-amber-950/30",
         border: "border-amber-200 dark:border-amber-800",
         icon: Crown,
-        gradient: "from-amber-400 to-orange-500",
+        iconBg: "bg-accent text-accent-foreground",
         badgeVariant: "default" as const,
     },
 };
@@ -49,7 +49,7 @@ const ALL_PLAN_FEATURES = [
     { label: "Monitor projects (read-only)", plans: ["basic", "plus", "pro"] },
     { label: "View achievements", plans: ["basic", "plus", "pro"] },
     { label: "School notifications", plans: ["basic", "plus", "pro"] },
-    { label: "AI Guidance chat", plans: ["plus", "pro"] },
+    { label: "Guidance chat", plans: ["plus", "pro"] },
     { label: "Send messages to teachers", plans: ["plus", "pro"] },
     { label: "Basic analytics", plans: ["plus", "pro"] },
     { label: "Advanced analytics", plans: ["pro"] },
@@ -86,8 +86,8 @@ export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionW
         <div className="flex flex-col h-full gap-3">
             {loading ? <Skeleton className="h-16 w-full" /> : error ? <p className="text-sm text-destructive">{error}</p> : plan ? (
                 <div className={`flex items-center gap-3 p-3 rounded-xl border ${config.border} ${config.bg}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${config.gradient}`}>
-                        <Icon className="w-5 h-5 text-white" />
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.iconBg}`}>
+                        <Icon className="w-5 h-5" />
                     </div>
                     <div>
                         <div className={`font-bold text-lg ${config.color}`}>{config.label} Plan</div>
@@ -108,8 +108,8 @@ export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionW
                 <>
                     {/* Current plan badge */}
                     <div className={`p-6 rounded-2xl border ${config.border} ${config.bg} text-center`}>
-                        <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-gradient-to-br ${config.gradient} shadow-lg mb-4`}>
-                            <Icon className="w-8 h-8 text-white" />
+                        <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center shadow-lg mb-4 ${config.iconBg}`}>
+                            <Icon className="w-8 h-8" />
                         </div>
                         <Badge variant={config.badgeVariant} className="text-base px-4 py-1 mb-2">{config.label} Plan</Badge>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -145,7 +145,7 @@ export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionW
                         <div className="p-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 text-center">
                             <Crown className="w-8 h-8 text-amber-500 mx-auto mb-2" />
                             <p className="text-sm font-semibold mb-1">
-                                {plan.tier === 'basic' ? 'Unlock AI Guidance & Messaging' : 'Get Full Analytics & Reports'}
+                                {plan.tier === 'basic' ? 'Unlock Guidance & Messaging' : 'Get Full Analytics & Reports'}
                             </p>
                             <p className="text-xs text-muted-foreground mb-3">
                                 Upgrade to {plan.tier === 'basic' ? 'Plus' : 'Pro'} for more features

@@ -146,8 +146,8 @@ export function SchoolSettingsWidget({ className = "", defaultExpanded = false, 
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">AI Features</p>
-                      <p className="text-sm text-muted-foreground">Enable AI-powered features for students</p>
+                      <p className="font-medium">Guidance Features</p>
+                      <p className="text-sm text-muted-foreground">Enable personalized guidance features for students</p>
                     </div>
                     <Button variant={settings.aiFeaturesEnabled ? "default" : "outline"} size="sm">
                       {settings.aiFeaturesEnabled ? "Enabled" : "Disabled"}

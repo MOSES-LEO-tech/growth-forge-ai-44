@@ -88,7 +88,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
     const collapsedContent = (
         <div className="flex flex-col h-full gap-4">
             <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xl font-bold flex-shrink-0">
                     {profile.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -116,7 +116,7 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
     const expandedContent = (
         <div className="flex flex-col h-full gap-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
+                <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-3xl font-bold flex-shrink-0">
                     {profile.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 space-y-3">

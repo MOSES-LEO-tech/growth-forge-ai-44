@@ -1,16 +1,34 @@
-import { GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { brand } from "@/lib/brand";
+
+export function BrandMark({ className = "h-10 w-10" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      className={className}
+      role="img"
+      aria-label={`${brand.name} mark`}
+    >
+      <rect width="48" height="48" rx="10" fill="hsl(var(--primary))" />
+      <path
+        d="M13 33V15h5.4L24 25.2 29.6 15H35v18h-4.5V22.6L25.9 33h-3.8l-4.6-10.4V33H13Z"
+        fill="hsl(var(--primary-foreground))"
+      />
+      <circle cx="14" cy="38" r="2.2" fill="hsl(var(--accent))" />
+      <circle cx="24" cy="38" r="2.2" fill="hsl(var(--secondary))" />
+      <circle cx="34" cy="38" r="2.2" fill="hsl(var(--accent))" />
+    </svg>
+  );
+}
 
 export default function Logo() {
   return (
     <Link 
       to="/" 
-      className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-300"
+      className="flex min-w-0 items-center gap-3 hover:opacity-80 transition-opacity duration-300"
     >
-      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-        <GraduationCap className="w-6 h-6 text-primary-foreground" />
-      </div>
-      <span className="font-bold text-xl">MILESTONE</span>
+      <BrandMark />
+      <span className="hidden font-semibold text-lg uppercase tracking-normal sm:inline">{brand.shortName}</span>
     </Link>
   );
 }

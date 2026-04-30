@@ -96,7 +96,7 @@ export default function AddProjectModal({ userId, onProjectAdded, open: controll
     <Dialog open={open} onOpenChange={setOpen}>
       {!isControlled && (
         <DialogTrigger asChild>
-          <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
+          <Button size="sm" className="gap-2">
             <Plus className="w-4 h-4" />
             New Project
           </Button>
@@ -231,7 +231,7 @@ export default function AddProjectModal({ userId, onProjectAdded, open: controll
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {loading ? (
                 <>

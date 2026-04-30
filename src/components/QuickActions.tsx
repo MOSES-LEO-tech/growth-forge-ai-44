@@ -12,19 +12,19 @@ export const QuickActions = () => {
         {
             label: "Add Achievement",
             icon: Award,
-            color: "from-amber-500 to-orange-500",
+            className: "bg-accent text-accent-foreground hover:bg-accent/90",
             onClick: () => { openAchievementModal(); setIsOpen(false); }
         },
         {
             label: "Add Project",
             icon: FolderPlus,
-            color: "from-blue-500 to-cyan-500",
+            className: "bg-primary text-primary-foreground hover:bg-primary/90",
             onClick: () => { openProjectModal(); setIsOpen(false); }
         },
         {
             label: "Add Event",
             icon: Image,
-            color: "from-purple-500 to-pink-500",
+            className: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
             onClick: () => { openEventModal(); setIsOpen(false); }
         }
     ];
@@ -45,8 +45,8 @@ export const QuickActions = () => {
                                 key={action.label}
                                 onClick={() => handleAction(action)}
                                 className={cn(
-                                    "h-12 px-4 rounded-full shadow-lg hover-lift elevation-md bg-gradient-to-r text-white",
-                                    action.color
+                                    "h-12 rounded-full px-4 shadow-lg hover-lift elevation-md",
+                                    action.className
                                 )}
                                 style={{ animationDelay: `${index * 0.05}s` }}
                                 aria-label={action.label}
@@ -63,7 +63,7 @@ export const QuickActions = () => {
             <Button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "h-14 w-14 rounded-full shadow-xl hover-lift elevation-lg bg-gradient-to-br from-primary to-secondary transition-transform duration-200",
+                    "h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-xl hover-lift elevation-lg transition-transform duration-200",
                     isOpen && "rotate-45"
                 )}
                 aria-label={isOpen ? "Close quick actions menu" : "Open quick actions menu"}
@@ -71,9 +71,9 @@ export const QuickActions = () => {
                 aria-haspopup="true"
             >
                 {isOpen ? (
-                    <X className="w-6 h-6 text-white" aria-hidden="true" />
+                    <X className="w-6 h-6" aria-hidden="true" />
                 ) : (
-                    <Plus className="w-6 h-6 text-white" aria-hidden="true" />
+                    <Plus className="w-6 h-6" aria-hidden="true" />
                 )}
             </Button>
         </div>

@@ -82,7 +82,7 @@ export function ParentDashboard({ profile }: { profile?: any }) {
   // ── Loading state ──────────────────────────────────────────────────────────
   if (loadingChildren) {
     return (
-      <div className="p-6 space-y-4">
+    <div className="space-y-4 p-6">
         <Skeleton className="h-12 w-72" />
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
@@ -124,12 +124,13 @@ export function ParentDashboard({ profile }: { profile?: any }) {
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className="container mx-auto flex flex-col gap-6 px-4 py-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <section className="dashboard-hero flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Parent Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <p className="editorial-kicker mb-2">Parent workspace</p>
+          <h1 className="text-3xl md:text-4xl">Parent Dashboard</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Monitor and support your child's academic journey
           </p>
         </div>
@@ -179,13 +180,13 @@ export function ParentDashboard({ profile }: { profile?: any }) {
             {selectedChild.school_name && <span className="text-muted-foreground text-xs">· {selectedChild.school_name}</span>}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Widget grid */}
       {selectedChild ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {/* Row 1: Overview (spans full width on small, 2 cols on md) */}
-          <div className="md:col-span-2 xl:col-span-2">
+          <div className="md:col-span-2 xl:col-span-3">
             <ChildOverviewWidget
               childId={selectedChild.id}
               childName={selectedChild.full_name}
@@ -201,7 +202,7 @@ export function ParentDashboard({ profile }: { profile?: any }) {
           <AnalyticsWidget childId={selectedChild.id} />
 
           {/* Row 3 */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 xl:col-span-3">
             <AIGuidanceWidget
               childId={selectedChild.id}
               parentPlan={plan?.tier}

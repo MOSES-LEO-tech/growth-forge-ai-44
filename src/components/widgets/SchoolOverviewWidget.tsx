@@ -104,7 +104,7 @@ export function SchoolOverviewWidget({ className = "", defaultExpanded = false, 
               <div className="flex flex-col items-center p-3 rounded-lg bg-orange-50 dark:bg-orange-950">
                 <Brain className="h-6 w-6 text-orange-600 mb-2" />
                 <span className="text-2xl font-bold">{metrics.aiUsageCount}</span>
-                <span className="text-xs text-muted-foreground">AI Requests</span>
+                <span className="text-xs text-muted-foreground">Guidance Requests</span>
               </div>
               <div className="flex flex-col items-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950">
                 <HardDrive className="h-6 w-6 text-yellow-600 mb-2" />

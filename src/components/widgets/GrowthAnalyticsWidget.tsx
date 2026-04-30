@@ -86,9 +86,9 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
 
     const getTierColor = (tier: string) => {
         switch (tier) {
-            case 'pro': return 'bg-gradient-to-r from-amber-400 to-yellow-600';
-            case 'plus': return 'bg-gradient-to-r from-blue-400 to-indigo-600';
-            default: return 'bg-gradient-to-r from-gray-400 to-gray-600';
+            case 'pro': return 'bg-accent';
+            case 'plus': return 'bg-primary';
+            default: return 'bg-muted-foreground';
         }
     };
 
@@ -190,7 +190,7 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                                 />
                                 <StatCard
                                     icon={<Bot className="w-6 h-6 text-purple-500" />}
-                                    label="AI Messages"
+                                    label="Guidance Messages"
                                     value={`${analyticsData.aiUsage.reduce((sum, d) => sum + d.messages, 0)}`}
                                     sublabel="Last 30 days"
                                 />
@@ -249,7 +249,7 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
 
                         <TabsContent value="activity" className="mt-0">
                             <div className="space-y-4 pb-6">
-                                <h3 className="font-semibold">AI Usage (Last 30 Days)</h3>
+                                <h3 className="font-semibold">Guidance Usage (Last 30 Days)</h3>
                                 {analyticsData.aiUsage.length > 0 ? (
                                     <div className="h-48 flex items-end gap-1">
                                         {analyticsData.aiUsage.map((day, idx) => {
@@ -270,7 +270,7 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 text-muted-foreground">
-                                        No AI activity yet. Start chatting with SmartBuddy!
+                                        No guidance activity yet. Start chatting with SmartBuddy!
                                     </div>
                                 )}
                                 <p className="text-xs text-muted-foreground text-center">

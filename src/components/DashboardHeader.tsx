@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Settings, Moon, Sun, Monitor, Check, Video } from "lucide-react";
+import { LogOut, User, Settings, Moon, Sun, Monitor, Check } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
 import { useTheme } from "@/contexts/ThemeProvider";
@@ -21,11 +21,11 @@ import CustomThemeCreator from "./CustomThemeCreator";
 import HeroVideoUploader from "./HeroVideoUploader";
 
 const colorThemes = [
-  { name: "Default", value: "default", colors: ["#4338ca", "#c084fc"] },
-  { name: "Ocean", value: "ocean", colors: ["#0ea5e9", "#06b6d4"] },
-  { name: "Forest", value: "forest", colors: ["#16a34a", "#22c55e"] },
-  { name: "Sunset", value: "sunset", colors: ["#f97316", "#ec4899"] },
-  { name: "Rose", value: "rose", colors: ["#e11d48", "#db2777"] },
+  { name: "Studio", value: "default", colors: ["#215148", "#bd5d3b"] },
+  { name: "Harbor", value: "ocean", colors: ["#1a5d76", "#bd6b32"] },
+  { name: "Forest", value: "forest", colors: ["#27643c", "#b06f25"] },
+  { name: "Civic", value: "sunset", colors: ["#a5462d", "#2f617f"] },
+  { name: "House", value: "rose", colors: ["#74334d", "#316856"] },
 ] as const;
 
 const modeOptions = [
@@ -59,7 +59,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
 
   return (
     <header
-      className="w-full bg-background/70 backdrop-blur-md border-b sticky top-0 z-50 transition-all duration-300"
+      className="sticky top-0 z-50 w-full border-b bg-background"
       role="banner"
     >
       {/* Skip to main content link for accessibility */}
@@ -70,7 +70,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
         Skip to main content
       </a>
 
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Left: Logo */}
         <Logo />
 
@@ -90,7 +90,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                 aria-label={`User menu for ${profile?.full_name || 'User'}`}
               >
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
                     {profile?.full_name ? getInitials(profile.full_name) : <User className="h-5 w-5" />}
                   </AvatarFallback>
                 </Avatar>

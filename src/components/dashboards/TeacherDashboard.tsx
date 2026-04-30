@@ -6,6 +6,7 @@ import { StudentDirectoryWidget } from "@/components/widgets/StudentDirectoryWid
 import { TeacherStatsWidget } from "@/components/widgets/TeacherStatsWidget";
 import { NotificationsWidget } from "@/components/widgets/NotificationsWidget";
 import { useSearchParams } from "react-router-dom";
+import { ClipboardCheck } from "lucide-react";
 
 const TeacherDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
@@ -21,31 +22,37 @@ const TeacherDashboard = ({ profile }: { profile: Profile }) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2">Welcome Back, {profile.full_name}!</h2>
-        <p className="text-muted-foreground">Manage your classroom, approvals, and school events from one place.</p>
-      </div>
+      <section className="dashboard-hero flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <p className="editorial-kicker mb-2">Teacher workspace</p>
+          <h1 className="text-3xl md:text-4xl">Welcome back, {profile.full_name}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Manage classroom approvals, student records, and school event activity from one place.</p>
+        </div>
+        <div className="flat-icon h-12 w-12 shrink-0">
+          <ClipboardCheck className="h-6 w-6" />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]">
+      <div className="dashboard-grid auto-rows-[minmax(190px,auto)]">
         {/* Row 1: Critical Actions & Stats */}
         <PendingApprovalsWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'approvals'}
         />
 
         <TeacherStatsWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'stats'}
         />
 
         {/* Row 2: Management Tools */}
         <StudentDirectoryWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'directory'}
         />
 
         <NotificationsWidget
-          className="md:col-span-2 lg:col-span-2"
+          className="md:col-span-2 xl:col-span-2"
           defaultExpanded={activeWidget === 'notifications'}
         />
       </div>

@@ -70,7 +70,6 @@ const App = () => (
                   <Route path="/schools/:id" element={<SchoolProfile />} />
                   <Route path="/recommendations" element={<Recommendations />} />
                   <Route path="/my-applications" element={<MyApplications />} />
-                  <Route path="/features" element={<Features />} />
                   <Route path="/gallery" element={<Gallery />} />
                   <Route path="/gallery/:id" element={<EventGallery />} />
                   <Route path="/buddy" element={<SmartBuddy />} />

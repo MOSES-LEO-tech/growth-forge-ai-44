@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Calendar, MapPin, Plus, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Calendar, MapPin, Plus, Image as ImageIcon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import Navbar from '@/components/Navbar';
 
 interface EventMedia {
   id: number;
@@ -86,24 +87,27 @@ const EventGallery = () => {
   if (!event) return <div className="text-center py-20">Event not found</div>;
 
   return (
-    <div className="container mx-auto py-8">
-      <Button variant="ghost" className="mb-6" onClick={() => navigate('/school/gallery')}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Gallery
-      </Button>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main className="container mx-auto px-4 py-8 pt-24">
+        <Button variant="ghost" className="mb-6" onClick={() => navigate('/school/gallery')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Gallery
+        </Button>
 
-      <div className="bg-card rounded-xl p-8 shadow-sm border mb-8">
+      <section className="dashboard-hero mb-8">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
-            <div className="flex items-center gap-4 text-muted-foreground mb-4">
+            <p className="editorial-kicker mb-2">Event record</p>
+            <h1 className="mb-3 text-4xl font-semibold">{event.title}</h1>
+            <div className="mb-4 flex flex-wrap items-center gap-4 text-muted-foreground">
               <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {new Date(event.event_date).toLocaleDateString()}</span>
               {event.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {event.location}</span>}
-              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-sm font-medium">{event.school_name}</span>
+              <span className="rounded bg-secondary px-2 py-0.5 text-sm font-medium text-secondary-foreground">{event.school_name}</span>
             </div>
             <p className="text-lg">{event.description}</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Event Media</h2>
@@ -137,10 +141,10 @@ const EventGallery = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {event.media && event.media.length > 0 ? (
-          event.media.map((item) => (
-            <Card key={item.id} className="overflow-hidden group relative aspect-square bg-muted">
+          event.media.map((item, index) => (
+            <Card key={item.id} className={`media-tile group relative bg-muted ${index === 0 ? 'aspect-[4/3] md:col-span-2 md:row-span-2' : 'aspect-square'}`}>
               {item.media_type === 'video' ? (
                 <video src={item.media_url} controls className="w-full h-full object-cover" />
               ) : (
@@ -162,6 +166,7 @@ const EventGallery = () => {
           </div>
         )}
       </div>
+      </main>
     </div>
   );
 };

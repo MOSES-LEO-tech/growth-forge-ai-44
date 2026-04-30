@@ -109,7 +109,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+        <Button size="sm" className="gap-2">
           <ImagePlus className="w-4 h-4" />
           Add to Gallery
         </Button>
@@ -203,7 +203,7 @@ export default function AddGalleryModal({ userId, onItemAdded }: AddGalleryModal
             <Button
               type="submit"
               disabled={loading || uploading}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {loading || uploading ? (
                 <>

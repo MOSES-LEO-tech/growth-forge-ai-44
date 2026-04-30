@@ -3,7 +3,7 @@ import type { GalleryEvent, GalleryMedia } from '@/integrations/supabase/types';
 
 export const getGalleryEvents = async (userId: string) => {
   const { data, error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .select('*')
     .eq('user_id', userId)
     .is('deleted_at', null)
@@ -15,7 +15,7 @@ export const getGalleryEvents = async (userId: string) => {
 
 export const getPublicEvents = async () => {
   const { data, error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .select('*')
     .eq('is_public', true)
     .is('deleted_at', null)
@@ -27,7 +27,7 @@ export const getPublicEvents = async () => {
 
 export const createEvent = async (data: Partial<GalleryEvent>) => {
   const { data: event, error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .insert(data)
     .select()
     .single();
@@ -38,7 +38,7 @@ export const createEvent = async (data: Partial<GalleryEvent>) => {
 
 export const deleteEvent = async (id: string) => {
   const { error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id);
 
@@ -47,7 +47,7 @@ export const deleteEvent = async (id: string) => {
 
 export const updateEvent = async (id: string, data: Partial<GalleryEvent>) => {
   const { data: event, error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .update(data)
     .eq('id', id)
     .select()
@@ -59,7 +59,7 @@ export const updateEvent = async (id: string, data: Partial<GalleryEvent>) => {
 
 export const getAllEvents = async () => {
   const { data, error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .select('*, gallery_media(url)')
     .is('deleted_at', null)
     .order('event_date', { ascending: false });
@@ -74,7 +74,7 @@ export const getAllEvents = async () => {
 
 export const getEventDetails = async (id: string) => {
   const { data, error } = await supabase
-    .from('events')
+    .from('gallery_events')
     .select('*, gallery_media(*), profiles(full_name, schools(name))')
     .eq('id', id)
     .single();
@@ -96,13 +96,13 @@ export const uploadMedia = async (eventId: string, file: File) => {
   const filePath = `${fileName}`;
 
   const { error: uploadError } = await supabase.storage
-    .from('gallery-media')
+    .from('portfolio-media')
     .upload(filePath, file);
 
   if (uploadError) throw uploadError;
 
   const { data: { publicUrl } } = supabase.storage
-    .from('gallery-media')
+    .from('portfolio-media')
     .getPublicUrl(filePath);
 
   const { data: media, error: dbError } = await supabase
@@ -110,7 +110,7 @@ export const uploadMedia = async (eventId: string, file: File) => {
     .insert({
       event_id: eventId,
       url: publicUrl,
-      type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document'
+      type: file.type.startsWith('video') ? 'video' : 'image'
     })
     .select()
     .single();

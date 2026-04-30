@@ -165,7 +165,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
                     <div className="space-y-2">
                         {achievements.slice(0, 2).map(a => (
                             <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-                                <div className="w-7 h-7 rounded-md bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
                                     <Award className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -229,7 +229,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
                             <div key={achievement.id} className="flex flex-col gap-2 p-4 rounded-xl border bg-card hover:shadow-md transition-shadow">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0 shadow-sm">
                                             <Award className="w-5 h-5 text-white" />
                                         </div>
                                         <div>

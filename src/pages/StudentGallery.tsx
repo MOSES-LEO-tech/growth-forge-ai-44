@@ -181,11 +181,12 @@ const StudentGallery = () => {
             <Navbar />
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <section className="dashboard-hero mb-8">
+                    <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
                         <div>
-                            <h1 className="text-3xl font-bold text-foreground">My Gallery</h1>
-                            <p className="text-muted-foreground mt-1">Showcase your best moments, projects, and achievements</p>
+                            <p className="editorial-kicker mb-2">Personal archive</p>
+                            <h1 className="text-3xl md:text-4xl">My Gallery</h1>
+                            <p className="mt-2 text-sm text-muted-foreground">Showcase your best moments, projects, and achievements</p>
                         </div>
                         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
                             <DialogTrigger asChild>
@@ -280,14 +281,14 @@ const StudentGallery = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         {[
                             { label: 'Total', value: stats.total, icon: ImageIcon },
                             { label: 'Photos', value: stats.photos, icon: ImageIcon },
                             { label: 'Videos', value: stats.videos, icon: Video },
                             { label: 'Public', value: stats.public, icon: Globe },
                         ].map(s => (
-                            <Card key={s.label} className="border">
+                            <Card key={s.label} className="border bg-background/70">
                                 <CardContent className="p-4 flex items-center gap-3">
                                     <div className="p-2 rounded-lg bg-primary/10">
                                         <s.icon className="w-4 h-4 text-primary" />
@@ -302,7 +303,7 @@ const StudentGallery = () => {
                     </div>
 
                     {/* Filter */}
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex flex-wrap gap-2">
                         {(['all', 'private', 'parents', 'public'] as const).map(f => (
                             <Button
                                 key={f}
@@ -315,7 +316,7 @@ const StudentGallery = () => {
                             </Button>
                         ))}
                     </div>
-                </div>
+                </section>
 
                 {/* Content */}
                 {loading ? (
@@ -336,13 +337,13 @@ const StudentGallery = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {filteredItems.map((item) => {
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                        {filteredItems.map((item, index) => {
                             const vis = visibilityConfig[item.visibility];
                             const VisIcon = vis.icon;
                             return (
-                                <Card key={item.id} className="overflow-hidden group relative border hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLightboxItem(item)}>
-                                    <div className="aspect-square relative bg-muted overflow-hidden">
+                                <Card key={item.id} className={`media-tile group relative cursor-pointer ${index === 0 ? 'md:col-span-2 md:row-span-2' : ''}`} onClick={() => setLightboxItem(item)}>
+                                    <div className={`${index === 0 ? 'aspect-[4/3]' : 'aspect-square'} relative overflow-hidden bg-muted`}>
                                         {item.media_type === 'video' ? (
                                             <div className="w-full h-full flex items-center justify-center bg-muted">
                                                 <Video className="w-12 h-12 text-muted-foreground" />
