@@ -171,42 +171,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     updateState(s => ({ ...s, isLoading: true }));
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
+      if (error) {
+        updateState(s => ({ ...s, isLoading: false }));
+        const msg = error.message.toLowerCase();
+        if (msg.includes('invalid') || msg.includes('email or password')) {
+          throw new Error('Invalid email or password');
+        }
+        if (msg.includes('email not confirmed')) {
+          throw new Error('Please confirm your email first');
+        }
+        if (msg.includes('network') || msg.includes('fetch') || msg.includes('quic')) {
+          throw new Error('Unable to connect. Check your internet connection and try again.');
+        }
+        throw error;
+      }
+
+      if (data.session) {
+        let profileData = await fetchProfile(data.session.user.id);
+        const needsProfileCompletion = !profileData;
+        
+        if (needsProfileCompletion && data.session.user.email) {
+          profileData = await ensureProfile(data.session.user.id, data.session.user.email);
+        }
+
+        updateState({
+          user: data.session.user,
+          session: data.session,
+          profile: profileData,
+          userRole: profileData?.role ?? null,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+
+        return { needsProfileCompletion };
+      }
+
       updateState(s => ({ ...s, isLoading: false }));
-      const msg = error.message.toLowerCase();
-      if (msg.includes('invalid') || msg.includes('email or password')) {
-        throw new Error('Invalid email or password');
+      throw new Error('Sign in failed');
+    } catch (err) {
+      updateState(s => ({ ...s, isLoading: false }));
+      const msg = err instanceof Error ? err.message : 'Connection error';
+      if (!msg.includes('network') && !msg.includes('fetch') && !msg.includes('quic')) {
+        throw err;
       }
-      if (msg.includes('email not confirmed')) {
-        throw new Error('Please confirm your email first');
-      }
-      throw error;
+      throw new Error('Unable to connect. Check your internet connection and try again.');
     }
-
-    if (data.session) {
-      let profileData = await fetchProfile(data.session.user.id);
-      const needsProfileCompletion = !profileData;
-      
-      if (needsProfileCompletion && data.session.user.email) {
-        profileData = await ensureProfile(data.session.user.id, data.session.user.email);
-      }
-
-      updateState({
-        user: data.session.user,
-        session: data.session,
-        profile: profileData,
-        userRole: profileData?.role ?? null,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
-      return { needsProfileCompletion };
-    }
-
-    updateState(s => ({ ...s, isLoading: false }));
-    throw new Error('Sign in failed');
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {

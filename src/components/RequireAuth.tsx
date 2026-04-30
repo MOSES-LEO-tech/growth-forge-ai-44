@@ -1,8 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import type { UserRole } from "@/integrations/supabase/types";
 
-const RequireAuth = () => {
-  const { user, isLoading } = useAuth();
+interface RequireAuthProps {
+  allowedRoles?: UserRole[];
+  redirectTo?: string;
+}
+
+const RequireAuth = ({ allowedRoles, redirectTo = '/auth' }: RequireAuthProps) => {
+  const { user, isLoading, isAuthenticated, userRole } = useAuth();
 
   if (isLoading) {
     return (
@@ -13,8 +19,14 @@ const RequireAuth = () => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
+  if (!isAuthenticated || !user) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <Outlet />;
