@@ -22,6 +22,12 @@ const sampleAssets = {
   pdf: asset("/qa-assets/sample-evidence.pdf"),
 };
 
+const statusCandidates: Record<"pending" | "ongoing" | "complete", (string | undefined)[]> = {
+  pending: [undefined, "pending", "draft", "new", "not_started"],
+  ongoing: [undefined, "ongoing", "in_progress", "active"],
+  complete: [undefined, "complete", "completed", "done"],
+};
+
 const withTimeout = async <T,>(promise: PromiseLike<T>, label: string, timeoutMs = 7000) => {
   return Promise.race([
     promise,
@@ -29,6 +35,11 @@ const withTimeout = async <T,>(promise: PromiseLike<T>, label: string, timeoutMs
       window.setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
     }),
   ]);
+};
+
+const isSchemaError = (error: any) => {
+  const message = String(error?.message || "").toLowerCase();
+  return error?.code === "42P01" || message.includes("schema cache") || message.includes("does not exist");
 };
 
 const toFile = async (url: string, name: string, type: string) => {
@@ -120,28 +131,60 @@ export default function StudentQaSeed() {
   }) => {
     if (!user) throw new Error("No signed-in user");
 
-    const commonWithMedia = {
-      title: project.title,
-      description: project.description,
-      status: project.status,
-      start_date: today,
-      tags: project.tags,
-      media_urls: project.mediaUrls,
+    for (const ownerColumn of ["owner_id", "user_id"]) {
+      const { data: existing, error: existingError } = await withTimeout(
+        (supabase as any)
+          .from("projects")
+          .select("id")
+          .eq(ownerColumn, user.id)
+          .eq("title", project.title)
+          .limit(1),
+        `Find project ${project.title}`,
+        3500
+      );
+
+      if (!existingError && existing?.[0]?.id) {
+        const { error: updateError } = await withTimeout(
+          (supabase as any)
+            .from("projects")
+            .update({ media_urls: project.mediaUrls, tags: project.tags })
+            .eq("id", existing[0].id),
+          `Refresh project ${project.title}`,
+          5000
+        );
+
+        if (updateError) {
+          addLog({ label: project.title, status: "warn", detail: `Found existing project, but media refresh failed: ${updateError.message}` });
+        } else {
+          addLog({ label: project.title, status: "ok", detail: "Found existing project and refreshed sample media." });
+        }
+
+        return;
+      }
+    }
+
+    const buildPayload = (ownerColumn: "owner_id" | "user_id", includeMedia: boolean, status?: string) => {
+      const payload: Record<string, unknown> = {
+        [ownerColumn]: user.id,
+        title: project.title,
+        description: project.description,
+      };
+
+      if (status) payload.status = status;
+      if (includeMedia) {
+        payload.tags = project.tags;
+        payload.media_urls = project.mediaUrls;
+      }
+
+      return payload;
     };
 
-    const commonLean = {
-      title: project.title,
-      description: project.description,
-      status: project.status,
-      start_date: today,
-    };
-
-    const attempts = [
-      { owner_id: user.id, ...commonWithMedia },
-      { owner_id: user.id, ...commonLean },
-      { user_id: user.id, ...commonWithMedia },
-      { user_id: user.id, ...commonLean },
-    ];
+    const attempts = statusCandidates[project.status].flatMap((status) => [
+      buildPayload("owner_id", true, status),
+      buildPayload("owner_id", false, status),
+      buildPayload("user_id", true, status),
+      buildPayload("user_id", false, status),
+    ]);
 
     let created: any = null;
     let lastError: any = null;
@@ -154,7 +197,7 @@ export default function StudentQaSeed() {
           .select()
           .single(),
         `Create project ${project.title}`,
-        9000
+        3500
       );
 
       if (!error) {
@@ -212,7 +255,39 @@ export default function StudentQaSeed() {
       7000
     );
 
-    if (error) throw error;
+    if (error) {
+      const { data: project, error: projectError } = await withTimeout(
+        (supabase as any)
+          .from("projects")
+          .select("media_urls")
+          .eq("id", created.id)
+          .single(),
+        `Read project gallery fallback for ${event.title}`,
+        5000
+      );
+
+      if (projectError) {
+        if (!isSchemaError(error)) throw error;
+        throw projectError;
+      }
+
+      const currentUrls = Array.isArray(project?.media_urls) ? project.media_urls : [];
+      const nextUrls = currentUrls.includes(event.url) ? currentUrls : [...currentUrls, event.url];
+
+      const { error: updateError } = await withTimeout(
+        (supabase as any)
+          .from("projects")
+          .update({ media_urls: nextUrls })
+          .eq("id", created.id),
+        `Attach project media fallback to ${event.title}`,
+        5000
+      );
+
+      if (updateError) throw updateError;
+
+      addLog({ label: event.title, status: "warn", detail: "Gallery media insert was unavailable; added media through the project-media fallback." });
+      return;
+    }
 
     addLog({ label: event.title, status: "ok", detail: `Created ${event.type} gallery item.` });
   };

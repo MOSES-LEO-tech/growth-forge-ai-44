@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { supabase, getCurrentUser } from '@/integrations/supabase/client';
-import type { User, Session, AuthToken } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import type { User, Session } from '@supabase/supabase-js';
 import type { Profile, UserRole } from '@/integrations/supabase/types';
 
 interface AuthState {
@@ -30,13 +30,35 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
   super_admin: 4,
 };
 
+const PROFILE_TIMEOUT_MS = 6000;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    const { data, error } = await withTimeout(
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .limit(1)
+        .maybeSingle(),
+      PROFILE_TIMEOUT_MS,
+      'Profile fetch'
+    );
 
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -54,25 +76,65 @@ const ensureProfile = async (userId: string, email?: string): Promise<Profile | 
   let profileData = await fetchProfile(userId);
   
   if (!profileData) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert({ id: userId, email, role: 'student' })
-      .select()
-      .single();
+    const baseProfile = { id: userId, role: 'student' as UserRole };
+    const profileWithEmail = email ? { ...baseProfile, email } : baseProfile;
+    let { data, error } = await withTimeout(
+      supabase
+        .from('profiles')
+        .insert(profileWithEmail)
+        .select()
+        .single(),
+      PROFILE_TIMEOUT_MS,
+      'Profile insert'
+    );
+
+    if (error && error.message.includes("'email' column")) {
+      const retry = await withTimeout(
+        supabase
+          .from('profiles')
+          .insert(baseProfile)
+          .select()
+          .single(),
+        PROFILE_TIMEOUT_MS,
+        'Profile insert without email'
+      );
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       console.warn('Profile insert error:', error.message);
-      const { data: upsertData } = await supabase
-        .from('profiles')
-        .upsert({ id: userId, email, role: 'student' }, { onConflict: 'id' })
-        .select()
-        .single();
+      const upsertProfile = error.message.includes("'email' column") ? baseProfile : profileWithEmail;
+      const { data: upsertData, error: upsertError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .upsert(upsertProfile, { onConflict: 'id' })
+          .select()
+          .single(),
+        PROFILE_TIMEOUT_MS,
+        'Profile upsert'
+      );
+
+      if (upsertError) {
+        console.warn('Profile upsert error:', upsertError.message);
+        return null;
+      }
+
       return upsertData as Profile | null;
     }
+
     profileData = data as Profile | null;
   }
   
   return profileData;
+};
+
+const loadProfileForUser = async (
+  userId: string,
+  applyProfile: (profile: Profile | null) => void
+): Promise<void> => {
+  const profileData = await fetchProfile(userId);
+  applyProfile(profileData);
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -89,6 +151,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
+  const loadProfile = useCallback(async (userId: string) => {
+    await loadProfileForUser(userId, (profileData) => {
+      updateState({ profile: profileData, userRole: profileData?.role ?? null });
+    });
+  }, [updateState]);
+
   const initializeAuth = useCallback(async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -100,15 +168,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (session?.user) {
-        const profileData = await fetchProfile(session.user.id);
         updateState({
           user: session.user,
           session,
-          profile: profileData,
-          userRole: profileData?.role ?? null,
           isAuthenticated: true,
           isLoading: false,
         });
+        void loadProfile(session.user.id);
       } else {
         updateState({ isLoading: false });
       }
@@ -116,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Auth init error:', error);
       updateState({ isLoading: false });
     }
-  }, [updateState]);
+  }, [loadProfile, updateState]);
 
   useEffect(() => {
     let mounted = true;
@@ -128,14 +194,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn('Auth init timeout');
           updateState({ isLoading: false });
         }
-      }, 8000);
+      }, 15000);
       await initializeAuth();
       clearTimeout(authTimeout);
     };
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
       if (event === 'SIGNED_OUT') {
@@ -145,19 +211,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile: null,
           userRole: null,
           isAuthenticated: false,
+          isLoading: false,
         });
         return;
       }
 
       if (session?.user) {
-        const profileData = await fetchProfile(session.user.id);
         updateState({
           user: session.user,
           session,
-          profile: profileData,
-          userRole: profileData?.role ?? null,
           isAuthenticated: true,
+          isLoading: false,
         });
+
+        window.setTimeout(() => {
+          if (mounted) void loadProfile(session.user.id);
+        }, 0);
       }
     });
 
@@ -166,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
-  }, [initializeAuth, updateState]);
+  }, [initializeAuth, loadProfile, updateState]);
 
   const signIn = async (email: string, password: string) => {
     updateState(s => ({ ...s, isLoading: true }));

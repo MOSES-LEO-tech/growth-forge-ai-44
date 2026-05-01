@@ -11,6 +11,7 @@ import SuperAdminDashboard from "@/components/dashboards/SuperAdminDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
 import { QuickActions } from "@/components/QuickActions";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import type { Profile, UserRole } from "@/integrations/supabase/types";
 
 const Dashboard = () => {
   const { user, profile: authProfile, isLoading: authLoading, signOut } = useAuth();
@@ -45,6 +46,24 @@ const Dashboard = () => {
     localStorage.setItem('hasSeenOnboarding', 'true');
   };
 
+  const fallbackProfile: Profile | null = user ? {
+    id: user.id,
+    email: user.email ?? null,
+    full_name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Student",
+    avatar_url: user.user_metadata?.avatar_url ?? null,
+    bio: null,
+    grade_level: null,
+    gpa: null,
+    interests: null,
+    extracurriculars: null,
+    role: (user.user_metadata?.role as UserRole | undefined) ?? "student",
+    school_id: null,
+    created_at: user.created_at ?? new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } : null;
+
+  const dashboardProfile = authProfile ?? fallbackProfile;
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -57,7 +76,7 @@ const Dashboard = () => {
   }
 
   const renderDashboard = () => {
-    if (!authProfile) {
+    if (!dashboardProfile) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -65,26 +84,26 @@ const Dashboard = () => {
       );
     }
 
-    switch (authProfile?.role) {
+    switch (dashboardProfile.role) {
       case "student":
-        return <StudentDashboard profile={authProfile} />;
+        return <StudentDashboard profile={dashboardProfile} />;
       case "parent":
-        return <ParentDashboard profile={authProfile} />;
+        return <ParentDashboard profile={dashboardProfile} />;
       case "teacher":
-        return <TeacherDashboard profile={authProfile} />;
+        return <TeacherDashboard profile={dashboardProfile} />;
       case "admin":
-        return <SchoolAdminDashboard profile={authProfile} />;
+        return <SchoolAdminDashboard profile={dashboardProfile} />;
       case "super_admin":
-        return <SuperAdminDashboard profile={authProfile} />;
+        return <SuperAdminDashboard profile={dashboardProfile} />;
       default:
-        return <StudentDashboard profile={authProfile} />;
+        return <StudentDashboard profile={dashboardProfile} />;
     }
   };
 
   return (
     <DashboardProvider>
       <div className="min-h-screen bg-background">
-        <DashboardHeader profile={authProfile} onSignOut={handleSignOut} />
+        <DashboardHeader profile={dashboardProfile} onSignOut={handleSignOut} />
 
         <main id="main-content" role="main">
           {renderDashboard()}

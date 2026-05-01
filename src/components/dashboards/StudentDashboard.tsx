@@ -60,6 +60,7 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
         {/* Row 2: Achievements & Smart Buddy */}
         <AchievementsWidget
           className="md:col-span-2 xl:col-span-2"
+          userId={profile.id}
           defaultExpanded={activeWidget === 'achievements' || achievementModalOpen}
           openAddExternal={achievementModalOpen}
           onOpenAddChange={(open) => { if (!open) closeAchievementModal(); }}

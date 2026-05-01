@@ -20,6 +20,101 @@ const isSchemaError = (error: any) => {
   return error?.code === '42P01' || message.includes('schema cache') || message.includes('does not exist');
 };
 
+const getMediaType = (url: string): 'image' | 'video' | 'document' => {
+  if (/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url)) return 'video';
+  if (/\.pdf(\?|#|$)/i.test(url)) return 'document';
+  return 'image';
+};
+
+const appendMediaToProject = async (projectId: string, mediaUrl: string) => {
+  const { data: project, error: fetchError } = await (supabase as any)
+    .from('projects')
+    .select('media_urls')
+    .eq('id', projectId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const currentUrls = Array.isArray(project?.media_urls) ? project.media_urls : [];
+  const nextUrls = currentUrls.includes(mediaUrl) ? currentUrls : [...currentUrls, mediaUrl];
+
+  const { error: updateError } = await (supabase as any)
+    .from('projects')
+    .update({ media_urls: nextUrls })
+    .eq('id', projectId);
+
+  if (updateError) throw updateError;
+};
+
+const getProjectMediaEvents = async (userId: string) => {
+  const attempts = [
+    { ownerColumn: 'owner_id', includeDeletedFilter: true },
+    { ownerColumn: 'owner_id', includeDeletedFilter: false },
+    { ownerColumn: 'user_id', includeDeletedFilter: true },
+    { ownerColumn: 'user_id', includeDeletedFilter: false },
+  ];
+
+  let projects: any[] = [];
+  let lastError: any;
+
+  for (const attempt of attempts) {
+    let query = (supabase as any)
+      .from('projects')
+      .select('id,title,description,media_urls,created_at')
+      .eq(attempt.ownerColumn, userId)
+      .order('created_at', { ascending: false });
+
+    if (attempt.includeDeletedFilter) {
+      query = query.is('deleted_at', null);
+    }
+
+    const { data, error } = await query;
+
+    if (!error) {
+      projects = data || [];
+      break;
+    }
+
+    lastError = error;
+  }
+
+  if (lastError && projects.length === 0) throw lastError;
+
+  return projects.flatMap((project) => {
+    const urls = Array.isArray(project.media_urls) ? project.media_urls : [];
+
+    return urls.map((url: string, index: number) => {
+      const media = {
+        id: `${project.id}-media-${index}`,
+        event_id: project.id,
+        url,
+        type: getMediaType(url),
+        created_at: project.created_at,
+        deleted_at: null,
+      };
+
+      return {
+        id: `${project.id}-${index}`,
+        user_id: userId,
+        title: index === 0 ? project.title : `${project.title} media ${index + 1}`,
+        description: project.description,
+        location: null,
+        event_date: project.created_at,
+        is_public: false,
+        created_at: project.created_at,
+        deleted_at: null,
+        gallery_media: [media],
+        media: [media],
+        media_count: 1,
+        media_type: media.type,
+        media_url: url,
+        thumbnail_url: url,
+        visibility: 'private',
+      };
+    });
+  }) as EventRow[];
+};
+
 const queryEvents = async (
   build: (table: EventTable) => any,
   allowMissingDeletedAt = false
@@ -97,33 +192,86 @@ const normalizeEvents = async (events: GalleryEvent[]) => {
 };
 
 export const getGalleryEvents = async (userId: string) => {
-  const { data } = await queryEvents((table) =>
-    withActiveFilter((supabase as any).from(table).select('*').eq('user_id', userId))
-      .order('created_at', { ascending: false })
-  );
+  try {
+    const { data } = await queryEvents((table) =>
+      withActiveFilter((supabase as any).from(table).select('*').eq('user_id', userId))
+        .order('created_at', { ascending: false })
+    );
 
-  return normalizeEvents(data as GalleryEvent[]);
+    return normalizeEvents(data as GalleryEvent[]);
+  } catch (error) {
+    if (isSchemaError(error)) return getProjectMediaEvents(userId);
+    throw error;
+  }
 };
 
 export const getPublicEvents = async () => {
-  const { data } = await queryEvents((table) =>
-    withActiveFilter((supabase as any).from(table).select('*').eq('is_public', true))
-      .order('created_at', { ascending: false })
-  );
+  try {
+    const { data } = await queryEvents((table) =>
+      withActiveFilter((supabase as any).from(table).select('*').eq('is_public', true))
+        .order('created_at', { ascending: false })
+    );
 
-  return normalizeEvents(data as GalleryEvent[]);
+    return normalizeEvents(data as GalleryEvent[]);
+  } catch (error) {
+    if (isSchemaError(error)) return [];
+    throw error;
+  }
 };
 
 export const createEvent = async (data: Partial<GalleryEvent>) => {
-  const { data: event } = await queryEvents((table) =>
-    (supabase as any)
-      .from(table)
-      .insert(data)
-      .select()
-      .single()
-  );
+  try {
+    const { data: event } = await queryEvents((table) =>
+      (supabase as any)
+        .from(table)
+        .insert(data)
+        .select()
+        .single()
+    );
 
-  return event as GalleryEvent;
+    return event as GalleryEvent;
+  } catch (error) {
+    if (!isSchemaError(error)) throw error;
+
+    const projectShell = {
+      owner_id: data.user_id,
+      title: data.title || 'Gallery item',
+      description: data.description || null,
+    };
+
+    const attempts = [
+      projectShell,
+      { user_id: data.user_id, title: projectShell.title, description: projectShell.description },
+    ];
+
+    let lastError: any;
+
+    for (const payload of attempts) {
+      const { data: project, error: projectError } = await (supabase as any)
+        .from('projects')
+        .insert(payload)
+        .select('id,title,description,created_at')
+        .single();
+
+      if (!projectError) {
+        return {
+          id: project.id,
+          user_id: data.user_id || null,
+          title: project.title,
+          description: project.description,
+          location: null,
+          event_date: project.created_at,
+          is_public: false,
+          created_at: project.created_at,
+          deleted_at: null,
+        } as GalleryEvent;
+      }
+
+      lastError = projectError;
+    }
+
+    throw lastError;
+  }
 };
 
 export const deleteEvent = async (id: string) => {
@@ -203,6 +351,21 @@ export const uploadMedia = async (eventId: string, file: File) => {
     .select()
     .single();
 
-  if (dbError) throw dbError;
+  if (dbError) {
+    if (isSchemaError(dbError)) {
+      await appendMediaToProject(eventId, publicUrl);
+      return {
+        id: `${eventId}-${Date.now()}`,
+        event_id: eventId,
+        url: publicUrl,
+        type: file.type.startsWith('video') ? 'video' : file.type === 'application/pdf' ? 'document' : 'image',
+        created_at: new Date().toISOString(),
+        deleted_at: null,
+      } as GalleryMedia;
+    }
+
+    throw dbError;
+  }
+
   return media as GalleryMedia;
 };
