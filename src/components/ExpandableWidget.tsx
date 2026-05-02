@@ -1,8 +1,8 @@
 import { useState, ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Maximize2, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Maximize2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface ExpandableWidgetProps {
@@ -61,17 +61,12 @@ export function ExpandableWidget({
 
       <Dialog open={isExpanded} onOpenChange={handleToggle}>
         <DialogContent className="flex h-[90vh] max-h-[90vh] w-[95vw] max-w-[95vw] flex-col items-stretch p-5 sm:rounded-lg">
-          <DialogHeader className="mb-4 flex shrink-0 flex-row items-center justify-between border-b pb-4">
+          <DialogHeader className="mb-4 shrink-0 border-b pb-4 pr-10">
             <DialogTitle className="flex items-center gap-2 text-2xl font-semibold">
               {icon}
               {title}
             </DialogTitle>
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </DialogClose>
+            <DialogDescription className="sr-only">Expanded {title} widget</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-1">{expandedContent}</div>
         </DialogContent>

@@ -15,7 +15,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ProfileSettingsModal from "./ProfileSettingsModal";
 import CustomThemeCreator from "./CustomThemeCreator";
 import HeroVideoUploader from "./HeroVideoUploader";
@@ -90,6 +90,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                 aria-label={`User menu for ${profile?.full_name || 'User'}`}
               >
                 <Avatar className="h-10 w-10">
+                  <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name || "User"} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {profile?.full_name ? getInitials(profile.full_name) : <User className="h-5 w-5" />}
                   </AvatarFallback>

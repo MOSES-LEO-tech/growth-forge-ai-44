@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Award, FolderKanban, TrendingUp, ArrowRight } from "lucide-react";
+import { GraduationCap, Award, FolderKanban, TrendingUp, ArrowRight, Settings } from "lucide-react";
 import { brand } from "@/lib/brand";
 
 interface OnboardingModalProps {
@@ -43,6 +43,12 @@ export const OnboardingModal = ({ isOpen, onClose }: OnboardingModalProps) => {
       description: "View progress, receive recommendations, and discover scholarship opportunities.",
       icon: TrendingUp,
       className: "bg-primary text-primary-foreground",
+    },
+    {
+      title: "Complete Your Profile When Ready",
+      description: "Add your class, subjects, clubs, and profile picture later from Settings to improve recommendations.",
+      icon: Settings,
+      className: "bg-secondary text-secondary-foreground",
     },
   ];
 

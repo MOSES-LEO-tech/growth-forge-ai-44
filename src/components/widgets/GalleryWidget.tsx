@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
-import { Loader2, Plus, Image as ImageIcon, Video, Trash2, Search } from "lucide-react";
+import { FileText, Loader2, Plus, Image as ImageIcon, Video, Trash2, Search } from "lucide-react";
 
 interface GalleryItem {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    media_type: 'image' | 'video';
+    media_type: 'image' | 'video' | 'document';
     media_url: string;
     thumbnail_url?: string;
     visibility: 'private' | 'public' | 'parents';
@@ -42,6 +42,7 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [internalOpenUpload, setInternalOpenUpload] = useState(false);
+    const [widgetExpanded, setWidgetExpanded] = useState(defaultExpanded);
     const isControlled = openUploadExternal !== undefined;
     const openUpload = isControlled ? openUploadExternal : internalOpenUpload;
     const setOpenUpload = isControlled
@@ -60,8 +61,8 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
 
     const fetchItems = async () => {
         try {
-            if (!user) return;
-            const targetId = userId || user.id;
+            const targetId = userId || user?.id;
+            if (!targetId) return;
             const events = await getGalleryEvents(targetId);
             setItems(events);
         } catch (error) {
@@ -73,7 +74,13 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
 
     useEffect(() => {
         fetchItems();
-    }, [userId]);
+    }, [userId, user?.id]);
+
+    useEffect(() => {
+        if (defaultExpanded) {
+            setWidgetExpanded(true);
+        }
+    }, [defaultExpanded]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -83,7 +90,8 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file || !user) {
+        const targetId = userId || user?.id;
+        if (!file || !targetId) {
             toast({ title: "Error", description: "Please select a file", variant: "destructive" });
             return;
         }
@@ -92,7 +100,7 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
         try {
             // 1. Create event
             const event = await createEvent({
-                user_id: user.id,
+                user_id: targetId,
                 title,
                 description,
                 is_public: visibility === 'public'
@@ -136,34 +144,24 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
         item.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const photos = filteredItems.filter(i => i.media_type === 'image');
-    const videos = filteredItems.filter(i => i.media_type === 'video');
+    const photos = filteredItems.filter(i => getGalleryMediaKind(i) === 'image');
+    const videos = filteredItems.filter(i => getGalleryMediaKind(i) === 'video');
+    const previewItems = items.slice(0, 2);
 
     // Collapsed view - shown in the card
     const collapsedContent = (
         <div className="flex flex-col h-full gap-4 min-w-0">
-            <div className="grid h-full max-h-[150px] min-w-0 grid-cols-3 gap-2">
-                {items.slice(0, 4).map((item) => (
-                    <div
+            <div className={`grid h-[150px] min-w-0 gap-2 overflow-hidden ${previewItems.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {previewItems.map((item) => (
+                    <GalleryMediaTile
                         key={item.id}
-                        className={`group relative cursor-pointer overflow-hidden rounded-md bg-muted ${items.indexOf(item) === 0 ? 'col-span-2 row-span-2' : 'aspect-square'}`}
-                        onClick={() => setSelectedMedia(item)}
-                    >
-                        {item.media_type === 'video' ? (
-                            <div className="w-full h-full bg-black/10 flex items-center justify-center">
-                                <Video className="w-6 h-6 text-muted-foreground" />
-                            </div>
-                        ) : (
-                            <img
-                                src={item.thumbnail_url || item.media_url}
-                                alt={item.title}
-                                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                            />
-                        )}
-                    </div>
+                        item={item}
+                        compact
+                        onSelect={() => setSelectedMedia(item)}
+                    />
                 ))}
                 {items.length === 0 && (
-                    <div className="col-span-3 flex h-full flex-col items-center justify-center rounded-md bg-muted/30 text-muted-foreground">
+                    <div className="flex h-full flex-col items-center justify-center rounded-md bg-muted/30 text-muted-foreground">
                         <ImageIcon className="w-8 h-8 opacity-50 mb-2" />
                         <span className="text-xs">No photos yet</span>
                     </div>
@@ -225,6 +223,8 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
                 icon={<ImageIcon className="w-5 h-5 text-purple-500" />}
                 className={className}
                 defaultExpanded={defaultExpanded}
+                expanded={widgetExpanded}
+                onExpandedChange={setWidgetExpanded}
                 expandedContent={expandedContent}
             >
                 {collapsedContent}
@@ -284,16 +284,16 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
                         <h3 className="font-semibold drop-shadow-md">{selectedMedia?.title}</h3>
                         <p className="text-sm opacity-80 drop-shadow-md">{selectedMedia?.description}</p>
                     </div>
-                    {selectedMedia?.media_type === 'video' ? (
+                    {selectedMedia && getGalleryMediaKind(selectedMedia) === 'video' ? (
                         <video
-                            src={selectedMedia.media_url}
+                            src={getGalleryMediaUrl(selectedMedia)}
                             controls
                             autoPlay
                             className="max-w-full max-h-full object-contain"
                         />
-                    ) : selectedMedia?.media_type === 'image' ? (
+                    ) : selectedMedia && getGalleryMediaKind(selectedMedia) === 'image' ? (
                         <img
-                            src={selectedMedia.media_url}
+                            src={getGalleryMediaUrl(selectedMedia)}
                             alt={selectedMedia.title}
                             className="max-w-full max-h-[90vh] object-contain"
                         />
@@ -304,7 +304,76 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
     );
 }
 
-function GalleryGrid({ items, onDelete, onSelectMedia }: { items: GalleryItem[], onDelete: (id: number) => void, onSelectMedia: (item: GalleryItem) => void }) {
+function getGalleryMediaUrl(item?: Partial<GalleryItem> | null) {
+    return item?.thumbnail_url || item?.media_url || "";
+}
+
+function getGalleryMediaKind(item?: Partial<GalleryItem> | null): GalleryItem["media_type"] {
+    const mediaType = item?.media_type;
+    if (mediaType === "video" || mediaType === "document") return mediaType;
+    const url = getGalleryMediaUrl(item);
+    if (/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url)) return "video";
+    if (/\.pdf(\?|#|$)/i.test(url)) return "document";
+    return "image";
+}
+
+function GalleryMediaTile({
+    item,
+    compact = false,
+    onSelect,
+}: {
+    item: GalleryItem;
+    compact?: boolean;
+    onSelect: () => void;
+}) {
+    const [failed, setFailed] = useState(false);
+    const mediaUrl = getGalleryMediaUrl(item);
+    const mediaKind = getGalleryMediaKind(item);
+    const iconClassName = compact ? "h-7 w-7" : "h-12 w-12";
+
+    return (
+        <button
+            type="button"
+            className="group relative h-full min-h-0 min-w-0 cursor-pointer overflow-hidden rounded-md bg-muted text-left"
+            onClick={onSelect}
+            title={item.title}
+        >
+            {mediaKind === "video" && mediaUrl && !failed ? (
+                <video
+                    src={mediaUrl}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onError={() => setFailed(true)}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+            ) : mediaKind === "image" && mediaUrl && !failed ? (
+                <img
+                    src={mediaUrl}
+                    alt={item.title}
+                    onError={() => setFailed(true)}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+            ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/60 p-3 text-center text-muted-foreground">
+                    {mediaKind === "document" ? (
+                        <FileText className={iconClassName} />
+                    ) : mediaKind === "video" ? (
+                        <Video className={iconClassName} />
+                    ) : (
+                        <ImageIcon className={iconClassName} />
+                    )}
+                    {!compact && <span className="max-w-full truncate text-xs">{item.title || "Media unavailable"}</span>}
+                </div>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="line-clamp-1">{item.title}</span>
+            </div>
+        </button>
+    );
+}
+
+function GalleryGrid({ items, onDelete, onSelectMedia }: { items: GalleryItem[], onDelete: (id: string) => void, onSelectMedia: (item: GalleryItem) => void }) {
     if (items.length === 0) {
         return <div className="text-center py-12 text-muted-foreground">No items found.</div>;
     }
@@ -318,13 +387,7 @@ function GalleryGrid({ items, onDelete, onSelectMedia }: { items: GalleryItem[],
                     onClick={() => onSelectMedia(item)}
                 >
                     <div className={`${index === 0 ? 'aspect-[4/3]' : 'aspect-square'} relative w-full shrink-0 overflow-hidden bg-muted`}>
-                        {item.media_type === 'video' ? (
-                            <div className="w-full h-full flex items-center justify-center bg-black/5">
-                                <Video className="w-12 h-12 text-muted-foreground opacity-50" />
-                            </div>
-                        ) : (
-                            <img src={item.media_url} alt={item.title} className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" />
-                        )}
+                        <GalleryMediaTile item={item} onSelect={() => onSelectMedia(item)} />
                         <div className="absolute top-2 right-2">
                             <Badge variant={item.visibility === 'public' ? 'default' : 'secondary'} className="opacity-90">
                                 {item.visibility}

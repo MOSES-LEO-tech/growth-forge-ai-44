@@ -43,8 +43,16 @@ serve(async (req) => {
       { data: projects },
       { data: scholarships }
     ] = await Promise.all([
-      supabase.from('profiles').select('full_name, bio, interests, gpa, grade_level, location').eq('id', userId).single(),
-      supabase.from('projects').select('title').eq('user_id', userId).is('deleted_at', null),
+      supabase
+        .from('profiles')
+        .select('full_name, bio, interests, extracurriculars, gpa, grade_level, class_name, age, subjects, clubs')
+        .eq('id', userId)
+        .single(),
+      supabase
+        .from('projects')
+        .select('title')
+        .or(`user_id.eq.${userId},owner_id.eq.${userId}`)
+        .is('deleted_at', null),
       supabase.from('scholarships').select('id, title, requirements')
     ])
 
@@ -59,24 +67,32 @@ serve(async (req) => {
       full_name: profile.full_name || 'Not set',
       bio: profile.bio || 'Not set',
       interests: (profile.interests || []).join(', ') || 'Not set',
+      extracurriculars: (profile.extracurriculars || []).join(', ') || 'Not set',
       gpa: profile.gpa || 'Not set',
       grade_level: profile.grade_level || 'Not set',
-      location: profile.location || 'Not set',
+      class_name: profile.class_name || 'Not set',
+      age: profile.age || 'Not set',
+      subjects: (profile.subjects || []).join(', ') || 'Not set',
+      clubs: (profile.clubs || []).join(', ') || 'Not set',
       projects: (projects || []).map(p => p.title).join(', ') || 'None',
       project_count: (projects || []).length,
       available_scholarships: (scholarships || []).map(s => `ID: ${s.id}, Title: ${s.title}, Req: ${s.requirements}`).join('\n')
     }
 
-    const prompt = `You are an AI career and academic advisor for Growth Forge AI.
+    const prompt = `You are an academic advisor for Milestone Studio.
 Analyze the following student profile and available opportunities to provide structured recommendations.
 
 Student Profile:
 - Name: ${context.full_name}
 - Bio: ${context.bio}
 - Interests: ${context.interests}
+- Extracurriculars: ${context.extracurriculars}
 - GPA: ${context.gpa}
 - Grade Level: ${context.grade_level}
-- Location: ${context.location}
+- Class / Homeroom: ${context.class_name}
+- Age: ${context.age}
+- Subjects: ${context.subjects}
+- Clubs: ${context.clubs}
 - Projects: ${context.projects} (${context.project_count} projects total)
 
 Available Scholarships:

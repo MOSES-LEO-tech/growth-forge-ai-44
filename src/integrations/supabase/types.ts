@@ -17,7 +17,11 @@ export interface Database {
           avatar_url: string | null
           bio: string | null
           grade_level: string | null
+          class_name: string | null
+          age: number | null
           gpa: number | null
+          subjects: string[] | null
+          clubs: string[] | null
           interests: string[] | null
           extracurriculars: string[] | null
           role: UserRole
@@ -32,7 +36,11 @@ export interface Database {
           avatar_url?: string | null
           bio?: string | null
           grade_level?: string | null
+          class_name?: string | null
+          age?: number | null
           gpa?: number | null
+          subjects?: string[] | null
+          clubs?: string[] | null
           interests?: string[] | null
           extracurriculars?: string[] | null
           role?: UserRole
@@ -47,7 +55,11 @@ export interface Database {
           avatar_url?: string | null
           bio?: string | null
           grade_level?: string | null
+          class_name?: string | null
+          age?: number | null
           gpa?: number | null
+          subjects?: string[] | null
+          clubs?: string[] | null
           interests?: string[] | null
           extracurriculars?: string[] | null
           role?: UserRole
@@ -146,36 +158,54 @@ export interface Database {
       projects: {
         Row: {
           id: string
+          owner_id: string | null
           user_id: string | null
           title: string
           description: string | null
           tags: string[] | null
           media_urls: string[] | null
-          status: 'pending' | 'ongoing' | 'complete' | null
+          status: string | null
+          start_date: string | null
+          end_date: string | null
+          skills_tracked: Json | null
+          verified: boolean | null
+          collaborators: string[] | null
           created_at: string
           updated_at: string
           deleted_at: string | null
         }
         Insert: {
           id?: string
+          owner_id?: string | null
           user_id?: string | null
           title: string
           description?: string | null
           tags?: string[] | null
           media_urls?: string[] | null
-          status?: 'pending' | 'ongoing' | 'complete' | null
+          status?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          skills_tracked?: Json | null
+          verified?: boolean | null
+          collaborators?: string[] | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
         }
         Update: {
           id?: string
+          owner_id?: string | null
           user_id?: string | null
           title?: string
           description?: string | null
           tags?: string[] | null
           media_urls?: string[] | null
-          status?: 'pending' | 'ongoing' | 'complete' | null
+          status?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          skills_tracked?: Json | null
+          verified?: boolean | null
+          collaborators?: string[] | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null

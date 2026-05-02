@@ -48,8 +48,10 @@ export default function AddProjectModal({ userId, onProjectAdded, open: controll
       // 1. Create the project
       const project = await createProject({
         owner_id: userId,
+        user_id: userId,
         title: form.title,
         description: form.description,
+        start_date: form.start_date || null,
         status: form.status as any
       });
 

@@ -15,9 +15,9 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
   const activeWidget = searchParams.get("widget");
   const {
-    achievementModalOpen, closeAchievementModal,
-    projectModalOpen, closeProjectModal,
-    eventModalOpen, closeEventModal,
+    achievementModalOpen, openAchievementModal, closeAchievementModal,
+    projectModalOpen, openProjectModal, closeProjectModal,
+    eventModalOpen, openEventModal, closeEventModal,
   } = useDashboard();
 
   if (!profile) {
@@ -63,7 +63,10 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
           userId={profile.id}
           defaultExpanded={activeWidget === 'achievements' || achievementModalOpen}
           openAddExternal={achievementModalOpen}
-          onOpenAddChange={(open) => { if (!open) closeAchievementModal(); }}
+          onOpenAddChange={(open) => {
+            if (open) openAchievementModal();
+            else closeAchievementModal();
+          }}
         />
 
         <SmartBuddyWidget
@@ -77,15 +80,22 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
           defaultExpanded={activeWidget === 'projects' || projectModalOpen}
           userId={profile.id}
           openAddExternal={projectModalOpen}
-          onOpenAddChange={(open) => { if (!open) closeProjectModal(); }}
+          onOpenAddChange={(open) => {
+            if (open) openProjectModal();
+            else closeProjectModal();
+          }}
         />
 
         {/* Row 4: Gallery & Discovery */}
         <GalleryWidget
           className="md:col-span-2 xl:col-span-2"
+          userId={profile.id}
           defaultExpanded={activeWidget === 'gallery' || eventModalOpen}
           openUploadExternal={eventModalOpen}
-          onOpenUploadChange={(open) => { if (!open) closeEventModal(); }}
+          onOpenUploadChange={(open) => {
+            if (open) openEventModal();
+            else closeEventModal();
+          }}
         />
 
         <ScholarshipsWidget

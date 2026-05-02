@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import type { Project } from "@/integrations/supabase/types";
+import { getProjectStatusLabel, normalizeProjectStatus } from "@/lib/projectStatus";
 
 interface ProjectCardProps {
   project: Project;
@@ -14,7 +15,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   const navigate = useNavigate();
 
   const getStatusColor = (status: string | null) => {
-    switch (status) {
+    switch (normalizeProjectStatus(status)) {
       case 'pending':
         return 'bg-yellow-500';
       case 'ongoing':
@@ -26,22 +27,10 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     }
   };
 
-  const getStatusLabel = (status: string | null) => {
-    switch (status) {
-      case 'pending':
-        return 'New';
-      case 'ongoing':
-        return 'Ongoing';
-      case 'complete':
-        return 'Completed';
-      default:
-        return status || 'Unknown';
-    }
-  };
-
   // Calculate mock progress based on status
-  const progress = project.status === 'complete' ? 100 : 
-                   project.status === 'ongoing' ? 60 : 10;
+  const normalizedStatus = normalizeProjectStatus(project.status);
+  const progress = normalizedStatus === 'complete' ? 100 :
+                   normalizedStatus === 'ongoing' ? 60 : 10;
 
   return (
     <Card 
@@ -54,7 +43,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             {project.title}
           </CardTitle>
           <Badge className={getStatusColor(project.status)}>
-            {getStatusLabel(project.status)}
+            {getProjectStatusLabel(project.status)}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">

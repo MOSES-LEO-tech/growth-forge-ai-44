@@ -14,7 +14,7 @@ import { OnboardingModal } from "@/components/OnboardingModal";
 import type { Profile, UserRole } from "@/integrations/supabase/types";
 
 const Dashboard = () => {
-  const { user, profile: authProfile, isLoading: authLoading, signOut } = useAuth();
+  const { user, profile: authProfile, isLoading: authLoading, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -53,7 +53,11 @@ const Dashboard = () => {
     avatar_url: user.user_metadata?.avatar_url ?? null,
     bio: null,
     grade_level: null,
+    class_name: null,
+    age: null,
     gpa: null,
+    subjects: null,
+    clubs: null,
     interests: null,
     extracurriculars: null,
     role: (user.user_metadata?.role as UserRole | undefined) ?? "student",
@@ -103,7 +107,7 @@ const Dashboard = () => {
   return (
     <DashboardProvider>
       <div className="min-h-screen bg-background">
-        <DashboardHeader profile={dashboardProfile} onSignOut={handleSignOut} />
+        <DashboardHeader profile={dashboardProfile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
 
         <main id="main-content" role="main">
           {renderDashboard()}

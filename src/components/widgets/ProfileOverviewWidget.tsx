@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProfileOverviewWidgetProps {
     className?: string;
@@ -88,9 +89,12 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
     const collapsedContent = (
         <div className="flex flex-col h-full gap-4">
             <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xl font-bold flex-shrink-0">
-                    {profile.full_name?.charAt(0).toUpperCase() || 'U'}
-                </div>
+                <Avatar className="h-16 w-16 flex-shrink-0">
+                    <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.full_name || "Student"} />
+                    <AvatarFallback className="bg-primary text-xl font-bold text-primary-foreground">
+                        {profile.full_name?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-lg truncate">{profile.full_name || 'Student'}</h3>
                     <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
@@ -116,9 +120,12 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
     const expandedContent = (
         <div className="flex flex-col h-full gap-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-3xl font-bold flex-shrink-0">
-                    {profile.full_name?.charAt(0).toUpperCase() || 'U'}
-                </div>
+                <Avatar className="h-24 w-24 flex-shrink-0">
+                    <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.full_name || "Student"} />
+                    <AvatarFallback className="bg-primary text-3xl font-bold text-primary-foreground">
+                        {profile.full_name?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-muted-foreground" />
@@ -131,6 +138,19 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                     {profile.school_name && (
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">🏫 {profile.school_name}</span>
+                        </div>
+                    )}
+                    {(profile.grade_level || profile.class_name || profile.age) && (
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            {profile.grade_level && <span className="rounded-full border px-2 py-1">Grade {profile.grade_level}</span>}
+                            {profile.class_name && <span className="rounded-full border px-2 py-1">Class {profile.class_name}</span>}
+                            {profile.age && <span className="rounded-full border px-2 py-1">Age {profile.age}</span>}
+                        </div>
+                    )}
+                    {(profile.subjects?.length || profile.clubs?.length) && (
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                            {profile.subjects?.length ? <p><span className="font-medium text-foreground">Subjects:</span> {profile.subjects.join(', ')}</p> : null}
+                            {profile.clubs?.length ? <p><span className="font-medium text-foreground">Clubs:</span> {profile.clubs.join(', ')}</p> : null}
                         </div>
                     )}
                     {editForm.bio && (

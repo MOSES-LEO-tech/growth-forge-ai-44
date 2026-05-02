@@ -32,6 +32,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("all");
+    const [widgetExpanded, setWidgetExpanded] = useState(defaultExpanded);
 
     // Add achievement form state — supports both internal and external control
     const [internalAddOpen, setInternalAddOpen] = useState(false);
@@ -66,6 +67,19 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
     }, [userId]);
 
     useEffect(() => { fetchAchievements(); }, [fetchAchievements]);
+
+    useEffect(() => {
+        if (defaultExpanded || addOpen) {
+            setWidgetExpanded(true);
+        }
+    }, [defaultExpanded, addOpen]);
+
+    const handleWidgetExpandedChange = (open: boolean) => {
+        setWidgetExpanded(open);
+        if (!open && addOpen) {
+            setAddOpen(false);
+        }
+    };
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -318,6 +332,8 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
             icon={<Award className="w-5 h-5 text-amber-500" />}
             className={className}
             defaultExpanded={defaultExpanded}
+            expanded={widgetExpanded}
+            onExpandedChange={handleWidgetExpandedChange}
             expandedContent={<ExpandedContent />}
         >
             <CollapsedContent />

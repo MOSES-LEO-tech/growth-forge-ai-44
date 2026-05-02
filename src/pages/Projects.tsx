@@ -14,6 +14,7 @@ import ProjectCard from "@/components/ProjectCard";
 import { useInView } from "@/hooks/useInView";
 import { useToast } from "@/hooks/use-toast";
 import AddProjectModal from "@/components/AddProjectModal";
+import { normalizeProjectStatus } from "@/lib/projectStatus";
 
 const Projects = () => {
   const { user } = useAuth();
@@ -48,9 +49,9 @@ const Projects = () => {
     project.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const newProjects = filteredProjects?.filter((p: Project) => p.status === 'pending');
-  const ongoingProjects = filteredProjects?.filter((p: Project) => p.status === 'ongoing');
-  const completedProjects = filteredProjects?.filter((p: Project) => p.status === 'complete');
+  const newProjects = filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'pending');
+  const ongoingProjects = filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'ongoing');
+  const completedProjects = filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'complete');
 
   return (
     <div className="min-h-screen">
