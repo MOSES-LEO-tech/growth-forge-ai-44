@@ -61,13 +61,13 @@ export default function AddProjectModal({ userId, onProjectAdded, open: controll
       if (file && projectId) {
         setUploadProgress(1); // Indicate start
         
-        const publicUrl = await uploadProjectFile(file, userId, projectId, {
+        const mediaPath = await uploadProjectFile(file, userId, projectId, {
           onProgress: (p) => setUploadProgress(p)
         });
 
-        // Update project with media URL
+        // Store the private bucket path; readers resolve it into a signed URL.
         await updateProject(projectId, {
-          media_urls: [publicUrl]
+          media_urls: [mediaPath]
         });
       }
 

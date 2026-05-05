@@ -3,6 +3,7 @@ import { getAllEvents, createEvent, uploadMedia, deleteEvent } from "@/lib/supab
 import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { Button } from "@/components/ui/button";
+import { MediaDisplay } from "@/components/MediaDisplay";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ interface SchoolEvent {
     location: string;
     media_count?: number;
     thumbnail_url?: string;
+    media_type?: 'image' | 'video' | 'document';
 }
 
 interface SchoolGalleryWidgetProps {
@@ -153,13 +155,13 @@ export function SchoolGalleryWidget({ className, defaultExpanded }: SchoolGaller
                     {events.map(event => (
                         <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow">
                             <div className="h-32 bg-muted relative">
-                                {event.thumbnail_url ? (
-                                    <img src={event.thumbnail_url} className="w-full h-full object-cover" alt="" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-primary/5">
-                                        <ImageIcon className="w-8 h-8 text-primary/20" />
-                                    </div>
-                                )}
+                                <MediaDisplay
+                                    src={event.thumbnail_url}
+                                    alt={event.title}
+                                    kind={event.media_type || "image"}
+                                    fit="cover"
+                                    fallbackLabel={event.title || "Event media"}
+                                />
                                 <div className="absolute top-2 right-2 flex gap-1">
                                     <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => { setSelectedEventId(event.id); setUploadOpen(true); }}>
                                         <Plus className="w-4 h-4" />

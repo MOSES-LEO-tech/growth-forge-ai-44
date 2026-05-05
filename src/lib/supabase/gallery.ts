@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { GalleryEvent, GalleryMedia } from '@/integrations/supabase/types';
+import { getMediaTypeFromUrl, resolveStorageMediaUrl } from './storageMedia';
 
 const EVENT_TABLES = ['gallery_events', 'events'] as const;
 
@@ -21,9 +22,7 @@ const isSchemaError = (error: any) => {
 };
 
 const getMediaType = (url: string): 'image' | 'video' | 'document' => {
-  if (/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url)) return 'video';
-  if (/\.pdf(\?|#|$)/i.test(url)) return 'document';
-  return 'image';
+  return getMediaTypeFromUrl(url);
 };
 
 const appendMediaToProject = async (projectId: string, mediaUrl: string) => {
@@ -80,14 +79,23 @@ const getProjectMediaEvents = async (userId: string) => {
 
   if (lastError && projects.length === 0) throw lastError;
 
-  return projects.flatMap((project) => {
+  const rows = projects.flatMap((project) => {
     const urls = Array.isArray(project.media_urls) ? project.media_urls : [];
 
-    return urls.map((url: string, index: number) => {
+    return urls.map((url: string, index: number) => ({
+      project,
+      url,
+      index,
+    }));
+  });
+
+  const events = await Promise.all(
+    rows.map(async ({ project, url, index }) => {
+      const signedUrl = await resolveStorageMediaUrl(url, 'project-media');
       const media = {
         id: `${project.id}-media-${index}`,
         event_id: project.id,
-        url,
+        url: signedUrl,
         type: getMediaType(url),
         created_at: project.created_at,
         deleted_at: null,
@@ -107,12 +115,14 @@ const getProjectMediaEvents = async (userId: string) => {
         media: [media],
         media_count: 1,
         media_type: media.type,
-        media_url: url,
-        thumbnail_url: url,
+        media_url: signedUrl,
+        thumbnail_url: signedUrl,
         visibility: 'private',
       };
-    });
-  }) as EventRow[];
+    })
+  );
+
+  return events as EventRow[];
 };
 
 const queryEvents = async (
@@ -174,21 +184,27 @@ const getMediaForEvents = async (eventIds: string[]) => {
 const normalizeEvents = async (events: GalleryEvent[]) => {
   const mediaByEventId = await getMediaForEvents(events.map((event) => event.id));
 
-  return events.map((event) => {
+  const normalizedEvents = await Promise.all(events.map(async (event) => {
     const media = mediaByEventId.get(event.id) || [];
-    const primary = media[0];
+    const signedMedia = await Promise.all(media.map(async (item) => ({
+      ...item,
+      url: await resolveStorageMediaUrl(item.url, 'gallery-media'),
+    })));
+    const primary = signedMedia[0];
 
     return {
       ...event,
-      gallery_media: media,
-      media,
-      media_count: media.length,
-      media_type: (primary?.type || 'image') as EventRow['media_type'],
+      gallery_media: signedMedia,
+      media: signedMedia,
+      media_count: signedMedia.length,
+      media_type: (primary?.type || getMediaType(primary?.url || '') || 'image') as EventRow['media_type'],
       media_url: primary?.url || '',
       thumbnail_url: primary?.url || undefined,
       visibility: event.is_public ? 'public' : 'private',
     };
-  }) as EventRow[];
+  }));
+
+  return normalizedEvents as EventRow[];
 };
 
 export const getGalleryEvents = async (userId: string) => {
@@ -320,7 +336,13 @@ export const getEventDetails = async (id: string) => {
   return {
     ...event,
     school_name: event.profiles?.schools?.name || 'No school',
-    media: event.media || [],
+    media: (event.media || []).map((media, index) => ({
+      ...media,
+      title: index === 0 ? event.title : `${event.title} media ${index + 1}`,
+      description: event.description || '',
+      media_url: media.url,
+      media_type: media.type,
+    })),
   };
 };
 
@@ -345,7 +367,7 @@ export const uploadMedia = async (eventId: string, file: File) => {
     .from('gallery_media')
     .insert({
       event_id: eventId,
-      url: publicUrl,
+      url: fileName,
       type: file.type.startsWith('video') ? 'video' : file.type === 'application/pdf' ? 'document' : 'image'
     })
     .select()

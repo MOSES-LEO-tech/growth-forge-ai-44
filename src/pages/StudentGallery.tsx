@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Navbar from '@/components/Navbar';
 import type { GalleryEvent } from '@/integrations/supabase/types';
+import { MediaDisplay } from '@/components/MediaDisplay';
 
 interface GalleryItem {
     id: number;
@@ -344,14 +345,14 @@ const StudentGallery = () => {
                             return (
                                 <Card key={item.id} className={`media-tile group relative cursor-pointer ${index === 0 ? 'md:col-span-2 md:row-span-2' : ''}`} onClick={() => setLightboxItem(item)}>
                                     <div className={`${index === 0 ? 'aspect-[4/3]' : 'aspect-square'} relative overflow-hidden bg-muted`}>
-                                        {item.media_type === 'video' ? (
-                                            <div className="w-full h-full flex items-center justify-center bg-muted">
-                                                <Video className="w-12 h-12 text-muted-foreground" />
-                                                <video src={item.media_url} className="absolute inset-0 w-full h-full object-cover opacity-60" />
-                                            </div>
-                                        ) : (
-                                            <img src={item.thumbnail_url || item.media_url} alt={item.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
-                                        )}
+                                        <MediaDisplay
+                                            src={item.thumbnail_url || item.media_url}
+                                            alt={item.title}
+                                            kind={item.media_type}
+                                            fit="cover"
+                                            fallbackLabel={item.title}
+                                            mediaClassName="transition-transform duration-300 group-hover:scale-105"
+                                        />
                                         <div className="absolute top-2 right-2">
                                             <Badge className={`text-xs ${vis.color}`}>
                                                 <VisIcon className="w-3 h-3 mr-1" />
@@ -385,11 +386,18 @@ const StudentGallery = () => {
                         {lightboxItem && (
                             <div className="relative">
                                 <div className="flex items-center justify-center min-h-[50vh] max-h-[75vh] bg-muted/30">
-                                    {lightboxItem.media_type === 'video' ? (
-                                        <video src={lightboxItem.media_url} controls autoPlay className="max-w-full max-h-[75vh] object-contain" />
-                                    ) : (
-                                        <img src={lightboxItem.media_url} alt={lightboxItem.title} className="max-w-full max-h-[75vh] object-contain" />
-                                    )}
+                                    <MediaDisplay
+                                        src={lightboxItem.media_url}
+                                        alt={lightboxItem.title}
+                                        kind={lightboxItem.media_type}
+                                        fit="contain"
+                                        controls={lightboxItem.media_type === 'video'}
+                                        autoPlay={lightboxItem.media_type === 'video'}
+                                        fallbackLabel={lightboxItem.title}
+                                        className="max-h-[75vh] bg-transparent"
+                                        mediaClassName="max-h-[75vh]"
+                                        loading="eager"
+                                    />
                                 </div>
                                 {/* Navigation */}
                                 {filteredItems.length > 1 && (

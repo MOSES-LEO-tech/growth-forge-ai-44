@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const BUCKET_NAME = 'project-media';
+const PROJECT_BUCKET_NAME = 'project-media';
+const AVATAR_BUCKET_NAME = 'avatars';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   'image/jpeg', 
@@ -35,8 +36,8 @@ export const uploadProjectFile = async (
   const timestamp = Date.now();
   const filePath = `${userId}/projects/${projectId}/${timestamp}.${fileExt}`;
 
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
+  const { error } = await supabase.storage
+    .from(PROJECT_BUCKET_NAME)
     .upload(filePath, file, {
       cacheControl: '3600',
       upsert: false,
@@ -54,11 +55,7 @@ export const uploadProjectFile = async (
     throw new Error(`Upload failed: ${error.message}`);
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
-
-  return publicUrl;
+  return filePath;
 };
 
 export const uploadProfileAvatar = async (
@@ -71,8 +68,8 @@ export const uploadProfileAvatar = async (
   const fileExt = file.name.split('.').pop();
   const filePath = `${userId}/avatar/${Date.now()}.${fileExt}`;
 
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
+  const { error } = await supabase.storage
+    .from(AVATAR_BUCKET_NAME)
     .upload(filePath, file, {
       cacheControl: '3600',
       upsert: true,
@@ -91,7 +88,7 @@ export const uploadProfileAvatar = async (
   }
 
   const { data: { publicUrl } } = supabase.storage
-    .from(BUCKET_NAME)
+    .from(AVATAR_BUCKET_NAME)
     .getPublicUrl(filePath);
 
   return publicUrl;
@@ -99,7 +96,7 @@ export const uploadProfileAvatar = async (
 
 export const deleteFile = async (path: string): Promise<void> => {
   const { error } = await supabase.storage
-    .from(BUCKET_NAME)
+    .from(PROJECT_BUCKET_NAME)
     .remove([path]);
 
   if (error) {

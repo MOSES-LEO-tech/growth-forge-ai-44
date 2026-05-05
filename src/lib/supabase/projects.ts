@@ -1,5 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/integrations/supabase/types';
+import { getMediaTypeFromUrl, resolveStorageMediaUrl } from './storageMedia';
+
+const buildProjectMedia = async (mediaUrls: string[] | null | undefined) =>
+  Promise.all((mediaUrls || []).map(async (url: string, idx: number) => {
+    const resolvedUrl = await resolveStorageMediaUrl(url, 'project-media');
+    const mediaType = getMediaTypeFromUrl(url);
+
+    return {
+      id: idx,
+      media_url: resolvedUrl,
+      media_type: mediaType === 'document' ? 'pdf' : mediaType,
+      file_name: `File ${idx + 1}`,
+    };
+  }));
 
 export const getProjects = async (userId: string) => {
   const attempts = [
@@ -99,12 +113,7 @@ export const getProjectDetails = async (id: string) => {
     return {
       ...fallbackData,
       feedback: [],
-      media: (fallbackData.media_urls || []).map((url: string, idx: number) => ({
-        id: idx,
-        media_url: url,
-        media_type: url.endsWith('.pdf') ? 'pdf' : url.match(/\.(mp4|webm|ogg|mov)$/i) ? 'video' : 'image',
-        file_name: `File ${idx + 1}`
-      }))
+      media: await buildProjectMedia(fallbackData.media_urls)
     };
   }
 
@@ -118,12 +127,7 @@ export const getProjectDetails = async (id: string) => {
       rating: 5, // Mocked rating
       created_at: c.created_at
     })),
-    media: (data.media_urls || []).map((url, idx) => ({
-      id: idx,
-      media_url: url,
-      media_type: url.endsWith('.pdf') ? 'pdf' : url.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image',
-      file_name: `File ${idx + 1}`
-    }))
+    media: await buildProjectMedia(data.media_urls)
   };
 };
 
@@ -141,19 +145,15 @@ export const uploadProjectMedia = async (projectId: string, file: File) => {
 
   if (uploadError) throw uploadError;
 
-  const { data: { publicUrl } } = supabase.storage
-    .from('project-media')
-    .getPublicUrl(filePath);
-
   // Get current media_urls
   const { data: project } = await supabase.from('projects').select('media_urls').eq('id', projectId).single();
   const currentUrls = project?.media_urls || [];
 
   const { error: dbError } = await supabase
     .from('projects')
-    .update({ media_urls: [...currentUrls, publicUrl] })
+    .update({ media_urls: [...currentUrls, filePath] })
     .eq('id', projectId);
 
   if (dbError) throw dbError;
-  return publicUrl;
+  return filePath;
 };

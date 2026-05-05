@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Calendar, MapPin, Plus, Image as ImageIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
+import { MediaDisplay } from '@/components/MediaDisplay';
 
 interface EventMedia {
   id: number;
@@ -42,7 +43,6 @@ const EventGallery = () => {
   // Upload State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -145,15 +145,16 @@ const EventGallery = () => {
         {event.media && event.media.length > 0 ? (
           event.media.map((item, index) => (
             <Card key={item.id} className={`media-tile group relative bg-muted ${index === 0 ? 'aspect-[4/3] md:col-span-2 md:row-span-2' : 'aspect-square'}`}>
-              {item.media_type === 'video' ? (
-                <video src={item.media_url} controls className="w-full h-full object-cover" />
-              ) : (
-                <img
-                  src={item.media_url}
-                  alt={item.title}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              )}
+              <MediaDisplay
+                src={item.media_url}
+                alt={item.title}
+                kind={item.media_type}
+                fit="cover"
+                controls={item.media_type === 'video'}
+                muted={item.media_type !== 'video'}
+                fallbackLabel={item.title}
+                mediaClassName="transition-transform duration-300 group-hover:scale-105"
+              />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                 <p className="text-white text-sm truncate w-full">{item.title}</p>
               </div>

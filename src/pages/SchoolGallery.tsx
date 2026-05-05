@@ -8,10 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, MapPin, Plus, School } from 'lucide-react';
+import { Calendar, MapPin, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { MediaDisplay } from '@/components/MediaDisplay';
 
 interface SchoolEvent {
     id: number;
@@ -22,6 +23,8 @@ interface SchoolEvent {
     school_name: string;
     school_logo?: string;
     cover_image?: string;
+    media_type?: 'image' | 'video' | 'document';
+    thumbnail_url?: string;
 }
 
 const SchoolGallery = () => {
@@ -150,13 +153,13 @@ const SchoolGallery = () => {
                         {eventsList.map((event, index) => (
                             <Card key={event.id} className={`media-tile cursor-pointer ${index === 0 ? 'lg:col-span-2' : ''}`} onClick={() => navigate(`/school/gallery/${event.id}`)}>
                                 <div className={`${index === 0 ? 'aspect-[16/8]' : 'aspect-[4/3]'} relative bg-muted`}>
-                                    {event.thumbnail_url ? (
-                                        <img src={event.thumbnail_url} alt={event.title} className="w-full h-full object-cover" loading="lazy" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-secondary">
-                                            <School className="h-12 w-12 text-muted-foreground/50" />
-                                        </div>
-                                    )}
+                                    <MediaDisplay
+                                        src={event.thumbnail_url}
+                                        alt={event.title}
+                                        kind={event.media_type || "image"}
+                                        fit="cover"
+                                        fallbackLabel={event.title || "School event"}
+                                    />
                                 </div>
                                 <CardHeader>
                                     <CardTitle className="line-clamp-1">{event.title}</CardTitle>

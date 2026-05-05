@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, CheckCircle, FileText, Image as ImageIcon, Video as VideoIcon, ArrowLeft, Star, Trash2 } from 'lucide-react';
+import { Loader2, Plus, CheckCircle, FileText, ArrowLeft, Star } from 'lucide-react';
+import { MediaDisplay } from '@/components/MediaDisplay';
 
 interface ProjectMedia {
     id: number;
@@ -168,7 +169,13 @@ const ProjectDetails = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {images.map(img => (
                                     <div key={img.id} className="rounded-lg overflow-hidden border bg-muted aspect-video relative">
-                                        <img src={img.media_url} alt={img.file_name} className="object-cover w-full h-full" />
+                                        <MediaDisplay
+                                            src={img.media_url}
+                                            alt={img.file_name}
+                                            kind="image"
+                                            fit="cover"
+                                            fallbackLabel={img.file_name}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -181,7 +188,15 @@ const ProjectDetails = () => {
                             <div className="grid grid-cols-1 gap-4">
                                 {videos.map(vid => (
                                     <div key={vid.id} className="rounded-lg overflow-hidden border bg-black aspect-video">
-                                        <video src={vid.media_url} controls className="w-full h-full" />
+                                        <MediaDisplay
+                                            src={vid.media_url}
+                                            alt={vid.file_name}
+                                            kind="video"
+                                            fit="contain"
+                                            controls
+                                            muted={false}
+                                            fallbackLabel={vid.file_name}
+                                        />
                                     </div>
                                 ))}
                             </div>

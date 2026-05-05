@@ -119,7 +119,7 @@ export default function StudentQaSeed() {
 
     const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
     addLog({ label: `Upload ${file.name}`, status: "ok", detail: `Uploaded to ${bucket}.` });
-    return publicUrl || fallbackUrl;
+    return publicUrl || path || fallbackUrl;
   };
 
   const createProject = async (project: {

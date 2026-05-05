@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
+import { MediaDisplay } from "@/components/MediaDisplay";
 import { FileText, Loader2, Plus, Image as ImageIcon, Video, Trash2, Search } from "lucide-react";
 
 interface GalleryItem {
@@ -284,20 +285,20 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
                         <h3 className="font-semibold drop-shadow-md">{selectedMedia?.title}</h3>
                         <p className="text-sm opacity-80 drop-shadow-md">{selectedMedia?.description}</p>
                     </div>
-                    {selectedMedia && getGalleryMediaKind(selectedMedia) === 'video' ? (
-                        <video
-                            src={getGalleryMediaUrl(selectedMedia)}
-                            controls
-                            autoPlay
-                            className="max-w-full max-h-full object-contain"
-                        />
-                    ) : selectedMedia && getGalleryMediaKind(selectedMedia) === 'image' ? (
-                        <img
+                    {selectedMedia && (
+                        <MediaDisplay
                             src={getGalleryMediaUrl(selectedMedia)}
                             alt={selectedMedia.title}
-                            className="max-w-full max-h-[90vh] object-contain"
+                            kind={getGalleryMediaKind(selectedMedia)}
+                            fit="contain"
+                            controls={getGalleryMediaKind(selectedMedia) === "video"}
+                            autoPlay={getGalleryMediaKind(selectedMedia) === "video"}
+                            fallbackLabel={selectedMedia.title || "Preview unavailable"}
+                            className="max-h-[90vh] max-w-full bg-transparent"
+                            mediaClassName="max-h-[90vh] max-w-full"
+                            loading="eager"
                         />
-                    ) : null}
+                    )}
                 </DialogContent>
             </Dialog>
         </>
@@ -339,14 +340,19 @@ function GalleryMediaTile({
             title={item.title}
         >
             {mediaKind === "video" && mediaUrl && !failed ? (
-                <video
-                    src={mediaUrl}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    onError={() => setFailed(true)}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                <>
+                    <video
+                        src={mediaUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        onError={() => setFailed(true)}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15 text-white">
+                        <Video className="h-8 w-8 drop-shadow-md" />
+                    </div>
+                </>
             ) : mediaKind === "image" && mediaUrl && !failed ? (
                 <img
                     src={mediaUrl}

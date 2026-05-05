@@ -1,8 +1,9 @@
-import { Calendar, MapPin, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { MediaDisplay } from "@/components/MediaDisplay";
 
 interface Event {
   id: string;
@@ -27,18 +28,14 @@ const EventTile = ({ event }: EventTileProps) => {
       onClick={() => navigate(`/gallery/${event.id}`)}
     >
       <div className="relative aspect-[4/3] bg-muted">
-        {event.thumbnail_url ? (
-          <img
-            src={event.thumbnail_url}
-            alt={event.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-secondary">
-            <ImageIcon className="h-12 w-12 text-secondary-foreground/55" />
-          </div>
-        )}
+        <MediaDisplay
+          src={event.thumbnail_url}
+          alt={event.title}
+          kind="image"
+          fit="cover"
+          fallbackLabel={event.title}
+          mediaClassName="transition-transform duration-500 group-hover:scale-105"
+        />
         {event.verified && (
           <Badge className="absolute left-3 top-3 gap-1 bg-card text-foreground shadow-sm">
             <CheckCircle2 className="h-3 w-3 text-primary" />
