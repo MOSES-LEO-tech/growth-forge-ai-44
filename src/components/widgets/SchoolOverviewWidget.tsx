@@ -7,7 +7,7 @@ import { getSchoolMetrics } from "@/lib/supabase/schools";
 interface SchoolOverviewWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface SchoolMetrics {

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface SchoolSettingsWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface SchoolSettings {

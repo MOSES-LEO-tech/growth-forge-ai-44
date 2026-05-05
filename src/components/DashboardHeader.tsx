@@ -19,9 +19,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ProfileSettingsModal from "./ProfileSettingsModal";
 import CustomThemeCreator from "./CustomThemeCreator";
 import HeroVideoUploader from "./HeroVideoUploader";
+import type { Profile } from "@/integrations/supabase/types";
 
 const colorThemes = [
-  { name: "Studio", value: "default", colors: ["#215148", "#bd5d3b"] },
+  { name: "Milestone", value: "default", colors: ["#215148", "#bd5d3b"] },
   { name: "Harbor", value: "ocean", colors: ["#1a5d76", "#bd6b32"] },
   { name: "Forest", value: "forest", colors: ["#27643c", "#b06f25"] },
   { name: "Civic", value: "sunset", colors: ["#a5462d", "#2f617f"] },
@@ -35,7 +36,7 @@ const modeOptions = [
 ] as const;
 
 interface DashboardHeaderProps {
-  profile: any;
+  profile: Profile | null;
   onSignOut: () => void;
   onProfileUpdated?: () => void;
 }
@@ -44,7 +45,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
   const location = useLocation();
   const { theme, setTheme, colorTheme, setColorTheme, customThemes, isTransitioning } = useTheme();
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' && profile?.account_status === 'approved';
 
   const getInitials = (name: string) => {
     return name

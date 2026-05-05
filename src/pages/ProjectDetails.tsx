@@ -15,7 +15,7 @@ import { Loader2, Plus, CheckCircle, FileText, ArrowLeft, Star } from 'lucide-re
 import { MediaDisplay } from '@/components/MediaDisplay';
 
 interface ProjectMedia {
-    id: number;
+    id: number | string;
     media_type: 'image' | 'video' | 'pdf'; // Added PDF manually for internal logic, backend stores 'pdf' or mimetype
     media_url: string;
     thumbnail_url?: string;
@@ -23,7 +23,7 @@ interface ProjectMedia {
 }
 
 interface Feedback {
-    id: number;
+    id: number | string;
     reviewer_name: string;
     reviewer_avatar?: string;
     comment: string;
@@ -32,7 +32,7 @@ interface Feedback {
 }
 
 interface Project {
-    id: number;
+    id: string;
     title: string;
     description: string;
     status: string;
@@ -74,7 +74,7 @@ const ProjectDetails = () => {
         try {
             if (!id) return;
             const data = await getProjectDetails(id);
-            setProject(data as any);
+            setProject(data as Project);
         } catch (error) {
             console.error('Error fetching project:', error);
             toast({ title: "Error", description: "Failed to load project", variant: "destructive" });
@@ -259,7 +259,7 @@ const ProjectDetails = () => {
                                         </DialogContent>
                                     </Dialog>
 
-                                    {(user?.role === 'teacher' || user?.role === 'admin') && !project.verified && (
+                                    {(user?.role === 'teacher' || user?.role === 'super_admin') && !project.verified && (
                                         <Button variant="outline" className="w-full border-green-600 text-green-600 hover:bg-green-50" onClick={handleVerify} disabled={verifying}>
                                             <CheckCircle className="mr-2 h-4 w-4" /> Verify Project
                                         </Button>

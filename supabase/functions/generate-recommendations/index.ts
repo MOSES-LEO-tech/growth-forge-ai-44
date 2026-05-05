@@ -79,7 +79,7 @@ serve(async (req) => {
       available_scholarships: (scholarships || []).map(s => `ID: ${s.id}, Title: ${s.title}, Req: ${s.requirements}`).join('\n')
     }
 
-    const prompt = `You are an academic advisor for Milestone Studio.
+    const prompt = `You are an academic advisor for Milestone.
 Analyze the following student profile and available opportunities to provide structured recommendations.
 
 Student Profile:

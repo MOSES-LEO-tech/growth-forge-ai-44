@@ -10,7 +10,7 @@ import { getSchoolUsers } from "@/lib/supabase/schools";
 interface UserManagementWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface UserRecord {

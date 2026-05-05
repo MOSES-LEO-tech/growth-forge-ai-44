@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BrandMark } from "@/components/Logo";
 import { brand } from "@/lib/brand";
 
+type SignUpRole = "student" | "parent" | "teacher" | "admin";
+
 const signUpSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -32,7 +34,11 @@ interface FieldErrors {
   email?: string;
   password?: string;
   fullName?: string;
+  schoolName?: string;
+  schoolCode?: string;
 }
+
+const getErrorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
 
 const Auth = () => {
   const { signIn, signUp, user, isLoading: authLoading } = useAuth();
@@ -51,8 +57,13 @@ const Auth = () => {
     email: "",
     password: "",
     fullName: "",
-    role: "student" as "student" | "parent" | "teacher" | "admin",
-    schoolId: ""
+    role: "student" as SignUpRole,
+    schoolName: "",
+    schoolLocation: "",
+    schoolCountry: "",
+    schoolDescription: "",
+    schoolLogoUrl: "",
+    schoolCode: "",
   });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -115,6 +126,26 @@ const Auth = () => {
         role: formData.role
       });
 
+      if (validated.role === "admin" && formData.schoolName.trim().length < 2) {
+        setErrors(prev => ({ ...prev, schoolName: "School name is required" }));
+        toast({
+          title: "School required",
+          description: "School admins must register one school during signup.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (validated.role === "teacher" && formData.schoolCode.trim().length < 4) {
+        setErrors(prev => ({ ...prev, schoolCode: "Enter the school code from your school admin" }));
+        toast({
+          title: "School code required",
+          description: "Teachers need a school code so their school admin can approve them.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Check password strength
       const { strength } = calculatePasswordStrength(validated.password);
       if (strength < 2) {
@@ -128,12 +159,27 @@ const Auth = () => {
 
       setLoading(true);
 
-      // Call signUp and get result
+      const extraMetadata =
+        validated.role === "admin"
+          ? {
+              school_name: formData.schoolName.trim(),
+              school_location: formData.schoolLocation.trim() || null,
+              school_country: formData.schoolCountry.trim() || null,
+              school_description: formData.schoolDescription.trim() || null,
+              school_logo_url: formData.schoolLogoUrl.trim() || null,
+            }
+          : validated.role === "teacher"
+            ? {
+                school_join_code: formData.schoolCode.trim().toUpperCase(),
+              }
+            : {};
+
       const result = await signUp(
         validated.email,
         validated.password,
         validated.fullName,
-        validated.role as any
+        validated.role,
+        extraMetadata
       );
 
       // Handle based on whether email confirmation is required
@@ -143,22 +189,18 @@ const Auth = () => {
           description: "We've sent you a confirmation link. Please click the link in your email to activate your account.",
         });
         // Stay on auth page
-      } else if (user) {
+      } else {
         // User is signed in without confirmation needed
         toast({
           title: "Account created!",
-          description: `Welcome to ${brand.name}. Redirecting to your dashboard...`
+          description:
+            validated.role === "admin" || validated.role === "teacher"
+              ? "Your account was created and is waiting for approval."
+              : `Welcome to ${brand.name}. Redirecting to your dashboard...`
         });
         navigate("/dashboard");
-      } else {
-        // Unexpected state - should either have required confirmation or be signed in
-        toast({
-          title: "Account created!",
-          description: "Please sign in to continue."
-        });
-        setActiveTab("signin");
       }
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: FieldErrors = {};
         error.errors.forEach(err => {
@@ -170,7 +212,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Error",
-          description: error.message || "An error occurred during sign up",
+          description: getErrorMessage(error, "An error occurred during sign up"),
           variant: "destructive"
         });
       }
@@ -201,7 +243,7 @@ const Auth = () => {
       });
 
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: FieldErrors = {};
         error.errors.forEach(err => {
@@ -213,7 +255,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Error",
-          description: error.message || "Invalid email or password",
+          description: getErrorMessage(error, "Invalid email or password"),
           variant: "destructive"
         });
       }
@@ -247,7 +289,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md luxury-card">
+      <Card className="w-full max-w-2xl luxury-card">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <BrandMark className="h-16 w-16" />
@@ -421,7 +463,7 @@ const Auth = () => {
                   <Label htmlFor="role">I am a...</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(value: any) => setFormData({ ...formData, role: value })}
+                    onValueChange={(value) => setFormData({ ...formData, role: value as SignUpRole })}
                     disabled={loading}
                   >
                     <SelectTrigger id="role">
@@ -436,21 +478,100 @@ const Auth = () => {
                   </Select>
                 </div>
 
-                {(formData.role === "student" || formData.role === "teacher") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolId">School ID (Optional)</Label>
-                    <Input
-                      id="schoolId"
-                      type="number"
-                      placeholder="Enter School ID"
-                      value={formData.schoolId}
-                      onChange={(e) => handleChange("schoolId", e.target.value)}
-                      disabled={loading}
-                    />
+                {formData.role === "admin" && (
+                  <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolName">School Name</Label>
+                      <Input
+                        id="schoolName"
+                        type="text"
+                        placeholder="Lighthouse STEM Academy"
+                        value={formData.schoolName}
+                        onChange={(e) => handleChange("schoolName", e.target.value)}
+                        disabled={loading}
+                        required
+                        className={cn(errors.schoolName && "border-red-500")}
+                      />
+                      {errors.schoolName && <p className="text-xs text-red-500">{errors.schoolName}</p>}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="schoolLocation">Location</Label>
+                        <Input
+                          id="schoolLocation"
+                          type="text"
+                          placeholder="Kampala"
+                          value={formData.schoolLocation}
+                          onChange={(e) => handleChange("schoolLocation", e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="schoolCountry">Country</Label>
+                        <Input
+                          id="schoolCountry"
+                          type="text"
+                          placeholder="Uganda"
+                          value={formData.schoolCountry}
+                          onChange={(e) => handleChange("schoolCountry", e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolDescription">School Description</Label>
+                      <Input
+                        id="schoolDescription"
+                        type="text"
+                        placeholder="A short description for the school profile"
+                        value={formData.schoolDescription}
+                        onChange={(e) => handleChange("schoolDescription", e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolLogoUrl">School Image URL</Label>
+                      <Input
+                        id="schoolLogoUrl"
+                        type="url"
+                        placeholder="https://images.pexels.com/..."
+                        value={formData.schoolLogoUrl}
+                        onChange={(e) => handleChange("schoolLogoUrl", e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Enter the ID of the school you want to join.
+                      School admin accounts open after Super Admin approval. Each school admin can register one school.
                     </p>
                   </div>
+                )}
+
+                {formData.role === "teacher" && (
+                  <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+                    <Label htmlFor="schoolCode">School Code</Label>
+                    <Input
+                      id="schoolCode"
+                      type="text"
+                      placeholder="Enter the code from your school admin"
+                      value={formData.schoolCode}
+                      onChange={(e) => handleChange("schoolCode", e.target.value.toUpperCase())}
+                      disabled={loading}
+                      required
+                      className={cn(errors.schoolCode && "border-red-500")}
+                    />
+                    {errors.schoolCode && <p className="text-xs text-red-500">{errors.schoolCode}</p>}
+                    <p className="text-xs text-muted-foreground">
+                      Your teacher dashboard opens after your school admin approves the request.
+                    </p>
+                  </div>
+                )}
+
+                {formData.role === "student" && (
+                  <Alert>
+                    <AlertDescription>
+                      Students can join a school later from Settings using the school code from their school admin, or stay independent.
+                    </AlertDescription>
+                  </Alert>
                 )}
 
                 <Button type="submit" className="w-full" disabled={loading}>

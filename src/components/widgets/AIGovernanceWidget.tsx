@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface AIGovernanceWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface GuidanceUsageStats {

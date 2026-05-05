@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { updateProfile, uploadAvatar } from "@/lib/supabase/profile";
+import {
+  disconnectMySchool,
+  getMyPendingSchoolConnectionRequest,
+  getSchoolById,
+  requestSchoolConnection,
+  type SchoolConnectionRequestWithProfile,
+} from "@/lib/supabase/schoolSystem";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Settings, UploadCloud } from "lucide-react";
-import type { Profile } from "@/integrations/supabase/types";
+import { Building2, Link2, Loader2, Settings, Unlink, UploadCloud } from "lucide-react";
+import type { Profile, School } from "@/integrations/supabase/types";
 
 interface ProfileSettingsModalProps {
   profile: Profile | null;
@@ -16,6 +23,8 @@ interface ProfileSettingsModalProps {
 }
 
 const listToText = (value?: string[] | null) => Array.isArray(value) ? value.join(", ") : "";
+
+const getErrorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
 
 const textToList = (value: string) => {
   const list = value
@@ -41,6 +50,10 @@ const ProfileSettingsModal = ({ profile, onProfileUpdated }: ProfileSettingsModa
   const [loading, setLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url ?? null);
+  const [schoolCode, setSchoolCode] = useState("");
+  const [schoolLoading, setSchoolLoading] = useState(false);
+  const [connectedSchool, setConnectedSchool] = useState<School | null>(null);
+  const [pendingSchoolRequest, setPendingSchoolRequest] = useState<SchoolConnectionRequestWithProfile | null>(null);
   const [form, setForm] = useState({
     full_name: profile?.full_name || "",
     bio: profile?.bio || "",
@@ -69,6 +82,29 @@ const ProfileSettingsModal = ({ profile, onProfileUpdated }: ProfileSettingsModa
     setAvatarPreview(profile?.avatar_url ?? null);
     setAvatarFile(null);
   }, [profile]);
+
+  const loadSchoolConnectionState = useCallback(async () => {
+    if (!profile || profile.role !== "student") return;
+
+    setSchoolLoading(true);
+    try {
+      const [school, pendingRequest] = await Promise.all([
+        profile.school_id ? getSchoolById(profile.school_id) : Promise.resolve(null),
+        getMyPendingSchoolConnectionRequest(profile.id),
+      ]);
+      setConnectedSchool(school);
+      setPendingSchoolRequest(pendingRequest);
+    } catch (error) {
+      console.warn("Failed to load school connection state:", error);
+    } finally {
+      setSchoolLoading(false);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (!open || !profile || profile.role !== "student") return;
+    void loadSchoolConnectionState();
+  }, [loadSchoolConnectionState, open, profile]);
 
   useEffect(() => {
     if (!avatarFile) return;
@@ -143,15 +179,70 @@ const ProfileSettingsModal = ({ profile, onProfileUpdated }: ProfileSettingsModa
       await onProfileUpdated();
       setOpen(false);
       setAvatarFile(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile. Please try again.",
+        description: getErrorMessage(error, "Failed to update profile. Please try again."),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSchoolConnect = async () => {
+    if (!profile || profile.role !== "student") return;
+    if (schoolCode.trim().length < 4) {
+      toast({
+        title: "Enter a school code",
+        description: "Ask your school admin for the code, then enter it here.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSchoolLoading(true);
+    try {
+      await requestSchoolConnection(schoolCode);
+      setSchoolCode("");
+      await loadSchoolConnectionState();
+      toast({
+        title: "Request sent",
+        description: "Your school admin can now approve your connection request.",
+      });
+    } catch (error) {
+      toast({
+        title: "Connection failed",
+        description: getErrorMessage(error, "Unable to request school connection."),
+        variant: "destructive",
+      });
+    } finally {
+      setSchoolLoading(false);
+    }
+  };
+
+  const handleSchoolDisconnect = async () => {
+    if (!profile || profile.role !== "student") return;
+
+    setSchoolLoading(true);
+    try {
+      await disconnectMySchool();
+      setConnectedSchool(null);
+      setPendingSchoolRequest(null);
+      await onProfileUpdated();
+      toast({
+        title: "School disconnected",
+        description: "Your student account is independent again.",
+      });
+    } catch (error) {
+      toast({
+        title: "Disconnect failed",
+        description: getErrorMessage(error, "Unable to disconnect your school."),
+        variant: "destructive",
+      });
+    } finally {
+      setSchoolLoading(false);
     }
   };
 
@@ -193,6 +284,56 @@ const ProfileSettingsModal = ({ profile, onProfileUpdated }: ProfileSettingsModa
               </div>
             </div>
           </div>
+
+          {profile?.role === "student" && (
+            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div>
+                  <h3 className="flex items-center gap-2 font-semibold">
+                    <Building2 className="h-4 w-4" />
+                    School Connection
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    To connect to your school, ask your school admin for the school code, enter it here, and wait for the admin approval.
+                    You can also stay independent.
+                  </p>
+                </div>
+                {schoolLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+              </div>
+
+              {connectedSchool ? (
+                <div className="flex flex-col justify-between gap-3 rounded-md border bg-background p-3 sm:flex-row sm:items-center">
+                  <div>
+                    <p className="font-medium">{connectedSchool.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[connectedSchool.location, connectedSchool.country].filter(Boolean).join(", ") || "Connected school"}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={handleSchoolDisconnect} disabled={schoolLoading}>
+                    <Unlink className="mr-2 h-4 w-4" />
+                    Disconnect
+                  </Button>
+                </div>
+              ) : pendingSchoolRequest ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  Connection request pending for {pendingSchoolRequest.school?.name || "your selected school"}.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={schoolCode}
+                    onChange={(event) => setSchoolCode(event.target.value.toUpperCase())}
+                    placeholder="Enter school code"
+                    disabled={schoolLoading}
+                  />
+                  <Button type="button" onClick={handleSchoolConnect} disabled={schoolLoading}>
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Connect
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">

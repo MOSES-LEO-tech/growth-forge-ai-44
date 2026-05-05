@@ -7,6 +7,7 @@ import { AchievementControlWidget } from "@/components/widgets/AchievementContro
 import { AIGovernanceWidget } from "@/components/widgets/AIGovernanceWidget";
 import { AnalyticsWidget } from "@/components/widgets/AnalyticsWidget";
 import { SchoolSettingsWidget } from "@/components/widgets/SchoolSettingsWidget";
+import { SchoolAccessWidget } from "@/components/widgets/SchoolAccessWidget";
 import { useSearchParams } from "react-router-dom";
 import { School } from "lucide-react";
 
@@ -36,6 +37,12 @@ const SchoolAdminDashboard = ({ profile }: { profile: Profile }) => {
       </section>
 
       <div className="dashboard-grid auto-rows-[minmax(190px,auto)]">
+        <SchoolAccessWidget
+          className="md:col-span-2 xl:col-span-2"
+          defaultExpanded={activeWidget === 'access'}
+          schoolId={profile.school_id}
+        />
+
         {/* Row 1: School Overview */}
         <SchoolOverviewWidget
           className="md:col-span-2 xl:col-span-2"

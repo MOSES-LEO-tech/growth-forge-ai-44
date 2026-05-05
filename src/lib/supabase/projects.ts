@@ -2,6 +2,13 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/integrations/supabase/types';
 import { getMediaTypeFromUrl, resolveStorageMediaUrl } from './storageMedia';
 
+type PendingProjectRow = Project & {
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+};
+
 const buildProjectMedia = async (mediaUrls: string[] | null | undefined) =>
   Promise.all((mediaUrls || []).map(async (url: string, idx: number) => {
     const resolvedUrl = await resolveStorageMediaUrl(url, 'project-media');
@@ -51,7 +58,7 @@ export const getProjects = async (userId: string) => {
 export const createProject = async (data: Partial<Project>) => {
   const { data: project, error } = await supabase
     .from('projects')
-    .insert(data)
+    .insert({ ...data, approval_status: data.approval_status || 'pending' })
     .select()
     .single();
 
@@ -74,22 +81,30 @@ export const updateProject = async (id: string, data: Partial<Project>) => {
 export const getPendingProjects = async () => {
   const { data, error } = await (supabase as any)
     .from('projects')
-    .select('*, profiles(full_name)')
-    .eq('status', 'pending')
+    .select('*, profiles(full_name,email)')
+    .eq('approval_status', 'pending')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data.map(item => ({
+  return ((data || []) as PendingProjectRow[]).map(item => ({
     ...item,
-    student_name: (item.profiles as any)?.full_name
-  })) as (Project & { student_name: string })[];
+    student_name: item.profiles?.full_name || null,
+    student_email: item.profiles?.email || null
+  })) as (Project & { student_name: string | null; student_email: string | null })[];
 };
 
 export const verifyProject = async (id: string) => {
-  const { error } = await supabase
-    .from('projects')
-    .update({ status: 'ongoing' }) // Moving from pending to ongoing upon verification
-    .eq('id', id);
+  const { error } = await supabase.rpc('approve_student_project', { p_project_id: id });
+
+  if (error) throw error;
+};
+
+export const rejectProject = async (id: string, reason?: string) => {
+  const { error } = await supabase.rpc('reject_student_project', {
+    p_project_id: id,
+    p_reason: reason || null,
+  });
 
   if (error) throw error;
 };

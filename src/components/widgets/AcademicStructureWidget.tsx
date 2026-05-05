@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface AcademicStructureWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface ClassRecord {

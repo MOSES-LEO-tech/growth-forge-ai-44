@@ -8,10 +8,21 @@ test.describe('Public Schools Exploration', () => {
     await expect(page.getByRole('heading', { name: 'Schools' })).toBeVisible();
 
     const profileLinks = page.getByRole('link', { name: 'View Profile' });
-    if (await profileLinks.count() === 0) {
-      await expect(page.getByText('No schools found')).toBeVisible();
-      test.skip(true, 'No public school seed data is available in this environment.');
-    }
+    let reloaded = false;
+    await expect
+      .poll(
+        async () => {
+          const count = await profileLinks.count();
+          if (count === 0 && !reloaded && await page.getByText('No schools found').isVisible()) {
+            reloaded = true;
+            await page.reload();
+            await expect(page.getByRole('heading', { name: 'Schools' })).toBeVisible();
+          }
+          return profileLinks.count();
+        },
+        { timeout: 20000 }
+      )
+      .toBeGreaterThan(0);
 
     // Click a school
     await profileLinks.first().click();

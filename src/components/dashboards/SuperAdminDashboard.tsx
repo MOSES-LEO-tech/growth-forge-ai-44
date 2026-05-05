@@ -5,6 +5,8 @@ import {
   AlertTriangle,
   Award,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   Check,
   Clock,
   Compass,
@@ -33,6 +35,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { approveSchoolApplication, rejectSchoolApplication } from "@/lib/supabase/schoolSystem";
 import type { Profile, UserRole } from "@/integrations/supabase/types";
 import {
   createPlatformSchool,
@@ -99,6 +102,7 @@ const activityIcon = (type: ActivityItem["type"]) => {
     case "achievement":
       return <Award className="h-4 w-4 text-amber-600" />;
     case "recommendation":
+    case "smartbuddy":
       return <Compass className="h-4 w-4 text-emerald-600" />;
     case "gallery":
       return <Image className="h-4 w-4 text-pink-600" />;
@@ -114,6 +118,40 @@ const EmptyState = ({ icon: Icon, title }: { icon: typeof Activity; title: strin
   </div>
 );
 
+type PageMeta = { total: number; page: number; pageSize: number };
+
+const PageControls = ({ meta, onPageChange }: { meta: PageMeta; onPageChange: (page: number) => void }) => {
+  const totalPages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
+  const start = meta.total === 0 ? 0 : meta.page * meta.pageSize + 1;
+  const end = Math.min(meta.total, (meta.page + 1) * meta.pageSize);
+
+  return (
+    <div className="mt-4 flex flex-col gap-2 border-t pt-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <span>
+        Showing {formatNumber(start)}-{formatNumber(end)} of {formatNumber(meta.total)}
+      </span>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => onPageChange(Math.max(0, meta.page - 1))} disabled={meta.page <= 0}>
+          <ChevronLeft className="h-4 w-4" />
+          Prev
+        </Button>
+        <span className="min-w-20 text-center">
+          Page {formatNumber(meta.page + 1)} of {formatNumber(totalPages)}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(Math.min(totalPages - 1, meta.page + 1))}
+          disabled={meta.page + 1 >= totalPages}
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -121,11 +159,71 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
   const [userRoleFilter, setUserRoleFilter] = useState<UserRole | "all">("all");
   const [userSchoolFilter, setUserSchoolFilter] = useState("all");
   const [contentSearch, setContentSearch] = useState("");
+  const [userPage, setUserPage] = useState(0);
+  const [schoolPage, setSchoolPage] = useState(0);
+  const [projectPage, setProjectPage] = useState(0);
+  const [achievementPage, setAchievementPage] = useState(0);
+  const [galleryPage, setGalleryPage] = useState(0);
+  const [smartBuddyPage, setSmartBuddyPage] = useState(0);
+  const [auditPage, setAuditPage] = useState(0);
+  const [auditSearch, setAuditSearch] = useState("");
+  const [smartBuddySearch, setSmartBuddySearch] = useState("");
   const [schoolForm, setSchoolForm] = useState({ name: "", location: "", description: "" });
 
+  useEffect(() => {
+    setUserPage(0);
+  }, [userRoleFilter, userSchoolFilter, userSearch]);
+
+  useEffect(() => {
+    setProjectPage(0);
+    setAchievementPage(0);
+    setGalleryPage(0);
+  }, [contentSearch]);
+
+  useEffect(() => {
+    setSmartBuddyPage(0);
+  }, [smartBuddySearch]);
+
+  useEffect(() => {
+    setAuditPage(0);
+  }, [auditSearch]);
+
+  const dashboardQueryInput = useMemo(
+    () => ({
+      users: {
+        page: userPage,
+        pageSize: 50,
+        search: userSearch,
+        role: userRoleFilter,
+        schoolId: userSchoolFilter === "all" ? null : userSchoolFilter,
+      },
+      schools: { page: schoolPage, pageSize: 100 },
+      projects: { page: projectPage, pageSize: 25, search: contentSearch },
+      achievements: { page: achievementPage, pageSize: 25, search: contentSearch },
+      galleryEvents: { page: galleryPage, pageSize: 25, search: contentSearch },
+      smartBuddyUsage: { page: smartBuddyPage, pageSize: 25, search: smartBuddySearch },
+      auditLogs: { page: auditPage, pageSize: 25, search: auditSearch },
+    }),
+    [
+      auditPage,
+      auditSearch,
+      achievementPage,
+      contentSearch,
+      galleryPage,
+      projectPage,
+      schoolPage,
+      smartBuddyPage,
+      smartBuddySearch,
+      userPage,
+      userRoleFilter,
+      userSchoolFilter,
+      userSearch,
+    ]
+  );
+
   const dashboardQuery = useQuery({
-    queryKey: DASHBOARD_QUERY_KEY,
-    queryFn: getSuperAdminDashboardData,
+    queryKey: [...DASHBOARD_QUERY_KEY, dashboardQueryInput],
+    queryFn: () => getSuperAdminDashboardData(dashboardQueryInput),
     refetchInterval: 60_000,
   });
 
@@ -175,6 +273,16 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
       void invalidateDashboard();
     },
     onError: (error) => toast({ title: "School creation failed", description: String((error as Error).message), variant: "destructive" }),
+  });
+
+  const schoolApplicationMutation = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" }) =>
+      action === "approve" ? approveSchoolApplication(id) : rejectSchoolApplication(id),
+    onSuccess: () => {
+      toast({ title: "School application updated" });
+      void invalidateDashboard();
+    },
+    onError: (error) => toast({ title: "School approval failed", description: String((error as Error).message), variant: "destructive" }),
   });
 
   const projectMutation = useMutation({
@@ -373,10 +481,17 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList className="h-auto flex-wrap justify-start">
               <TabsTrigger value="overview">Platform Overview</TabsTrigger>
+              <TabsTrigger value="approvals">
+                Approvals
+                {data.pendingSchoolApplications.length > 0 && (
+                  <Badge variant="destructive" className="ml-2">{data.pendingSchoolApplications.length}</Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="schools">Schools</TabsTrigger>
               <TabsTrigger value="users">User Management</TabsTrigger>
               <TabsTrigger value="content">Content Moderation</TabsTrigger>
               <TabsTrigger value="ai">Guidance Usage</TabsTrigger>
+              <TabsTrigger value="audit">Audit Logs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -487,6 +602,56 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="approvals" className="space-y-4">
+              <Card className="luxury-card">
+                <CardHeader>
+                  <CardTitle>School Admin Approvals</CardTitle>
+                  <CardDescription>Approve new school registrations before admins can access their workspace.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {data.pendingSchoolApplications.length === 0 ? (
+                    <EmptyState icon={Clock} title="No school admin applications are pending." />
+                  ) : (
+                    data.pendingSchoolApplications.map((school) => (
+                      <div key={school.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4 md:flex-row md:items-center">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold">{school.name}</h3>
+                            <Badge variant="outline">Pending</Badge>
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {[school.location, school.country].filter(Boolean).join(", ") || "No location"} · Admin:{" "}
+                            {school.admin_name || school.admin_email || "Unknown admin"}
+                          </p>
+                          {school.description && <p className="mt-2 text-sm text-muted-foreground">{school.description}</p>}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={schoolApplicationMutation.isPending}
+                            onClick={() => schoolApplicationMutation.mutate({ id: school.id, action: "approve" })}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={schoolApplicationMutation.isPending}
+                            onClick={() => schoolApplicationMutation.mutate({ id: school.id, action: "reject" })}
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="schools" className="space-y-4">
               <Card className="luxury-card">
                 <CardHeader>
@@ -558,6 +723,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                       </TableBody>
                     </Table>
                   )}
+                  <PageControls meta={data.pagination.schools} onPageChange={setSchoolPage} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -673,6 +839,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                       </TableBody>
                     </Table>
                   )}
+                  <PageControls meta={data.pagination.users} onPageChange={setUserPage} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -696,9 +863,9 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
 
                   <Tabs defaultValue="projects" className="space-y-4">
                     <TabsList className="h-auto flex-wrap justify-start">
-                      <TabsTrigger value="projects">Projects ({filteredProjects.length})</TabsTrigger>
-                      <TabsTrigger value="achievements">Achievements ({filteredAchievements.length})</TabsTrigger>
-                      <TabsTrigger value="gallery">Gallery ({filteredGalleryEvents.length})</TabsTrigger>
+                      <TabsTrigger value="projects">Projects ({formatNumber(data.pagination.projects.total)})</TabsTrigger>
+                      <TabsTrigger value="achievements">Achievements ({formatNumber(data.pagination.achievements.total)})</TabsTrigger>
+                      <TabsTrigger value="gallery">Gallery ({formatNumber(data.pagination.galleryEvents.total)})</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="projects">
@@ -740,6 +907,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                               </div>
                             </div>
                           ))}
+                          <PageControls meta={data.pagination.projects} onPageChange={setProjectPage} />
                         </div>
                       )}
                     </TabsContent>
@@ -784,6 +952,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                               </div>
                             </div>
                           ))}
+                          <PageControls meta={data.pagination.achievements} onPageChange={setAchievementPage} />
                         </div>
                       )}
                     </TabsContent>
@@ -816,6 +985,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                               </Button>
                             </div>
                           ))}
+                          <PageControls meta={data.pagination.galleryEvents} onPageChange={setGalleryPage} />
                         </div>
                       )}
                     </TabsContent>
@@ -864,39 +1034,117 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5" />
-                      Guidance Usage
+                      SmartBuddy Telemetry
                     </CardTitle>
-                    <CardDescription>Live recommendation activity by type.</CardDescription>
+                    <CardDescription>Live token and cost telemetry from AI chat requests.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                      {["scholarship", "profile", "actions", "unknown"].map((type) => (
-                        <div key={type} className="rounded-lg border p-3">
-                          <p className="text-xs text-muted-foreground">{roleLabel(type)}</p>
-                          <p className="text-xl font-semibold">{formatNumber(data.recommendationTypeCounts[type] || 0)}</p>
-                        </div>
-                      ))}
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Requests</p>
+                        <p className="text-xl font-semibold">{formatNumber(data.smartBuddyTotals.requests)}</p>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Tokens</p>
+                        <p className="text-xl font-semibold">{formatNumber(data.smartBuddyTotals.totalTokens)}</p>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Cost</p>
+                        <p className="text-xl font-semibold">${data.smartBuddyTotals.costUsd.toFixed(4)}</p>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Errors</p>
+                        <p className="text-xl font-semibold">{formatNumber(data.smartBuddyStatusCounts.error || 0)}</p>
+                      </div>
                     </div>
-                    {data.recommendations.length === 0 ? (
-                      <EmptyState icon={Compass} title="No guidance records have been generated yet." />
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search users, school, model, or personality..."
+                        className="pl-9"
+                        value={smartBuddySearch}
+                        onChange={(event) => setSmartBuddySearch(event.target.value)}
+                      />
+                    </div>
+                    {data.smartBuddyUsage.length === 0 ? (
+                      <EmptyState icon={Compass} title="No SmartBuddy usage has been logged yet." />
                     ) : (
                       <div className="space-y-3">
-                        {data.recommendations.slice(0, 6).map((recommendation) => (
-                          <div key={recommendation.id} className="flex items-center justify-between rounded-lg border p-3">
+                        {data.smartBuddyUsage.map((usage) => (
+                          <div key={usage.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
                             <div className="min-w-0">
-                              <p className="font-medium">{roleLabel(recommendation.type || "unknown")}</p>
+                              <p className="font-medium">{usage.user_name || usage.user_email || "Unknown user"}</p>
                               <p className="text-xs text-muted-foreground">
-                                {recommendation.user_name || "Unknown user"} · {recommendation.school_name || "No school"}
+                                {usage.model} · {usage.personality} · {usage.school_name || "No school"}
                               </p>
                             </div>
-                            <span className="text-xs text-muted-foreground">{formatDate(recommendation.created_at)}</span>
+                            <div className="text-right text-xs text-muted-foreground">
+                              <p>{formatNumber(usage.total_tokens)} tokens · ${Number(usage.total_cost_usd).toFixed(4)}</p>
+                              <p>{formatDate(usage.created_at)}</p>
+                            </div>
                           </div>
                         ))}
+                        <PageControls meta={data.pagination.smartBuddyUsage} onPageChange={setSmartBuddyPage} />
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="audit" className="space-y-4">
+              <Card className="luxury-card">
+                <CardHeader>
+                  <CardTitle>Super Admin Audit Logs</CardTitle>
+                  <CardDescription>Mutation-only audit trail for privileged platform actions.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative max-w-xl">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search action, actor, or entity..."
+                      className="pl-9"
+                      value={auditSearch}
+                      onChange={(event) => setAuditSearch(event.target.value)}
+                    />
+                  </div>
+
+                  {data.auditLogs.length === 0 ? (
+                    <EmptyState icon={ShieldAlert} title="No Super Admin actions have been logged yet." />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Action</TableHead>
+                          <TableHead>Actor</TableHead>
+                          <TableHead>Entity</TableHead>
+                          <TableHead>When</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.auditLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              <div className="font-medium">{log.action}</div>
+                              <div className="text-xs text-muted-foreground">{log.id}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div>{log.actor_name || log.actor_email || "Unknown actor"}</div>
+                              <div className="text-xs text-muted-foreground">{log.actor_email || log.actor_id || "No actor id"}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div>{log.entity_type}</div>
+                              <div className="text-xs text-muted-foreground">{log.entity_id || "No entity id"}</div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{formatDate(log.created_at)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                  <PageControls meta={data.pagination.auditLogs} onPageChange={setAuditPage} />
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </>

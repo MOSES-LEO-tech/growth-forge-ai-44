@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface AnalyticsWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface ReportType {

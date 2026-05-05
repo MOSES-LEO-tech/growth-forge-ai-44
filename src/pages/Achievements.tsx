@@ -12,15 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Medal, Plus, CheckCircle, Shield } from 'lucide-react';
-import type { Achievement } from '@/integrations/supabase/types';
 
 interface Achievement {
-    id: number;
+    id: string;
     title: string;
-    description: string;
-    date_earned: string;
-    verified: boolean;
-    verified_by?: number;
+    description: string | null;
+    date_earned: string | null;
+    verified: boolean | null;
+    verified_by?: string;
     verifier_name?: string;
     certificate_url?: string;
 }
@@ -56,7 +55,7 @@ const Achievements = () => {
                 supabase.from('student_levels').select('*').eq('user_id', user.id).single()
             ]);
 
-            setList(achievementsData as any[]);
+            setList(achievementsData as Achievement[]);
             setStats({
                 points: levelData?.points || 0,
                 level: levelData?.level?.toString() || '1',
@@ -92,7 +91,7 @@ const Achievements = () => {
     };
 
     const handleVerify = async (id: string) => {
-        if (user?.role !== 'teacher' && user?.role !== 'admin') return;
+        if (user?.role !== 'admin' && user?.role !== 'super_admin') return;
         try {
             await verifyAchievement(id);
             toast({ title: "Verified", description: "Achievement verified successfully" });
@@ -204,7 +203,7 @@ const Achievements = () => {
                         <CardContent>
                             <p className="text-sm text-muted-foreground mb-4">{item.description}</p>
                             <div className="text-xs text-muted-foreground">
-                                Earned: {new Date(item.date_earned).toLocaleDateString()}
+                                Earned: {item.date_earned ? new Date(item.date_earned).toLocaleDateString() : 'Not provided'}
                             </div>
                             {item.verified && item.verifier_name && (
                                 <div className="mt-2 text-xs text-green-700 flex items-center gap-1">
@@ -212,8 +211,8 @@ const Achievements = () => {
                                 </div>
                             )}
 
-                            {/* Teacher Action */}
-                            {(user?.role === 'teacher' || user?.role === 'admin') && !item.verified && (
+                            {/* School Admin Action */}
+                            {(user?.role === 'admin' || user?.role === 'super_admin') && !item.verified && (
                                 <Button size="sm" variant="outline" className="w-full mt-4 border-green-600 text-green-600 hover:bg-green-50" onClick={() => handleVerify(item.id)}>
                                     Verify Claim (+50 XP)
                                 </Button>

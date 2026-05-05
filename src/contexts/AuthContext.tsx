@@ -14,7 +14,13 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ needsProfileCompletion: boolean }>;
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ requiresConfirmation: boolean }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    role: UserRole,
+    extraMetadata?: Record<string, string | null | undefined>
+  ) => Promise<{ requiresConfirmation: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   hasPermission: (requiredRole: UserRole | UserRole[]) => boolean;
@@ -76,7 +82,7 @@ const ensureProfile = async (userId: string, email?: string): Promise<Profile | 
   let profileData = await fetchProfile(userId);
   
   if (!profileData) {
-    const baseProfile = { id: userId, role: 'student' as UserRole };
+    const baseProfile = { id: userId, role: 'student' as UserRole, account_status: 'approved' as const };
     const profileWithEmail = email ? { ...baseProfile, email } : baseProfile;
     let { data, error } = await withTimeout(
       supabase
@@ -290,13 +296,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    role: UserRole,
+    extraMetadata: Record<string, string | null | undefined> = {}
+  ) => {
     updateState(s => ({ ...s, isLoading: true }));
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role } },
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+          ...extraMetadata,
+        },
+      },
     });
 
     if (error) {

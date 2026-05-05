@@ -40,6 +40,11 @@ const SmartBuddy = () => {
         if (!input.trim() || isLoading) return;
 
         const userMsg = input.trim();
+        if (!user) {
+            toast({ title: "Sign in required", description: "Please sign in to use SmartBuddy.", variant: "destructive" });
+            return;
+        }
+
         setInput('');
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setIsLoading(true);

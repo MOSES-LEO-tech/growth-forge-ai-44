@@ -1,6 +1,6 @@
-# Milestone Studio
+# Milestone
 
-Milestone Studio is a student portfolio platform for schools, students, and parents. It helps teams document achievements, collect projects, manage galleries, track scholarship opportunities, and keep verified growth records in one place.
+Milestone is a student portfolio platform for schools, students, and parents. It helps teams document achievements, collect projects, manage galleries, track scholarship opportunities, and keep verified growth records in one place.
 
 ## User Roles
 

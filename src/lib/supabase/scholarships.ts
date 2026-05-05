@@ -1,34 +1,17 @@
-import { supabase } from '@/integrations/supabase/client';
 import type { Scholarship } from '@/integrations/supabase/types';
+import { invokePublicData } from './publicData';
 
 export const getScholarships = async () => {
-  const { data, error } = await supabase
-    .from('scholarships')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data as Scholarship[];
+  const { scholarships } = await invokePublicData<{ scholarships: Scholarship[] }>('scholarships');
+  return scholarships;
 };
 
 export const searchScholarships = async (query: string) => {
-  const { data, error } = await supabase
-    .from('scholarships')
-    .select('*')
-    .or(`title.ilike.%${query}%,requirements.ilike.%${query}%`)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data as Scholarship[];
+  const { scholarships } = await invokePublicData<{ scholarships: Scholarship[] }>('scholarships', { search: query });
+  return scholarships;
 };
 
 export const getScholarship = async (id: string) => {
-  const { data, error } = await supabase
-    .from('scholarships')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data as Scholarship;
+  const { scholarship } = await invokePublicData<{ scholarship: Scholarship }>('scholarship_detail', { id });
+  return scholarship;
 };

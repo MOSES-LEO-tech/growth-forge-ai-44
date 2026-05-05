@@ -33,8 +33,8 @@ const Contact = () => {
       answer: "Click 'Get Started' on the homepage, choose your role (Student, Parent, Teacher, or Admin), and fill in your details. School admins can verify your account."
     },
     {
-      question: "Is Milestone Studio free to use?",
-      answer: "Milestone Studio offers a free tier with essential features. Premium features for advanced analytics and unlimited storage are available through our subscription plans."
+      question: "Is Milestone free to use?",
+      answer: "Milestone offers a free tier with essential features. Premium features for advanced analytics and unlimited storage are available through our subscription plans."
     },
     {
       question: "How does achievement verification work?",

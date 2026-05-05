@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { GalleryEvent, GalleryMedia } from '@/integrations/supabase/types';
 import { getMediaTypeFromUrl, resolveStorageMediaUrl } from './storageMedia';
+import { invokePublicData } from './publicData';
 
 const EVENT_TABLES = ['gallery_events', 'events'] as const;
 
@@ -14,6 +15,13 @@ type EventRow = GalleryEvent & {
   media_url?: string;
   thumbnail_url?: string;
   visibility?: 'private' | 'public' | 'parents';
+};
+
+type EventRowWithProfile = GalleryEvent & {
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
 };
 
 const isSchemaError = (error: any) => {
@@ -207,6 +215,30 @@ const normalizeEvents = async (events: GalleryEvent[]) => {
   return normalizedEvents as EventRow[];
 };
 
+const normalizePublicEvents = async (events: EventRow[]) => {
+  const normalizedEvents = await Promise.all(events.map(async (event) => {
+    const media = event.gallery_media || event.media || [];
+    const signedMedia = await Promise.all(media.map(async (item) => ({
+      ...item,
+      url: await resolveStorageMediaUrl(item.url, 'gallery-media'),
+    })));
+    const primary = signedMedia[0];
+
+    return {
+      ...event,
+      gallery_media: signedMedia,
+      media: signedMedia,
+      media_count: signedMedia.length,
+      media_type: (primary?.type || getMediaType(primary?.url || '') || 'image') as EventRow['media_type'],
+      media_url: primary?.url || '',
+      thumbnail_url: primary?.url || undefined,
+      visibility: event.is_public ? 'public' : 'private',
+    };
+  }));
+
+  return normalizedEvents as EventRow[];
+};
+
 export const getGalleryEvents = async (userId: string) => {
   try {
     const { data } = await queryEvents((table) =>
@@ -223,16 +255,45 @@ export const getGalleryEvents = async (userId: string) => {
 
 export const getPublicEvents = async () => {
   try {
-    const { data } = await queryEvents((table) =>
-      withActiveFilter((supabase as any).from(table).select('*').eq('is_public', true))
-        .order('created_at', { ascending: false })
-    );
-
-    return normalizeEvents(data as GalleryEvent[]);
+    const { events } = await invokePublicData<{ events: EventRow[] }>('gallery_events');
+    return normalizePublicEvents(events);
   } catch (error) {
     if (isSchemaError(error)) return [];
     throw error;
   }
+};
+
+export const getPendingMediaEvents = async () => {
+  const { data } = await queryEvents((table) =>
+    withActiveFilter((supabase as any)
+      .from(table)
+      .select('*, profiles(full_name,email)')
+      .eq('approval_status', 'pending'))
+      .order('created_at', { ascending: false })
+  );
+
+  const rows = (data || []) as EventRowWithProfile[];
+  const profilesByEventId = new Map(rows.map((event) => [event.id, event.profiles || null]));
+  const normalized = await normalizeEvents(rows);
+
+  return normalized.map((event) => ({
+    ...event,
+    student_name: profilesByEventId.get(event.id)?.full_name || null,
+    student_email: profilesByEventId.get(event.id)?.email || null,
+  })) as (EventRow & { student_name: string | null; student_email: string | null })[];
+};
+
+export const approveMediaEvent = async (id: string) => {
+  const { error } = await supabase.rpc('approve_student_media_event', { p_event_id: id });
+  if (error) throw error;
+};
+
+export const rejectMediaEvent = async (id: string, reason?: string) => {
+  const { error } = await supabase.rpc('reject_student_media_event', {
+    p_event_id: id,
+    p_reason: reason || null,
+  });
+  if (error) throw error;
 };
 
 export const createEvent = async (data: Partial<GalleryEvent>) => {
@@ -240,7 +301,7 @@ export const createEvent = async (data: Partial<GalleryEvent>) => {
     const { data: event } = await queryEvents((table) =>
       (supabase as any)
         .from(table)
-        .insert(data)
+        .insert({ ...data, approval_status: data.approval_status || 'pending' })
         .select()
         .single()
     );
@@ -322,6 +383,26 @@ export const getAllEvents = async () => {
 };
 
 export const getEventDetails = async (id: string) => {
+  try {
+    const { event } = await invokePublicData<{ event: EventRow & { school_name?: string } }>('gallery_event_detail', { id });
+    const normalized = await normalizePublicEvents([event]);
+    const publicEvent = normalized[0];
+
+    return {
+      ...publicEvent,
+      school_name: event.school_name || 'No school',
+      media: (publicEvent.media || []).map((media, index) => ({
+        ...media,
+        title: index === 0 ? publicEvent.title : `${publicEvent.title} media ${index + 1}`,
+        description: publicEvent.description || '',
+        media_url: media.url,
+        media_type: media.type,
+      })),
+    };
+  } catch {
+    // Private owner/admin views still use RLS-backed table access.
+  }
+
   const { data } = await queryEvents((table) =>
     (supabase as any)
       .from(table)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderOpen, Check, X, Flag, Star, Search } from "lucide-react";
+import { FolderOpen, Flag, Search, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface PortfolioModerationWidgetProps {
   className?: string;
   defaultExpanded?: boolean;
-  schoolId?: number;
+  schoolId?: string | null;
 }
 
 interface ProjectRecord {
@@ -36,9 +36,9 @@ export function PortfolioModerationWidget({ className = "", defaultExpanded = fa
       
       setTimeout(() => {
         setProjects([
-  { id: 1, title: "Sensor Garden Monitor", studentName: "John Smith", status: "pending", featured: false, flagged: false, submittedAt: "2026-02-20" },
+          { id: 1, title: "Sensor Garden Monitor", studentName: "John Smith", status: "teacher review", featured: false, flagged: false, submittedAt: "2026-02-20" },
           { id: 2, title: "Sustainable Energy Project", studentName: "Jane Doe", status: "approved", featured: true, flagged: false, submittedAt: "2026-02-18" },
-          { id: 3, title: "Mobile App Development", studentName: "Mike Johnson", status: "pending", featured: false, flagged: true, submittedAt: "2026-02-15" },
+          { id: 3, title: "Mobile App Development", studentName: "Mike Johnson", status: "teacher review", featured: false, flagged: true, submittedAt: "2026-02-15" },
           { id: 4, title: "Robotics Competition Entry", studentName: "Sarah Williams", status: "approved", featured: false, flagged: false, submittedAt: "2026-02-10" },
         ]);
         setLoading(false);
@@ -64,7 +64,6 @@ export function PortfolioModerationWidget({ className = "", defaultExpanded = fa
     );
   }
 
-  const pendingCount = projects.filter(p => p.status === "pending").length;
   const flaggedCount = projects.filter(p => p.flagged).length;
 
   return (
@@ -79,9 +78,6 @@ export function PortfolioModerationWidget({ className = "", defaultExpanded = fa
             Portfolio Moderation
           </div>
           <div className="flex gap-2 text-sm">
-            {pendingCount > 0 && (
-              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">{pendingCount} pending</span>
-            )}
             {flaggedCount > 0 && (
               <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full">{flaggedCount} flagged</span>
             )}
@@ -91,6 +87,11 @@ export function PortfolioModerationWidget({ className = "", defaultExpanded = fa
       {expanded && (
         <CardContent>
           <div className="space-y-4">
+            <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Project and media approvals are handled by teachers. School admins can monitor project status, featured work, and flagged items here.</span>
+            </div>
+
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -118,18 +119,13 @@ export function PortfolioModerationWidget({ className = "", defaultExpanded = fa
                         {project.flagged && <Flag className="h-4 w-4 text-red-500" />}
                       </div>
                       <p className="text-sm text-muted-foreground">{project.studentName} · {project.submittedAt}</p>
+                      <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs ${
+                        project.status === "approved" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {project.status}
+                      </span>
                     </div>
                     <div className="flex gap-2">
-                      {project.status === "pending" && (
-                        <>
-                          <Button size="sm" variant="ghost" className="text-green-600">
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-red-600">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
                       <Button size="sm" variant="ghost">
                         <Star className={`h-4 w-4 ${project.featured ? 'text-yellow-500 fill-yellow-500' : ''}`} />
                       </Button>

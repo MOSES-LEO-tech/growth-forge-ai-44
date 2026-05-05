@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import type { Profile } from "@/integrations/supabase/types";
 import { PendingApprovalsWidget } from "@/components/widgets/PendingApprovalsWidget";
-import { SchoolGalleryWidget } from "@/components/widgets/SchoolGalleryWidget";
+import { SchoolAccessWidget } from "@/components/widgets/SchoolAccessWidget";
 import { StudentDirectoryWidget } from "@/components/widgets/StudentDirectoryWidget";
 import { TeacherStatsWidget } from "@/components/widgets/TeacherStatsWidget";
 import { NotificationsWidget } from "@/components/widgets/NotificationsWidget";
@@ -34,6 +33,13 @@ const TeacherDashboard = ({ profile }: { profile: Profile }) => {
       </section>
 
       <div className="dashboard-grid auto-rows-[minmax(190px,auto)]">
+        <SchoolAccessWidget
+          className="md:col-span-2 xl:col-span-2"
+          defaultExpanded={activeWidget === 'access' || activeWidget === 'code'}
+          schoolId={profile.school_id}
+          canManage={false}
+        />
+
         {/* Row 1: Critical Actions & Stats */}
         <PendingApprovalsWidget
           className="md:col-span-2 xl:col-span-2"
