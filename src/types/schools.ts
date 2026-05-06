@@ -4,6 +4,8 @@ export interface School {
   location: string | null;
   country: string | null;
   logo_url: string | null;
+  cover_url: string | null;
+  gallery_urls: string[] | null;
   description: string | null;
   admin_id: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';

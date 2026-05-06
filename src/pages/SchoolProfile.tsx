@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
-  ArrowLeft, MapPin, Globe, Calendar, Users, Trophy, 
+  ArrowLeft, MapPin, Calendar, Users, Trophy, 
   Image as ImageIcon, School as SchoolIcon, Star, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useSchool, useSchoolStats } from "@/hooks/useSchools";
+
+const DEFAULT_SCHOOL_COVER_IMAGE =
+  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1800&q=80";
+
+const DEFAULT_SCHOOL_GALLERY_IMAGES = [
+  "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1560785496-3c9d27877182?auto=format&fit=crop&w=1200&q=80",
+];
+
+const uniqueImageUrls = (urls: Array<string | null | undefined>) => {
+  const seen = new Set<string>();
+  return urls
+    .map((url) => url?.trim())
+    .filter((url): url is string => {
+      if (!url || seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    });
+};
 
 const SchoolProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,6 +89,14 @@ const SchoolProfile = () => {
     );
   }
 
+  const galleryImages = uniqueImageUrls(school.gallery_urls || []);
+  const displayGalleryImages = galleryImages.length > 0
+    ? galleryImages
+    : uniqueImageUrls([school.cover_url, school.logo_url, ...DEFAULT_SCHOOL_GALLERY_IMAGES]).slice(0, 6);
+  const coverImage = school.cover_url?.trim() || displayGalleryImages[0] || DEFAULT_SCHOOL_COVER_IMAGE;
+  const coverFallback = displayGalleryImages.find((url) => url !== coverImage) || DEFAULT_SCHOOL_COVER_IMAGE;
+  const schoolLocation = [school.location, school.country].filter(Boolean).join(", ") || "Milestone partner school";
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
@@ -83,28 +114,38 @@ const SchoolProfile = () => {
           </Button>
 
           {/* Hero Section */}
-          <div className="relative mb-12">
-            <div className="h-48 md:h-64 w-full bg-secondary rounded-3xl overflow-hidden shadow-inner">
-              <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          <div className="relative mb-12 overflow-hidden rounded-3xl bg-slate-900 shadow-sm">
+            <div className="relative h-[300px] md:h-[360px] w-full">
+              <img
+                src={coverImage}
+                alt={`${school.name} campus`}
+                className="h-full w-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = coverFallback;
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/45 via-transparent to-transparent" />
             </div>
-            <div className="absolute -bottom-8 left-8 flex flex-col md:flex-row md:items-end gap-6 w-full px-4 md:px-0">
-              <Avatar className="h-32 w-32 md:h-40 md:w-40 rounded-3xl border-4 border-white shadow-xl bg-white">
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-5 p-6 md:flex-row md:items-end md:p-8">
+              <Avatar className="h-28 w-28 md:h-36 md:w-36 rounded-3xl border-4 border-white/90 shadow-xl bg-white">
                 <AvatarImage src={school.logo_url || ""} alt={school.name} className="object-contain p-4" />
                 <AvatarFallback className="rounded-3xl bg-primary/5 text-primary text-4xl font-bold">
                   {school.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="pb-4 space-y-2">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              <div className="space-y-3 pb-1">
+                <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-sm">
                   {school.name}
                 </h1>
-                <div className="flex flex-wrap items-center gap-4 text-slate-600 font-medium">
+                <div className="flex flex-wrap items-center gap-4 text-white/90 font-medium">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-primary" />
-                    <span>{school.location}, {school.country}</span>
+                    <span>{schoolLocation}</span>
                   </div>
                   {school.founded_year && (
-                    <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4">
+                    <div className="flex items-center gap-1.5 border-l border-white/25 pl-4">
                       <Calendar className="w-4 h-4 text-primary" />
                       <span>Founded {school.founded_year}</span>
                     </div>
@@ -115,7 +156,7 @@ const SchoolProfile = () => {
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-12 mt-16 md:mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-12">
             <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Students</CardTitle>
@@ -228,12 +269,16 @@ const SchoolProfile = () => {
                 </CardHeader>
                 <CardContent className="p-8 pt-0">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => (
-                      <div key={i} className="aspect-video rounded-xl bg-slate-100 overflow-hidden relative group cursor-pointer shadow-sm">
+                    {displayGalleryImages.map((imageUrl, i) => (
+                      <div key={`${imageUrl}-${i}`} className="aspect-video rounded-xl bg-slate-100 overflow-hidden relative group cursor-pointer shadow-sm">
                         <img 
-                          src={`https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80&fit=crop&crop=focalpoint&fp-y=0.5&auto=format&sig=${i}`} 
-                          alt="Gallery item"
+                          src={imageUrl} 
+                          alt={`${school.name} gallery ${i + 1}`}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(event) => {
+                            event.currentTarget.onerror = null;
+                            event.currentTarget.src = DEFAULT_SCHOOL_GALLERY_IMAGES[i % DEFAULT_SCHOOL_GALLERY_IMAGES.length];
+                          }}
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <ImageIcon className="text-white w-8 h-8" />

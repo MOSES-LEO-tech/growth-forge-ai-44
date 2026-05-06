@@ -165,7 +165,7 @@ serve(async (req) => {
       case "schools": {
         let query = supabase
           .from("schools")
-          .select("id,name,location,country,description,logo_url,created_at,updated_at", { count: "exact" })
+          .select("id,name,location,country,description,logo_url,cover_url,gallery_urls,created_at,updated_at", { count: "exact" })
           .eq("approval_status", "approved");
 
         if (search) query = query.ilike("name", `%${search}%`);
@@ -186,7 +186,7 @@ serve(async (req) => {
         const id = String(params.id ?? "");
         const { data, error } = await supabase
           .from("schools")
-          .select("id,name,location,country,description,logo_url,created_at,updated_at")
+          .select("id,name,location,country,description,logo_url,cover_url,gallery_urls,created_at,updated_at")
           .eq("id", id)
           .eq("approval_status", "approved")
           .maybeSingle();

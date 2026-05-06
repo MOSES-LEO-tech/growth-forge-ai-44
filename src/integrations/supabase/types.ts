@@ -88,6 +88,8 @@ export interface Database {
           country: string | null
           description: string | null
           logo_url: string | null
+          cover_url: string | null
+          gallery_urls: string[]
           admin_id: string | null
           approval_status: SchoolApprovalStatus
           approved_by: string | null
@@ -102,6 +104,8 @@ export interface Database {
           country?: string | null
           description?: string | null
           logo_url?: string | null
+          cover_url?: string | null
+          gallery_urls?: string[]
           admin_id?: string | null
           approval_status?: SchoolApprovalStatus
           approved_by?: string | null
@@ -116,6 +120,8 @@ export interface Database {
           country?: string | null
           description?: string | null
           logo_url?: string | null
+          cover_url?: string | null
+          gallery_urls?: string[]
           admin_id?: string | null
           approval_status?: SchoolApprovalStatus
           approved_by?: string | null
