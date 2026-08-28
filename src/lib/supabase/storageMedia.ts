@@ -12,7 +12,7 @@ const signedUrlCache = new Map<string, CachedSignedUrl>();
 
 const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
 const STORAGE_PATH_PATTERN = /\/storage\/v1\/(?:object|render\/image)\/(?:public|sign)\/([^/]+)\/(.+)$/;
-const KNOWN_MEDIA_BUCKETS = new Set(["avatars", "gallery-media", "project-media"]);
+const KNOWN_MEDIA_BUCKETS = new Set(["avatars", "gallery-media", "project-media", "project-documents"]);
 
 const decodeStoragePath = (value: string) => {
   try {

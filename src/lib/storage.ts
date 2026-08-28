@@ -72,7 +72,10 @@ export const uploadProfileAvatar = async (
     .from(AVATAR_BUCKET_NAME)
     .upload(filePath, file, {
       cacheControl: '3600',
-      upsert: true,
+      // upsert would attempt an UPDATE which the avatars bucket has no RLS
+      // policy for; the timestamped path is always unique, so plain insert
+      // is both correct and policy-compliant.
+      upsert: false,
       // @ts-ignore
       onUploadProgress: (progress) => {
         if (options?.onProgress) {

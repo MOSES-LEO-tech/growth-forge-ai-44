@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Search, Mail, MoreHorizontal, GraduationCap, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, Search, Mail, MoreHorizontal, Loader2, Eye, UserMinus } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,18 +17,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-// Mock Data
-const MOCK_STUDENTS = [
-    { id: 1, name: "Alice Johnson", grade: "10th", status: "Active", avatar: "", email: "alice@example.com", growthScore: 850 },
-    { id: 2, name: "Bob Smith", grade: "11th", status: "Active", avatar: "", email: "bob@example.com", growthScore: 720 },
-    { id: 3, name: "Charlie Brown", grade: "9th", status: "Absent", avatar: "", email: "charlie@example.com", growthScore: 690 },
-    { id: 4, name: "Diana Prince", grade: "12th", status: "Active", avatar: "", email: "diana@example.com", growthScore: 910 },
-    { id: 5, name: "Evan Wright", grade: "10th", status: "Inactive", avatar: "", email: "evan@example.com", growthScore: 500 },
-    { id: 6, name: "Fiona Gallagher", grade: "11th", status: "Active", avatar: "", email: "fiona@example.com", growthScore: 780 },
-    { id: 7, name: "George Bailey", grade: "12th", status: "Active", avatar: "", email: "george@example.com", growthScore: 880 },
-    { id: 8, name: "Hannah Montana", grade: "9th", status: "Active", avatar: "", email: "hannah@example.com", growthScore: 750 },
-];
 
 interface StudentDirectoryWidgetProps {
     className?: string;
@@ -78,13 +67,6 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
         }
     };
 
-    // Calculate growth score from projects and achievements
-    const getGrowthScore = (student: any) => {
-        const projects = student.project_count || 0;
-        const achievements = student.achievement_count || 0;
-        return Math.min(1000, (projects * 50) + (achievements * 100));
-    };
-
     const CollapsedContent = () => (
         <div className="flex flex-col h-full items-center justify-center text-center gap-2">
             {loading ? (
@@ -122,16 +104,22 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     {/* Class filter */}
-                    <select 
-                        className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={selectedClass || ''}
-                        onChange={(e) => setSelectedClass(e.target.value || null)}
+                    <Select
+                        value={selectedClass ?? "all"}
+                        onValueChange={(value) => setSelectedClass(value === "all" ? null : value)}
                     >
-                        <option value="">All Classes</option>
-                        {classes.map(c => (
-                            <option key={c.id} value={c.id}>{c.name} ({c.student_count})</option>
-                        ))}
-                    </select>
+                        <SelectTrigger className="h-10 w-full sm:w-[180px]" aria-label="Filter students by class">
+                            <SelectValue placeholder="All classes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All classes</SelectItem>
+                            {classes.map(c => (
+                                <SelectItem key={c.id} value={String(c.id)}>
+                                    {c.name} ({c.student_count})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -157,20 +145,41 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
                 ) : (
                     filteredStudents.map((student) => (
                         <div key={student.id} className="group relative flex flex-col items-center p-6 bg-card border rounded-xl hover:shadow-md transition-all">
-                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <MoreHorizontal className="w-4 h-4" />
-                                            <span className="sr-only">Actions</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                            aria-label={`Actions for ${student.full_name}`}
+                                        >
+                                            <MoreHorizontal className="w-4 h-4" aria-hidden="true" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => alert(`View profile for ${student.full_name}`)}>View Profile</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => window.open(`mailto:${student.email}`)}>Send Message</DropdownMenuItem>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                                            Student actions
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuItem
+                                            onClick={() => window.open(`mailto:${student.email}`)}
+                                            className="gap-2 cursor-pointer"
+                                        >
+                                            <Eye className="h-4 w-4" aria-hidden="true" />
+                                            View Profile
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => window.open(`mailto:${student.email}`)}
+                                            className="gap-2 cursor-pointer"
+                                        >
+                                            <Mail className="h-4 w-4" aria-hidden="true" />
+                                            Send Message
+                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive">Remove Student</DropdownMenuItem>
+                                        <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+                                            <UserMinus className="h-4 w-4" aria-hidden="true" />
+                                            Remove Student
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -186,11 +195,6 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
 
                             <h4 className="font-bold text-lg text-center truncate w-full">{student.full_name}</h4>
                             <p className="text-sm text-muted-foreground mb-1">{student.grade || 'No grade'} Grade</p>
-
-                            <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/5 px-2 py-1 rounded-full mb-4">
-                                <GraduationCap className="w-3 h-3" />
-                                <span>Score: {getGrowthScore(student)}</span>
-                            </div>
 
                             <div className="w-full mt-auto pt-2 border-t flex justify-center gap-2">
                                 <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => window.open(`mailto:${student.email}`)}>

@@ -20,9 +20,10 @@ interface AuthContextType extends AuthState {
     fullName: string,
     role: UserRole,
     extraMetadata?: Record<string, string | null | undefined>
-  ) => Promise<{ requiresConfirmation: boolean }>;
+  ) => Promise<{ requiresConfirmation: boolean; userId?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   hasPermission: (requiredRole: UserRole | UserRole[]) => boolean;
 }
 
@@ -38,7 +39,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
 
 const PROFILE_TIMEOUT_MS = 6000;
 
-const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   try {
@@ -153,8 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
-  const updateState = useCallback((updates: Partial<AuthState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+  const updateState = useCallback((updates: Partial<AuthState> | ((prev: AuthState) => AuthState)) => {
+    setState(prev => {
+      const patch = typeof updates === 'function' ? updates(prev) : updates;
+      return { ...prev, ...patch };
+    });
   }, []);
 
   const loadProfile = useCallback(async (userId: string) => {
@@ -358,7 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    return { requiresConfirmation: false };
+    return { requiresConfirmation: false, userId: data.session.user.id };
   };
 
   const signOut = async () => {
@@ -382,6 +386,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateState({ profile: profileData, userRole: profileData?.role ?? null });
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    if (!state.user?.email) {
+      throw new Error('Unable to verify your account. Sign in again and retry.');
+    }
+
+    // Supabase updateUser() does not verify the current password, so confirm it
+    // first with a password sign-in for the same account. This also surfaces
+    // an honest "wrong password" error before any password is changed.
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: state.user.email,
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      const msg = signInError.message.toLowerCase();
+      if (msg.includes('invalid') || msg.includes('email or password')) {
+        throw new Error('Current password is incorrect.');
+      }
+      throw signInError;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (updateError) {
+      const msg = updateError.message.toLowerCase();
+      if (msg.includes('password')) {
+        throw new Error('New password is too weak. Use at least 6 characters with a mix of letters, numbers, and symbols.');
+      }
+      throw updateError;
+    }
+  };
+
   const hasPermission = useCallback((requiredRole: UserRole | UserRole[]): boolean => {
     if (!state.userRole) return false;
     const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
@@ -396,6 +432,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       refreshProfile,
+      changePassword,
       hasPermission,
     }}>
       {children}

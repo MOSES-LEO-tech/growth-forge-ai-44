@@ -1,17 +1,24 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
   ArrowLeft, MapPin, Calendar, Users, Trophy, 
-  Image as ImageIcon, School as SchoolIcon, Star, Info
+  Image as ImageIcon, School as SchoolIcon, Star, Info,
+  Newspaper, CalendarDays, BookOpen, Download, Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useSchool, useSchoolStats } from "@/hooks/useSchools";
+import { getPublishedSchoolCms, getPublishedSchoolPage } from "@/lib/supabase/cms";
+import { listSchoolGalleryMedia } from "@/lib/supabase/schoolMedia";
+import SanitizedHtml from "@/components/SanitizedHtml";
+import type { SchoolCmsBundle } from "@/lib/supabase/cms";
+import type { CmsPage, SchoolGalleryMedia } from "@/integrations/supabase/types";
 
 const DEFAULT_SCHOOL_COVER_IMAGE =
   "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1800&q=80";
@@ -36,6 +43,13 @@ const uniqueImageUrls = (urls: Array<string | null | undefined>) => {
     });
 };
 
+const formatDate = (value?: string | null) => {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+};
+
+const EMPTY_CMS_BUNDLE: SchoolCmsBundle = { pages: [], news: [], events: [], resources: [] };
+
 const SchoolProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -43,9 +57,46 @@ const SchoolProfile = () => {
   const { data: school, isLoading: isLoadingSchool, isError } = useSchool(id || "");
   const { data: stats, isLoading: isLoadingStats } = useSchoolStats(id || "");
 
+  const [cms, setCms] = useState<SchoolCmsBundle>(EMPTY_CMS_BUNDLE);
+  const [aboutPage, setAboutPage] = useState<CmsPage | null>(null);
+  const [cmsLoading, setCmsLoading] = useState(true);
+  const [galleryMedia, setGalleryMedia] = useState<SchoolGalleryMedia[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setCmsLoading(true);
+    setGalleryLoading(true);
+    Promise.all([getPublishedSchoolCms(id), getPublishedSchoolPage(id, "about")])
+      .then(([bundle, page]) => {
+        if (cancelled) return;
+        setCms(bundle);
+        setAboutPage(page);
+        setCmsLoading(false);
+      })
+      .catch((error) => {
+        console.warn("Failed to load published CMS content:", error);
+        if (!cancelled) setCmsLoading(false);
+      });
+    listSchoolGalleryMedia(id)
+      .then((media) => {
+        if (cancelled) return;
+        setGalleryMedia(media);
+        setGalleryLoading(false);
+      })
+      .catch((error) => {
+        console.warn("Failed to load school gallery:", error);
+        if (!cancelled) setGalleryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
   if (isLoadingSchool) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="editorial flex min-h-screen flex-col bg-background">
         <Navbar />
         <main className="flex-grow pt-24 pb-16">
           <div className="container mx-auto px-4 space-y-8">
@@ -65,16 +116,16 @@ const SchoolProfile = () => {
 
   if (isError || !school) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="editorial flex min-h-screen flex-col bg-background">
         <Navbar />
         <main className="flex-grow flex items-center justify-center pt-24">
           <div className="text-center space-y-6 max-w-md px-4">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+              <div className="editorial-panel p-8">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Info className="w-8 h-8 text-red-500" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">School not found</h2>
-              <p className="text-slate-500 mb-6">
+              <h2 className="mb-2 text-2xl font-bold text-foreground">School not found</h2>
+              <p className="mb-6 text-muted-foreground">
                 We couldn't find the school you're looking for. It may have been removed or the link is incorrect.
               </p>
               <Button onClick={() => navigate("/schools")} className="w-full">
@@ -98,7 +149,7 @@ const SchoolProfile = () => {
   const schoolLocation = [school.location, school.country].filter(Boolean).join(", ") || "Milestone partner school";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="editorial flex min-h-screen flex-col bg-background">
       <Navbar />
 
       <main className="flex-grow pt-24 pb-16">
@@ -107,7 +158,7 @@ const SchoolProfile = () => {
           <Button 
             variant="ghost" 
             onClick={() => navigate("/schools")} 
-            className="mb-8 text-slate-500 hover:text-slate-900 transition-colors"
+            className="mb-8 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Schools
@@ -116,15 +167,27 @@ const SchoolProfile = () => {
           {/* Hero Section */}
           <div className="relative mb-12 overflow-hidden rounded-3xl bg-slate-900 shadow-sm">
             <div className="relative h-[300px] md:h-[360px] w-full">
-              <img
-                src={coverImage}
-                alt={`${school.name} campus`}
-                className="h-full w-full object-cover"
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = coverFallback;
-                }}
-              />
+              {school.hero_video_url ? (
+                <video
+                  src={school.hero_video_url}
+                  poster={coverImage}
+                  className="h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={coverImage}
+                  alt={`${school.name} campus`}
+                  className="h-full w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = coverFallback;
+                  }}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-r from-slate-950/45 via-transparent to-transparent" />
             </div>
@@ -139,6 +202,9 @@ const SchoolProfile = () => {
                 <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-sm">
                   {school.name}
                 </h1>
+                {school.tagline && (
+                  <p className="text-white/85 text-base max-w-xl">{school.tagline}</p>
+                )}
                 <div className="flex flex-wrap items-center gap-4 text-white/90 font-medium">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-primary" />
@@ -157,42 +223,42 @@ const SchoolProfile = () => {
 
           {/* Stats Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-12">
-            <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
+            <Card className="editorial-panel transition-colors hover:border-[hsl(var(--ring))]">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Students</CardTitle>
-                <Users className="w-5 h-5 text-blue-500" />
+                <CardTitle className="caps-label text-[10px] font-semibold text-muted-foreground">Total Students</CardTitle>
+                <Users className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 {isLoadingStats ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-bold text-slate-900">{stats?.total_students || 0}</div>
+                  <div className="text-3xl font-semibold">{stats?.total_students || 0}</div>
                 )}
               </CardContent>
             </Card>
-            <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
+            <Card className="editorial-panel transition-colors hover:border-[hsl(var(--ring))]">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Achievements</CardTitle>
-                <Trophy className="w-5 h-5 text-amber-500" />
+                <CardTitle className="caps-label text-[10px] font-semibold text-muted-foreground">Achievements</CardTitle>
+                <Trophy className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 {isLoadingStats ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-bold text-slate-900">{stats?.total_achievements || 0}</div>
+                  <div className="text-3xl font-semibold">{stats?.total_achievements || 0}</div>
                 )}
               </CardContent>
             </Card>
-            <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
+            <Card className="editorial-panel transition-colors hover:border-[hsl(var(--ring))]">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Scholarships Won</CardTitle>
-                <Star className="w-5 h-5 text-emerald-500" />
+                <CardTitle className="caps-label text-[10px] font-semibold text-muted-foreground">Scholarships Won</CardTitle>
+                <Star className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 {isLoadingStats ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-bold text-slate-900">{stats?.total_scholarships_won || 0}</div>
+                  <div className="text-3xl font-semibold">{stats?.total_scholarships_won || 0}</div>
                 )}
               </CardContent>
             </Card>
@@ -200,125 +266,258 @@ const SchoolProfile = () => {
 
           {/* Main Content Tabs */}
           <Tabs defaultValue="about" className="space-y-8">
-            <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl inline-flex overflow-x-auto max-w-full">
-              <TabsTrigger value="about" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+            <TabsList className="editorial-panel inline-flex h-auto max-w-full overflow-x-auto rounded-lg p-1">
+              <TabsTrigger value="about" className="rounded-full px-5 py-2 data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))] transition-colors">
                 <Info className="w-4 h-4 mr-2" />
                 About
               </TabsTrigger>
-              <TabsTrigger value="students" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                <Users className="w-4 h-4 mr-2" />
-                Students
+              <TabsTrigger value="news" className="rounded-full px-5 py-2 data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))] transition-colors">
+                <Newspaper className="w-4 h-4 mr-2" />
+                News
               </TabsTrigger>
-              <TabsTrigger value="gallery" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+              <TabsTrigger value="events" className="rounded-full px-5 py-2 data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))] transition-colors">
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Events
+              </TabsTrigger>
+              <TabsTrigger value="resources" className="rounded-full px-5 py-2 data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))] transition-colors">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Resources
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="rounded-full px-5 py-2 data-[state=active]:bg-[hsl(var(--primary))] data-[state=active]:text-[hsl(var(--primary-foreground))] transition-colors">
                 <ImageIcon className="w-4 h-4 mr-2" />
                 Gallery
-              </TabsTrigger>
-              <TabsTrigger value="hall-of-fame" className="rounded-lg px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                <Trophy className="w-4 h-4 mr-2" />
-                Hall of Fame
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="about" className="mt-0">
-              <Card className="border-none shadow-sm bg-white overflow-hidden rounded-2xl">
-                <CardHeader className="border-b border-slate-50 p-8">
-                  <CardTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              <Card className="editorial-panel overflow-hidden">
+                <CardHeader className="border-b border-border p-8">
+                  <CardTitle className="flex items-center gap-2 text-2xl font-bold">
                     <SchoolIcon className="w-6 h-6 text-primary" />
-                    School Description
+                    {aboutPage ? aboutPage.title : "School Description"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-8">
-                  <p className="text-slate-600 text-lg leading-relaxed whitespace-pre-wrap">
-                  {school.description || "No description provided for this school. This institution is a valued Milestone partner committed to academic excellence and student development."}
-                  </p>
+                  {aboutPage ? (
+                    <div className="space-y-5">
+                      {aboutPage.hero_image_url && (
+                        <img
+                          src={aboutPage.hero_image_url}
+                          alt={aboutPage.title}
+                          className="h-56 w-full rounded-xl object-cover"
+                        />
+                      )}
+                      {aboutPage.content ? (
+                        <SanitizedHtml html={aboutPage.content} className="rich-text text-lg" />
+                      ) : (
+                        <p className="text-lg leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                          {school.description || "No description provided for this school. This institution is a valued Milestone partner committed to academic excellence and student development."}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-lg leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                    {school.description || "No description provided for this school. This institution is a valued Milestone partner committed to academic excellence and student development."}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="students" className="mt-0">
-              <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                <CardHeader className="p-8">
-                  <CardTitle className="text-2xl font-bold text-slate-900">Enrolled Students</CardTitle>
-                  <CardDescription>Members of the {school.name} student community.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {/* Placeholder Students */}
-                    {[...Array(8)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-sm transition-all group">
-                        <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-                          <AvatarImage src={`https://i.pravatar.cc/150?u=${i + school.id}`} />
-                          <AvatarFallback>ST</AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-slate-900 group-hover:text-primary transition-colors">Student {i + 1}</div>
-                          <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">Grade {9 + (i % 4)}</div>
+            <TabsContent value="news" className="mt-0">
+              <div className="space-y-4">
+                {cmsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-40 rounded-2xl" />
+                    <Skeleton className="h-40 rounded-2xl" />
+                  </div>
+                ) : cms.news.length === 0 ? (
+                  <Card className="editorial-panel">
+                    <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+                      <Newspaper className="h-10 w-10 text-muted-foreground" />
+                      <p className="text-muted-foreground">No news published yet.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  cms.news.map((item) => (
+                    <Card key={item.id} className="editorial-panel">
+                      <CardContent className="p-8">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          {item.featured && <Badge className="bg-primary text-primary-foreground">Featured</Badge>}
+                          <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                            {formatDate(item.publish_at || item.created_at)}
+                          </span>
                         </div>
-                      </div>
+                        <h3 className="mb-2 text-xl font-bold">{item.title}</h3>
+                        <SanitizedHtml html={item.body} className="rich-text text-muted-foreground" />
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="events" className="mt-0">
+              <div className="space-y-4">
+                {cmsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-32 rounded-2xl" />
+                    <Skeleton className="h-32 rounded-2xl" />
+                  </div>
+                ) : cms.events.length === 0 ? (
+                  <Card className="editorial-panel">
+                    <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+                      <CalendarDays className="h-10 w-10 text-muted-foreground" />
+                      <p className="text-muted-foreground">No upcoming events published.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  cms.events.map((event) => (
+                    <Card key={event.id} className="editorial-panel">
+                      <CardContent className="flex flex-col gap-4 p-8 md:flex-row md:items-start">
+                        <div className="flat-icon h-12 w-12 shrink-0">
+                          <CalendarDays className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-primary">{formatDate(event.event_date)}</span>
+                            {event.end_date && (
+                              <span className="text-sm text-muted-foreground">to {formatDate(event.end_date)}</span>
+                            )}
+                          </div>
+                          <h3 className="mb-1 text-xl font-bold">{event.title}</h3>
+                          {event.location && (
+                            <p className="mb-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <MapPin className="h-4 w-4" />
+                              {event.location}
+                            </p>
+                          )}
+                          {event.description && (
+                            <SanitizedHtml html={event.description} className="rich-text text-muted-foreground" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="resources" className="mt-0">
+              <div className="space-y-4">
+                {cmsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-24 rounded-2xl" />
+                    <Skeleton className="h-24 rounded-2xl" />
+                  </div>
+                ) : cms.resources.length === 0 ? (
+                  <Card className="editorial-panel">
+                    <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+                      <BookOpen className="h-10 w-10 text-muted-foreground" />
+                      <p className="text-muted-foreground">No resources published yet.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {cms.resources.map((resource) => (
+                      <Card key={resource.id} className="editorial-panel">
+                        <CardContent className="flex h-full flex-col gap-3 p-6">
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="text-lg font-bold">{resource.title}</h3>
+                            {resource.category && (
+                              <Badge variant="secondary" className="shrink-0">{resource.category}</Badge>
+                            )}
+                          </div>
+                          {resource.description && (
+                            <p className="text-sm text-muted-foreground">{resource.description}</p>
+                          )}
+                          <div className="mt-auto flex flex-wrap items-center gap-2">
+                            {resource.file_type && (
+                              <span className="text-xs uppercase tracking-wider text-muted-foreground">{resource.file_type}</span>
+                            )}
+                            {resource.tags && resource.tags.length > 0 && (
+                              <span className="flex flex-wrap items-center gap-1.5">
+                                {resource.tags.slice(0, 4).map((tag) => (
+                                  <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                                    <Tag className="h-3 w-3" />
+                                    {tag}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                            {resource.file_url && (
+                              <a
+                                href={resource.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                              >
+                                <Download className="h-4 w-4" />
+                                Download
+                              </a>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="gallery" className="mt-0">
-              <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
+              <Card className="editorial-panel overflow-hidden">
                 <CardHeader className="p-8">
-                  <CardTitle className="text-2xl font-bold text-slate-900">School Gallery</CardTitle>
+                  <CardTitle className="text-2xl font-bold">School Gallery</CardTitle>
                   <CardDescription>Recent highlights and events from {school.name}.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 pt-0">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {displayGalleryImages.map((imageUrl, i) => (
-                      <div key={`${imageUrl}-${i}`} className="aspect-video rounded-xl bg-slate-100 overflow-hidden relative group cursor-pointer shadow-sm">
-                        <img 
-                          src={imageUrl} 
-                          alt={`${school.name} gallery ${i + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          onError={(event) => {
-                            event.currentTarget.onerror = null;
-                            event.currentTarget.src = DEFAULT_SCHOOL_GALLERY_IMAGES[i % DEFAULT_SCHOOL_GALLERY_IMAGES.length];
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <ImageIcon className="text-white w-8 h-8" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="hall-of-fame" className="mt-0">
-              <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                <CardHeader className="p-8">
-                  <CardTitle className="text-2xl font-bold text-slate-900">Hall of Fame</CardTitle>
-                  <CardDescription>Celebrating our top-achieving students.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center justify-between p-6 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all">
-                        <div className="flex items-center gap-6">
-                          <div className="text-3xl font-black text-slate-200 w-8">#{i + 1}</div>
-                          <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
-                            <AvatarImage src={`https://i.pravatar.cc/150?u=hof-${i}`} />
-                            <AvatarFallback>HOF</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-bold text-xl text-slate-900">Elite Achiever {i + 1}</div>
-                            <div className="text-slate-500 flex items-center gap-2">
-                              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                              <span className="font-medium">Top Performer • {1000 - i * 100} XP</span>
-                            </div>
+                    {galleryLoading ? (
+                      [...Array(6)].map((_, i) => (
+                        <Skeleton key={i} className="aspect-video rounded-lg" />
+                      ))
+                    ) : galleryMedia.length > 0 ? (
+                      galleryMedia.map((item) => (
+                        <figure key={item.id} className="overflow-hidden rounded-lg border bg-card">
+                          <div className="aspect-video bg-muted">
+                            {item.media_type === "video" ? (
+                              <video
+                                src={item.url}
+                                className="h-full w-full object-cover"
+                                muted
+                                loop
+                                playsInline
+                                controls
+                              />
+                            ) : (
+                              <img
+                                src={item.url}
+                                alt={item.caption || `${school.name} gallery`}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
                           </div>
+                          {item.caption && (
+                            <figcaption className="p-3 text-sm text-muted-foreground">{item.caption}</figcaption>
+                          )}
+                        </figure>
+                      ))
+                    ) : (
+                      displayGalleryImages.map((imageUrl, i) => (
+                        <div key={`${imageUrl}-${i}`} className="aspect-video relative overflow-hidden rounded-lg bg-muted group cursor-pointer">
+                          <img
+                            src={imageUrl}
+                            alt={`${school.name} gallery ${i + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={(event) => {
+                              event.currentTarget.onerror = null;
+                              event.currentTarget.src = DEFAULT_SCHOOL_GALLERY_IMAGES[i % DEFAULT_SCHOOL_GALLERY_IMAGES.length];
+                            }}
+                          />
                         </div>
-                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-4 py-1">
-                          View Portfolio
-                        </Badge>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>

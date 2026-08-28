@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@/integrations/supabase/types";
+import { roleHome } from "@/lib/onboarding";
 
 interface RequireAuthProps {
   allowedRoles?: UserRole[];
@@ -25,7 +26,7 @@ const RequireAuth = ({ allowedRoles, redirectTo = '/auth' }: RequireAuthProps) =
 
   if (allowedRoles && allowedRoles.length > 0) {
     if (!userRole || !allowedRoles.includes(userRole)) {
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to={roleHome(userRole)} replace />;
     }
   }
 

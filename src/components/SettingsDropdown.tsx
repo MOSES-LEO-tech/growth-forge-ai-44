@@ -1,4 +1,4 @@
-import { Settings, Moon, Sun, Monitor, Check } from "lucide-react";
+import { Check, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,21 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/contexts/ThemeProvider";
+import { COLOR_THEMES, MODE_OPTIONS } from "@/lib/theme-options";
 import CustomThemeCreator from "./CustomThemeCreator";
-
-const colorThemes = [
-  { name: "Default", value: "default", colors: ["#4338ca", "#c084fc"] },
-  { name: "Ocean", value: "ocean", colors: ["#0ea5e9", "#06b6d4"] },
-  { name: "Forest", value: "forest", colors: ["#16a34a", "#22c55e"] },
-  { name: "Sunset", value: "sunset", colors: ["#f97316", "#ec4899"] },
-  { name: "Rose", value: "rose", colors: ["#e11d48", "#db2777"] },
-] as const;
-
-const modeOptions = [
-  { name: "Light", value: "light", icon: Sun },
-  { name: "Dark", value: "dark", icon: Moon },
-  { name: "System", value: "system", icon: Monitor },
-] as const;
 
 export default function SettingsDropdown() {
   const { theme, setTheme, colorTheme, setColorTheme, customThemes, isTransitioning } = useTheme();
@@ -42,7 +29,7 @@ export default function SettingsDropdown() {
         
         {/* Mode Selection */}
         <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Mode</DropdownMenuLabel>
-        {modeOptions.map((mode) => (
+        {MODE_OPTIONS.map((mode) => (
           <DropdownMenuItem
             key={mode.value}
             onClick={() => setTheme(mode.value)}
@@ -60,7 +47,7 @@ export default function SettingsDropdown() {
         
         {/* Color Theme Selection */}
         <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Color Theme</DropdownMenuLabel>
-        {colorThemes.map((themeOption) => (
+        {COLOR_THEMES.map((themeOption) => (
           <DropdownMenuItem
             key={themeOption.value}
             onClick={() => setColorTheme(themeOption.value)}

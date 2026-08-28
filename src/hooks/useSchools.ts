@@ -47,7 +47,7 @@ export const useCreateSchool = () => {
     mutationFn: async (newSchool: Partial<School>) => {
       const { data, error } = await supabase
         .from('schools')
-        .insert(newSchool)
+        .insert(newSchool as any)
         .select()
         .single();
 

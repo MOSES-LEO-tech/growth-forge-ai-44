@@ -1,42 +1,70 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const getChildren = async (parentId: string) => {
-  const { data, error } = await supabase
+  const { data: links, error: linkError } = await supabase
     .from('parent_child_links')
-    .select('child_id, profiles!parent_child_links_child_id_fkey(*, schools(name))')
+    .select('child_id')
     .eq('parent_id', parentId);
 
-  if (error) throw error;
+  if (linkError) throw linkError;
 
-  return data.map(link => {
-    const profile = link.profiles as any;
-    return {
-      id: profile.id,
-      full_name: profile.full_name,
-      email: profile.email,
-      avatar_url: profile.avatar_url,
-      grade: profile.grade_level,
-      school_name: profile.schools?.name || 'No school'
-    };
-  });
+  const childIds = (links || [])
+    .map(link => link.child_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (childIds.length === 0) return [];
+
+  const { data: profiles, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', childIds);
+
+  if (profileError) throw profileError;
+
+  const schoolIds = (profiles || [])
+    .map(p => p.school_id)
+    .filter((id): id is string => Boolean(id));
+
+  const { data: schools } = schoolIds.length
+    ? await supabase.from('schools').select('id, name').in('id', schoolIds)
+    : { data: [] };
+
+  const schoolNameById = new Map((schools || []).map(s => [s.id, s.name]));
+
+  return (profiles || []).map(profile => ({
+    id: profile.id,
+    full_name: profile.full_name,
+    email: profile.email,
+    avatar_url: profile.avatar_url,
+    grade: profile.grade_level,
+    school_name: schoolNameById.get(profile.school_id ?? '') || 'No school'
+  }));
 };
 
 export const getChildOverview = async (childId: string) => {
   const [
     { data: profile, error: profileError },
     { data: projects, error: projectsError },
-    { data: achievements, error: achievementsError },
-    { data: level, error: levelError }
+    { data: achievements, error: achievementsError }
   ] = await Promise.all([
-    supabase.from('profiles').select('*, schools(*)').eq('id', childId).single(),
+    supabase.from('profiles').select('*').eq('id', childId).single(),
     supabase.from('projects').select('*').eq('owner_id', childId).is('deleted_at', null),
-    supabase.from('achievements').select('*').eq('user_id', childId),
-    supabase.from('student_levels').select('*').eq('user_id', childId).single()
+    supabase.from('achievements').select('*').eq('user_id', childId)
   ]);
 
   if (profileError) throw profileError;
   if (projectsError) throw projectsError;
   if (achievementsError) throw achievementsError;
+
+  let school: { name: string; location: string | null } | null = null;
+  if (profile.school_id) {
+    const { data: schoolData } = await supabase
+      .from('schools')
+      .select('name, location')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    school = schoolData;
+  }
 
   const projectsCount = projects?.length || 0;
   const projectsCompleted = projects?.filter(p => p.status === 'complete').length || 0;
@@ -62,19 +90,17 @@ export const getChildOverview = async (childId: string) => {
   return {
     student: {
       id: profile.id,
-      fullName: profile.full_name,
-      email: profile.email,
-      avatarUrl: profile.avatar_url,
-      grade: profile.grade_level,
-      school: profile.schools
+      fullName: profile.full_name ?? '',
+      email: profile.email ?? '',
+      avatarUrl: profile.avatar_url ?? undefined,
+      grade: profile.grade_level ?? undefined,
+      school: school ? { name: school.name, location: school.location ?? undefined } : null
     },
     stats: {
       projectsCount,
       projectsCompleted,
       achievementsCount,
-      verifiedAchievementsCount,
-      level: level?.level || 1,
-      points: level?.points || 0
+      verifiedAchievementsCount
     },
     recentActivity
   };
@@ -84,7 +110,7 @@ export const getChildProjects = async (childId: string | number) => {
   const { data, error } = await supabase
     .from('projects')
     .select('*, comments(count)')
-    .eq('user_id', childId)
+    .eq('user_id', String(childId))
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
@@ -120,7 +146,7 @@ export const getChildAchievements = async (childId: string | number, params?: { 
   let query = supabase
     .from('achievements')
     .select('*')
-    .eq('user_id', childId);
+    .eq('user_id', String(childId));
 
   if (params?.category) {
     query = query.eq('category', params.category);

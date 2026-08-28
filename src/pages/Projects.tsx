@@ -5,6 +5,7 @@ import type { Project } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { useInView } from "@/hooks/useInView";
 import { useToast } from "@/hooks/use-toast";
 import AddProjectModal from "@/components/AddProjectModal";
 import { normalizeProjectStatus } from "@/lib/projectStatus";
+import { useTaskStats } from "@/hooks/useTaskStats";
 
 const Projects = () => {
   const { user } = useAuth();
@@ -32,6 +34,9 @@ const Projects = () => {
     },
     enabled: !!user,
   });
+
+  const projectIds = projects?.map((p) => p.id) || [];
+  const { data: taskStatsMap } = useTaskStats(projectIds);
 
   useEffect(() => {
     if (isError) {
@@ -58,8 +63,9 @@ const Projects = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="border-b pt-32 pb-16">
+      <section className="border-b pt-28 pb-16">
         <div className="container mx-auto px-4">
+          <Breadcrumb to="/dashboard" label="Back to Dashboard" />
           <div
             ref={heroRef}
             className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
@@ -123,7 +129,7 @@ const Projects = () => {
                           transitionDelay: gridInView ? `${index * 100}ms` : '0ms'
                         }}
                       >
-                        <ProjectCard project={project} />
+                        <ProjectCard project={project} taskStats={taskStatsMap?.get(project.id)} />
                       </div>
                     ))
                   ) : (
@@ -137,7 +143,7 @@ const Projects = () => {
               <TabsContent value="new" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {newProjects?.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
+                    <ProjectCard key={project.id} project={project} taskStats={taskStatsMap?.get(project.id)} />
                   ))}
                 </div>
               </TabsContent>
@@ -145,7 +151,7 @@ const Projects = () => {
               <TabsContent value="ongoing" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {ongoingProjects?.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
+                    <ProjectCard key={project.id} project={project} taskStats={taskStatsMap?.get(project.id)} />
                   ))}
                 </div>
               </TabsContent>
@@ -153,7 +159,7 @@ const Projects = () => {
               <TabsContent value="completed" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {completedProjects?.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
+                    <ProjectCard key={project.id} project={project} taskStats={taskStatsMap?.get(project.id)} />
                   ))}
                 </div>
               </TabsContent>

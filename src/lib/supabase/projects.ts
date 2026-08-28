@@ -58,7 +58,7 @@ export const getProjects = async (userId: string) => {
 export const createProject = async (data: Partial<Project>) => {
   const { data: project, error } = await supabase
     .from('projects')
-    .insert({ ...data, approval_status: data.approval_status || 'pending' })
+    .insert({ ...data, approval_status: data.approval_status || 'pending' } as any)
     .select()
     .single();
 
@@ -76,6 +76,16 @@ export const updateProject = async (id: string, data: Partial<Project>) => {
 
   if (error) throw error;
   return project as Project;
+};
+
+/** Soft-delete a project: sets deleted_at so it drops out of every list view. */
+export const deleteProject = async (id: string) => {
+  const { error } = await supabase
+    .from('projects')
+    .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) throw error;
 };
 
 export const getPendingProjects = async () => {

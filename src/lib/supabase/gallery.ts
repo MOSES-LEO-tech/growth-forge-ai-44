@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { GalleryEvent, GalleryMedia } from '@/integrations/supabase/types';
+import type { GalleryEvent, GalleryFolder, GalleryMedia } from '@/integrations/supabase/types';
 import { getMediaTypeFromUrl, resolveStorageMediaUrl } from './storageMedia';
 import { invokePublicData } from './publicData';
 
@@ -471,4 +471,63 @@ export const uploadMedia = async (eventId: string, file: File) => {
   }
 
   return media as GalleryMedia;
+};
+
+export const uploadMultipleMedia = async (eventId: string, files: File[]): Promise<GalleryMedia[]> => {
+  const results: GalleryMedia[] = [];
+  for (const file of files) {
+    results.push(await uploadMedia(eventId, file));
+  }
+  return results;
+};
+
+// ---- Gallery folders -----------------------------------------------------
+
+export const getGalleryFolders = async (userId: string): Promise<GalleryFolder[]> => {
+  const { data, error } = await (supabase as any)
+    .from('gallery_folders')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as GalleryFolder[];
+};
+
+export const createGalleryFolder = async (userId: string, name: string): Promise<GalleryFolder> => {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Folder name is required');
+
+  const { data, error } = await (supabase as any)
+    .from('gallery_folders')
+    .insert({ user_id: userId, name: trimmed })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as GalleryFolder;
+};
+
+export const renameGalleryFolder = async (id: string, name: string): Promise<GalleryFolder> => {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Folder name is required');
+
+  const { data, error } = await (supabase as any)
+    .from('gallery_folders')
+    .update({ name: trimmed })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as GalleryFolder;
+};
+
+export const deleteGalleryFolder = async (id: string): Promise<void> => {
+  const { error } = await (supabase as any)
+    .from('gallery_folders')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
 };

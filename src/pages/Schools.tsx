@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Globe, Users, Filter, GraduationCap } from "lucide-react";
+import { Search, MapPin, Globe, Users, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -17,7 +17,6 @@ const Schools = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState<string>("all");
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput);
@@ -31,18 +30,14 @@ const Schools = () => {
   );
 
   const schools = data?.schools || [];
-
-  // Extract distinct countries for filter dropdown
-  // Note: In a real app, this might be a separate query or pre-fetched
   const countries = Array.from(new Set(schools.map((s) => s.country).filter(Boolean))) as string[];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4">
-          {/* Header Section */}
           <div className="mb-12 space-y-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div className="space-y-2">
@@ -53,7 +48,6 @@ const Schools = () => {
               </div>
             </div>
 
-            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
               <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -83,7 +77,6 @@ const Schools = () => {
             </div>
           </div>
 
-          {/* Grid Content */}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[...Array(6)].map((_, i) => (

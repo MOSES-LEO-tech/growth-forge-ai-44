@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getProfile, updateProfile } from "@/lib/supabase/profile";
 import { getProjects } from "@/lib/supabase/projects";
 import { getAchievements } from "@/lib/supabase/achievements";
@@ -135,11 +136,6 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                         <Mail className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">{user?.email}</span>
                     </div>
-                    {profile.school_name && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">🏫 {profile.school_name}</span>
-                        </div>
-                    )}
                     {(profile.grade_level || profile.class_name || profile.age) && (
                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                             {profile.grade_level && <span className="rounded-full border px-2 py-1">Grade {profile.grade_level}</span>}
@@ -176,10 +172,15 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                 </Card>
             </div>
 
-            <Button variant="outline" className="w-full" onClick={() => setIsEditing(true)}>
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit Profile
-            </Button>
+            <div className="flex flex-col gap-2">
+                <Button variant="outline" className="w-full" onClick={() => setIsEditing(true)}>
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit Profile
+                </Button>
+                <Button variant="ghost" className="w-full" asChild>
+                    <Link to="/profile">Manage Profile</Link>
+                </Button>
+            </div>
         </div>
     );
 

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import SettingsDropdown from "@/components/SettingsDropdown";
 import { useAuth } from "@/contexts/AuthContext";
-import { Compass } from "lucide-react";
 
 const navItems = [
   { label: "Features", to: "/features" },
@@ -13,39 +12,34 @@ const navItems = [
   { label: "Contact", to: "/contact" },
 ];
 
+/**
+ * Public marketing navbar. On every breakpoint the marketing links are an
+ * inline scrollable strip — no hamburger. Signed-in app links live in the
+ * dashboard navigation.
+ */
 const Navbar = () => {
   const { user } = useAuth();
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 border-b bg-background">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background">
+      <div className="container mx-auto flex h-16 items-center gap-2 px-4">
         <Logo />
 
-        <div className="hidden items-center gap-7 md:flex">
+        <div className="flex flex-1 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="shrink-0 px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {item.label}
             </Link>
           ))}
-          {user && (
-            <>
-              <Link to="/my-applications" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                My Apps
-              </Link>
-              <Link to="/recommendations" className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                <Compass className="h-4 w-4" />
-                Guidance
-              </Link>
-            </>
-          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <SettingsDropdown />
+
           {!user ? (
             <>
               <Button variant="ghost" asChild className="px-3 sm:px-4">

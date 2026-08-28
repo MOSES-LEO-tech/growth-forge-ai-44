@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardProvider, useDashboard } from "@/contexts/DashboardContext";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
-import ParentDashboard from "@/components/dashboards/ParentDashboard";
-import TeacherDashboard from "@/components/dashboards/TeacherDashboard";
 import SchoolAdminDashboard from "@/components/dashboards/SchoolAdminDashboard";
 import SuperAdminDashboard from "@/components/dashboards/SuperAdminDashboard";
 import DashboardHeader from "@/components/DashboardHeader";
 import { QuickActions } from "@/components/QuickActions";
-import { OnboardingModal } from "@/components/OnboardingModal";
+import RoleOnboardingWizard from "@/components/RoleOnboardingWizard";
+import { needsOnboarding } from "@/lib/onboarding";
 import type { Profile, UserRole } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ShieldCheck } from "lucide-react";
 
@@ -27,13 +27,10 @@ const Dashboard = () => {
       navigate("/auth");
     }
 
-    if (!authLoading && user) {
-      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-      if (!hasSeenOnboarding) {
-        setShowOnboarding(true);
-      }
+    if (!authLoading && user && authProfile && needsOnboarding(authProfile)) {
+      setShowOnboarding(true);
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, authProfile]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,10 +41,7 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
-  const handleOnboardingClose = () => {
-    setShowOnboarding(false);
-    localStorage.setItem('hasSeenOnboarding', 'true');
-  };
+  const handleOnboardingClose = () => setShowOnboarding(false);
 
   const fallbackRole = (user?.user_metadata?.role as UserRole | undefined) ?? "student";
   const fallbackProfile: Profile | null = user ? {
@@ -70,6 +64,11 @@ const Dashboard = () => {
     approved_by: null,
     approved_at: null,
     rejection_reason: null,
+    visibility: "public",
+    timezone: null,
+    education_system: null,
+    onboarding_completed_at: null,
+    notification_prefs: {},
     created_at: user.created_at ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
   } : null;
@@ -104,9 +103,9 @@ const Dashboard = () => {
       case "student":
         return <StudentDashboard profile={dashboardProfile} />;
       case "parent":
-        return <ParentDashboard profile={dashboardProfile} />;
+        return <Navigate to="/parent" replace />;
       case "teacher":
-        return <TeacherDashboard profile={dashboardProfile} />;
+        return <Navigate to="/teacher" replace />;
       case "admin":
         return <SchoolAdminDashboard profile={dashboardProfile} />;
       case "super_admin":
@@ -122,14 +121,37 @@ const Dashboard = () => {
         <DashboardHeader profile={dashboardProfile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
 
         <main id="main-content" role="main">
+          {needsOnboarding(dashboardProfile) && !showOnboarding && (
+            <div className="container mx-auto mt-4 px-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <div>
+                  <p className="text-sm font-medium">Finish setting up your account</p>
+                  <p className="text-xs text-muted-foreground">
+                    A few quick details make your experience better. You can skip any optional step.
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => setShowOnboarding(true)}>
+                  Finish setup
+                </Button>
+              </div>
+            </div>
+          )}
           {renderDashboard()}
         </main>
 
         {/* Quick Actions FAB — uses DashboardContext directly */}
         <QuickActions />
 
-        {/* Onboarding Modal */}
-        <OnboardingModal isOpen={showOnboarding} onClose={handleOnboardingClose} />
+        {/* Role onboarding wizard */}
+        <RoleOnboardingWizard
+          open={showOnboarding}
+          onClose={handleOnboardingClose}
+          profile={dashboardProfile}
+          onCompleted={() => {
+            setShowOnboarding(false);
+            void refreshProfile();
+          }}
+        />
       </div>
     </DashboardProvider>
   );

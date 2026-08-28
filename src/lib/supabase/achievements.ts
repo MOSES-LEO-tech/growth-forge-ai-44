@@ -1,13 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Achievement } from '@/integrations/supabase/types';
 
-type PendingAchievementRow = Achievement & {
-  profiles?: {
-    full_name: string | null;
-    email: string | null;
-  } | null;
-};
-
 export const getAchievements = async (userId: string) => {
   const { data, error } = await supabase
     .from('achievements')
@@ -22,7 +15,7 @@ export const getAchievements = async (userId: string) => {
 export const createAchievement = async (data: Partial<Achievement>) => {
   const { data: achievement, error } = await supabase
     .from('achievements')
-    .insert({ ...data, approval_status: data.approval_status || 'pending', verified: data.verified ?? false })
+    .insert({ ...data, approval_status: data.approval_status || 'pending', verified: data.verified ?? false } as any)
     .select()
     .single();
 
@@ -30,19 +23,25 @@ export const createAchievement = async (data: Partial<Achievement>) => {
   return achievement as Achievement;
 };
 
-export const getPendingAchievements = async () => {
+export const getPendingAchievements = async (schoolId: string) => {
   const { data, error } = await supabase
     .from('achievements')
-    .select('*, profiles(full_name,email)')
+    .select('*, profiles!inner(full_name, email, school_id)')
     .eq('approval_status', 'pending')
+    .eq('profiles.school_id', schoolId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return ((data || []) as PendingAchievementRow[]).map(item => ({
-    ...item,
-    student_name: item.profiles?.full_name || null,
-    student_email: item.profiles?.email || null
-  })) as (Achievement & { student_name: string | null; student_email: string | null })[];
+
+  const achievements = data || [];
+  return achievements.map(item => {
+    const profile = (item as any).profiles;
+    return {
+      ...item,
+      student_name: profile?.full_name || null,
+      student_email: profile?.email || null,
+    };
+  }) as (Achievement & { student_name: string | null; student_email: string | null })[];
 };
 
 export const verifyAchievement = async (id: string) => {

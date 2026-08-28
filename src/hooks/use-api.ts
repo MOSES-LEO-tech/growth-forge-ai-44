@@ -8,7 +8,7 @@ function createQueryKeys<T extends string>(resource: T) {
   return {
     all: [resource] as const,
     lists: () => [...createQueryKeys(resource).all, 'list'] as const,
-    list: (filters: Record<string, unknown>) => [...createQueryKeys(resource).lists(), filters] as const,
+    list: (filters: object) => [...createQueryKeys(resource).lists(), filters] as const,
     details: () => [...createQueryKeys(resource).all, 'detail'] as const,
     detail: (id: string) => [...createQueryKeys(resource).details(), id] as const,
   };
@@ -39,14 +39,14 @@ interface CursorPaginatedResult<T> {
   hasMore: boolean;
 }
 
-async function fetchWithCursorPagination<T extends { id: string }>(
+async function fetchWithCursorPagination<T extends { id: string; created_at: string }>(
   table: string,
   params: CursorPaginationParams,
   options: { orderBy?: string; ascending?: boolean } = {}
 ): Promise<CursorPaginatedResult<T>> {
   const { cursor, limit = 20 } = params;
   
-  let query = supabase
+  let query = (supabase as any)
     .from(table)
     .select('*')
     .order(options.orderBy || 'created_at', { ascending: options.ascending ?? false })
@@ -148,7 +148,7 @@ export function useCreateProject() {
     mutationFn: async (project: Partial<Project>) => {
       const { data, error } = await supabase
         .from('projects')
-        .insert(project)
+        .insert(project as any)
         .select()
         .single();
       if (error) throw error;

@@ -1,14 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getLlmConfig, chatCompletion, estimateTokens, LlmError } from "../_shared/llm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const MODEL = "google/gemini-2.5-flash";
-const GEMINI_25_FLASH_INPUT_PER_1M = 0.30;
-const GEMINI_25_FLASH_OUTPUT_PER_1M = 2.50;
 
 type ChatMessage = {
   role: "user" | "assistant" | "system";
@@ -53,25 +50,13 @@ const normalizeHistory = (value: unknown): ChatMessage[] => {
     .filter(Boolean) as ChatMessage[];
 };
 
-const estimateTokens = (messages: ChatMessage[], completion: string) => {
-  const promptChars = messages.reduce((total, message) => total + message.content.length, 0);
-  const completionChars = completion.length;
-  const prompt_tokens = Math.ceil(promptChars / 4);
-  const completion_tokens = Math.ceil(completionChars / 4);
-  return { prompt_tokens, completion_tokens, total_tokens: prompt_tokens + completion_tokens };
-};
-
-const computeCost = (promptTokens: number, completionTokens: number) =>
-  Number(
-    ((promptTokens / 1_000_000) * GEMINI_25_FLASH_INPUT_PER_1M +
-      (completionTokens / 1_000_000) * GEMINI_25_FLASH_OUTPUT_PER_1M).toFixed(6),
-  );
-
 const logUsage = async (
   supabase: ReturnType<typeof createClient>,
   input: {
     userId: string;
     personality: string;
+    model: string;
+    provider: string;
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
@@ -84,8 +69,8 @@ const logUsage = async (
 ) => {
   const { error } = await supabase.from("smartbuddy_usage").insert({
     user_id: input.userId,
-    model: MODEL,
-    provider: "lovable-ai-gateway",
+    model: input.model,
+    provider: input.provider,
     personality: input.personality,
     prompt_tokens: input.promptTokens,
     completion_tokens: input.completionTokens,
@@ -97,9 +82,9 @@ const logUsage = async (
     cost_source: input.costSource,
     metadata: {
       pricing: {
-        input_per_1m_usd: GEMINI_25_FLASH_INPUT_PER_1M,
-        output_per_1m_usd: GEMINI_25_FLASH_OUTPUT_PER_1M,
-        source: "Google Gemini API standard pricing",
+        input_per_1m_usd: 0,
+        output_per_1m_usd: 0,
+        source: "openrouter-free-tier (rate-limited)",
       },
     },
   });
@@ -113,12 +98,13 @@ serve(async (req) => {
   const startedAt = Date.now();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
   let userId: string | null = null;
   let personality = "default";
   let providerMessages: ChatMessage[] = [];
+  let model = "unknown";
+  let provider = "unknown";
 
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -133,10 +119,6 @@ serve(async (req) => {
     if (userError || !userData.user) return jsonResponse({ error: "Invalid session." }, 401);
     userId = userData.user.id;
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     const body = await req.json();
     const message = safeMessage(body.message ?? body.messages?.at?.(-1)?.content);
     personality = String(body.personality ?? "default").trim() || "default";
@@ -146,87 +128,41 @@ serve(async (req) => {
     const systemPrompt = personalityPrompts[personality] ?? personalityPrompts.default;
     providerMessages = [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: message }];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: providerMessages,
-        stream: false,
-      }),
-    });
+    const config = await getLlmConfig("chat", supabase);
+    model = config.model;
+    provider = config.provider;
 
-    const responseBody = await response.text();
-    let parsed: any = null;
-    try {
-      parsed = responseBody ? JSON.parse(responseBody) : null;
-    } catch {
-      parsed = null;
-    }
+    const result = await chatCompletion(config, providerMessages);
 
-    if (!response.ok) {
-      const errorCode = String(response.status);
-      const fallback = estimateTokens(providerMessages, "");
-      await logUsage(supabase, {
-        userId,
-        personality,
-        promptTokens: parsed?.usage?.prompt_tokens ?? fallback.prompt_tokens,
-        completionTokens: parsed?.usage?.completion_tokens ?? 0,
-        totalTokens: parsed?.usage?.total_tokens ?? fallback.prompt_tokens,
-        totalCostUsd: computeCost(parsed?.usage?.prompt_tokens ?? fallback.prompt_tokens, parsed?.usage?.completion_tokens ?? 0),
-        latencyMs: Date.now() - startedAt,
-        status: "error",
-        errorCode,
-        costSource: parsed?.usage ? "provider_usage" : "estimated_tokens",
-      });
+    if (!result.content) throw new Error("No response from assistant");
 
-      if (response.status === 429) return jsonResponse({ error: "Rate limits exceeded, please try again later." }, 429);
-      if (response.status === 402) return jsonResponse({ error: "Payment required, please add funds to your Lovable AI workspace." }, 402);
-      console.error("AI gateway error:", response.status, responseBody);
-      return jsonResponse({ error: "AI gateway error" }, 502);
-    }
-
-    const text =
-      parsed?.choices?.[0]?.message?.content ??
-      parsed?.choices?.[0]?.delta?.content ??
-      parsed?.output_text ??
-      parsed?.candidates?.[0]?.content?.parts?.map((part: any) => part.text).join("") ??
-      "";
-
-    if (!text) throw new Error("No response from assistant");
-
-    const estimated = estimateTokens(providerMessages, text);
-    const promptTokens = Number(parsed?.usage?.prompt_tokens ?? parsed?.usageMetadata?.promptTokenCount ?? estimated.prompt_tokens);
-    const completionTokens = Number(
-      parsed?.usage?.completion_tokens ?? parsed?.usageMetadata?.candidatesTokenCount ?? estimated.completion_tokens,
-    );
-    const totalTokens = Number(parsed?.usage?.total_tokens ?? parsed?.usageMetadata?.totalTokenCount ?? promptTokens + completionTokens);
-    const totalCostUsd = computeCost(promptTokens, completionTokens);
-    const costSource = parsed?.usage || parsed?.usageMetadata ? "provider_usage" : "estimated_tokens";
+    const promptTokens = result.promptTokens || estimateTokens(providerMessages, result.content).prompt_tokens;
+    const completionTokens = result.completionTokens || estimateTokens(providerMessages, result.content).completion_tokens;
+    const totalTokens = result.totalTokens || promptTokens + completionTokens;
+    const costSource = result.promptTokens ? "provider_usage" : "estimated_tokens";
 
     await logUsage(supabase, {
       userId,
       personality,
+      model,
+      provider,
       promptTokens,
       completionTokens,
       totalTokens,
-      totalCostUsd,
+      totalCostUsd: 0,
       latencyMs: Date.now() - startedAt,
       status: "success",
       costSource,
     });
 
     return jsonResponse({
-      text,
+      text: result.content,
       usage: {
-        model: MODEL,
+        model,
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: totalTokens,
-        total_cost_usd: totalCostUsd,
+        total_cost_usd: 0,
         cost_source: costSource,
       },
     });
@@ -238,15 +174,24 @@ serve(async (req) => {
       await logUsage(supabase, {
         userId,
         personality,
+        model,
+        provider,
         promptTokens: fallback.prompt_tokens,
         completionTokens: 0,
         totalTokens: fallback.total_tokens,
-        totalCostUsd: computeCost(fallback.prompt_tokens, 0),
+        totalCostUsd: 0,
         latencyMs: Date.now() - startedAt,
         status: "error",
         errorCode: error instanceof Error ? error.message.slice(0, 120) : "unknown",
         costSource: "estimated_tokens",
       });
+    }
+
+    if (error instanceof LlmError) {
+      if (error.status === 429) return jsonResponse({ error: error.message }, 429);
+      if (error.status === 401 || error.status === 403) return jsonResponse({ error: error.message }, 502);
+      if (error.status === 402) return jsonResponse({ error: error.message }, 402);
+      return jsonResponse({ error: error.message }, error.status >= 500 ? error.status : 502);
     }
 
     return jsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, 500);

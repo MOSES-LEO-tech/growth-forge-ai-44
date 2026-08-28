@@ -47,8 +47,8 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
             setError(null);
             const params: { category?: string } = {};
             if (category !== "all") params.category = category;
-            const res = await parentApi.getChildAchievements(childId, params);
-            setAchievements(res.data || []);
+            const res = await getChildAchievements(childId, params);
+            setAchievements(res || []);
         } catch (err: any) {
             setError(err?.response?.data?.message || "Failed to load achievements.");
         } finally {

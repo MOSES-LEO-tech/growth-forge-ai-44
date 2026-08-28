@@ -85,32 +85,22 @@ export function SchoolOverviewWidget({ className = "", defaultExpanded = false, 
               ))}
             </div>
           ) : metrics ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex flex-col items-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950">
-                <Users className="h-6 w-6 text-blue-600 mb-2" />
-                <span className="text-2xl font-bold">{metrics.totalStudents}</span>
-                <span className="text-xs text-muted-foreground">Students</span>
-              </div>
-              <div className="flex flex-col items-center p-3 rounded-lg bg-green-50 dark:bg-green-950">
-                <BookOpen className="h-6 w-6 text-green-600 mb-2" />
-                <span className="text-2xl font-bold">{metrics.totalTeachers}</span>
-                <span className="text-xs text-muted-foreground">Teachers</span>
-              </div>
-              <div className="flex flex-col items-center p-3 rounded-lg bg-purple-50 dark:bg-purple-950">
-                <Trophy className="h-6 w-6 text-purple-600 mb-2" />
-                <span className="text-2xl font-bold">{metrics.achievementCompletions}</span>
-                <span className="text-xs text-muted-foreground">Achievements</span>
-              </div>
-              <div className="flex flex-col items-center p-3 rounded-lg bg-orange-50 dark:bg-orange-950">
-                <Brain className="h-6 w-6 text-orange-600 mb-2" />
-                <span className="text-2xl font-bold">{metrics.aiUsageCount}</span>
-                <span className="text-xs text-muted-foreground">Guidance Requests</span>
-              </div>
-              <div className="flex flex-col items-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950">
-                <HardDrive className="h-6 w-6 text-yellow-600 mb-2" />
-                <span className="text-2xl font-bold">{metrics.storageUsed}GB</span>
-                <span className="text-xs text-muted-foreground">Storage</span>
-              </div>
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-5">
+              {[
+                { icon: Users, label: "Students", value: String(metrics.totalStudents) },
+                { icon: BookOpen, label: "Teachers", value: String(metrics.totalTeachers) },
+                { icon: Trophy, label: "Achievements", value: String(metrics.achievementCompletions) },
+                { icon: Brain, label: "Guidance Requests", value: String(metrics.aiUsageCount) },
+                { icon: HardDrive, label: "Storage", value: `${metrics.storageUsed}GB` },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="flex flex-col gap-1.5 bg-card p-4">
+                  <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span className="text-2xl font-semibold leading-none tabular-nums tracking-tight">
+                    {value}
+                  </span>
+                  <span className="caps-label text-[10px] text-muted-foreground">{label}</span>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="text-muted-foreground">Unable to load metrics.</p>

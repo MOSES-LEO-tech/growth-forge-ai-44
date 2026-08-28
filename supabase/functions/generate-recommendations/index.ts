@@ -1,9 +1,51 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getLlmConfig, chatCompletion, estimateTokens, LlmError } from '../_shared/llm.ts'
+import { webSearch } from '../_shared/websearch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const logUsage = async (
+  supabase: ReturnType<typeof createClient>,
+  input: {
+    userId: string
+    model: string
+    provider: string
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+    latencyMs: number
+    status: 'success' | 'error'
+    errorCode?: string
+    costSource: string
+  },
+) => {
+  const { error } = await supabase.from('smartbuddy_usage').insert({
+    user_id: input.userId,
+    model: input.model,
+    provider: input.provider,
+    personality: 'recommendations',
+    prompt_tokens: input.promptTokens,
+    completion_tokens: input.completionTokens,
+    total_tokens: input.totalTokens,
+    total_cost_usd: 0,
+    latency_ms: input.latencyMs,
+    status: input.status,
+    error_code: input.errorCode ?? null,
+    cost_source: input.costSource,
+    metadata: {
+      pricing: {
+        input_per_1m_usd: 0,
+        output_per_1m_usd: 0,
+        source: 'openrouter-free-tier (rate-limited)',
+      },
+    },
+  })
+
+  if (error) console.error('Recommendations telemetry insert failed', error)
 }
 
 serve(async (req) => {
@@ -11,6 +53,18 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+
+  const startedAt = Date.now()
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+
+  let userId: string | null = null
+  let model = 'unknown'
+  let provider = 'unknown'
+  let promptTokens = 0
+  let completionTokens = 0
 
   try {
     const authHeader = req.headers.get('Authorization')
@@ -21,11 +75,6 @@ serve(async (req) => {
       })
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
-
     // Verify JWT and get user
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) {
@@ -35,7 +84,7 @@ serve(async (req) => {
       })
     }
 
-    const userId = user.id
+    userId = user.id
 
     // Fetch User Context
     const [
@@ -79,6 +128,33 @@ serve(async (req) => {
       available_scholarships: (scholarships || []).map(s => `ID: ${s.id}, Title: ${s.title}, Req: ${s.requirements}`).join('\n')
     }
 
+    const config = await getLlmConfig('recommendations', supabase)
+    model = config.model
+    provider = config.provider
+
+    // Live web search (gracefully degrades to empty when key missing / API fails)
+    let webFindingsSection = ''
+    if (config.web_search_enabled) {
+      const searchTopics = [
+        context.interests !== 'Not set' ? context.interests : '',
+        context.clubs !== 'Not set' ? context.clubs : '',
+      ].filter(Boolean).join(' ')
+      const query = `${searchTopics || 'student'} scholarships grants 2026`
+      const { results } = await webSearch(query, 5)
+      const trimmed = results
+        .map(r => `- ${r.title} (${r.url}): ${r.content}`)
+        .join('\n')
+        .slice(0, 3000)
+      if (trimmed) {
+        webFindingsSection = `
+Current Web Findings (from live search):
+${trimmed}
+
+Where relevant, ground your scholarship matches and action items in these web findings. Prefer scholarships that appear both in the available list above and in the web findings.
+`
+      }
+    }
+
     const prompt = `You are an academic advisor for Milestone.
 Analyze the following student profile and available opportunities to provide structured recommendations.
 
@@ -97,7 +173,7 @@ Student Profile:
 
 Available Scholarships:
 ${context.available_scholarships}
-
+${webFindingsSection}
 Return a JSON object with the following structure:
 {
   "profile_completeness": number (0-100),
@@ -121,33 +197,25 @@ Return a JSON object with the following structure:
 
 Return ONLY the JSON object, no other text.`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    })
+    const result = await chatCompletion(config, [{ role: 'user', content: prompt }], { maxTokens: 1500 })
 
-    if (!response.ok) {
-      const err = await response.text()
-      console.error('Claude API error:', err)
-      throw new Error('AI service unavailable')
-    }
+    promptTokens = result.promptTokens || estimateTokens([{ role: 'user', content: prompt }], result.content).prompt_tokens
+    completionTokens = result.completionTokens || estimateTokens([{ role: 'user', content: prompt }], result.content).completion_tokens
 
-    const result = await response.json()
-    const content = result.content[0].text
-    const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim()
+    const jsonStr = result.content.replace(/```json\n?|\n?```/g, '').trim()
     const recommendations = JSON.parse(jsonStr)
 
-    // Optional: Cache recommendations in the database if a table exists
-    // For now, just return them directly
+    await logUsage(supabase, {
+      userId,
+      model,
+      provider,
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+      latencyMs: Date.now() - startedAt,
+      status: 'success',
+      costSource: result.promptTokens ? 'provider_usage' : 'estimated_tokens',
+    })
 
     return new Response(JSON.stringify({
       success: true,
@@ -159,6 +227,30 @@ Return ONLY the JSON object, no other text.`
 
   } catch (error) {
     console.error('Function error:', error)
+
+    if (userId) {
+      await logUsage(supabase, {
+        userId,
+        model,
+        provider,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
+        latencyMs: Date.now() - startedAt,
+        status: 'error',
+        errorCode: error instanceof Error ? error.message.slice(0, 120) : 'unknown',
+        costSource: 'estimated_tokens',
+      })
+    }
+
+    if (error instanceof LlmError) {
+      const status = error.status === 429 ? 429 : error.status === 402 ? 402 : 502
+      return new Response(JSON.stringify({ success: false, error: error.message }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status,
+      })
+    }
+
     return new Response(JSON.stringify({ success: false, error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

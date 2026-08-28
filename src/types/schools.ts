@@ -6,6 +6,8 @@ export interface School {
   logo_url: string | null;
   cover_url: string | null;
   gallery_urls: string[] | null;
+  hero_video_url: string | null;
+  tagline: string | null;
   description: string | null;
   admin_id: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';

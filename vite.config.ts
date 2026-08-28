@@ -23,16 +23,24 @@ export default defineConfig(({ mode }) => ({
     // Diagnostic: Clear module pre-bundling cache
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "query-vendor": ["@tanstack/react-query"],
+          "charts-vendor": ["recharts"],
+          "supabase-vendor": ["@supabase/supabase-js"],
+        },
       },
     },
+    chunkSizeWarningLimit: 500,
   },
   plugins: [
     react(),
     !isCI && VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "auto",
+      registerType: "prompt",
+      injectRegister: null,
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
         runtimeCaching: [

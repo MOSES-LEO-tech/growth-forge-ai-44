@@ -28,10 +28,10 @@ const statusCandidates: Record<"pending" | "ongoing" | "complete", (string | und
   complete: [undefined, "complete", "completed", "done"],
 };
 
-const withTimeout = async <T,>(promise: PromiseLike<T>, label: string, timeoutMs = 7000) => {
+const withTimeout = async (promise: PromiseLike<any>, label: string, timeoutMs = 7000): Promise<any> => {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => {
+    new Promise<any>((_, reject) => {
       window.setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
     }),
   ]);
@@ -409,18 +409,6 @@ export default function StudentQaSeed() {
         category: "arts",
         verified: false,
       });
-
-      const { error: levelError } = await withTimeout(
-        (supabase as any)
-          .from("student_levels")
-          .upsert({ user_id: user.id, points: 420, level: 3, badges: ["STEM", "Media", "Service"] }, { onConflict: "user_id" }),
-        "Student level upsert",
-        7000
-      );
-
-      if (levelError) {
-        addLog({ label: "Student level", status: "warn", detail: levelError.message });
-      }
 
       addLog({ label: "Done", status: "ok", detail: "Seed data is ready. Redirecting to dashboard." });
       setTimeout(() => navigate("/dashboard"), 1200);

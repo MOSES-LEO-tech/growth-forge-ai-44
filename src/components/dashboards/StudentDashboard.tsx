@@ -7,9 +7,10 @@ import { RecommendationsWidget } from "@/components/widgets/RecommendationsWidge
 import { SmartBuddyWidget } from "@/components/widgets/SmartBuddyWidget";
 import { GrowthAnalyticsWidget } from "@/components/widgets/GrowthAnalyticsWidget";
 import { ProfileOverviewWidget } from "@/components/widgets/ProfileOverviewWidget";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useDashboard } from "@/contexts/DashboardContext";
-import { BookOpenCheck } from "lucide-react";
+import { BookOpenCheck, Plus, Sparkles, Trophy, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const StudentDashboard = ({ profile }: { profile: Profile }) => {
   const [searchParams] = useSearchParams();
@@ -42,6 +43,23 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
           <BookOpenCheck className="h-6 w-6" />
         </div>
       </section>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Button variant="outline" className="justify-start gap-2" onClick={openProjectModal}>
+          <Plus className="h-4 w-4 text-primary" /> New project
+        </Button>
+        <Button variant="outline" className="justify-start gap-2" onClick={openAchievementModal}>
+          <Trophy className="h-4 w-4 text-primary" /> Add achievement
+        </Button>
+        <Button variant="outline" className="justify-start gap-2" onClick={openEventModal}>
+          <Upload className="h-4 w-4 text-primary" /> Upload to gallery
+        </Button>
+        <Button variant="outline" className="justify-start gap-2" asChild>
+          <Link to="/buddy">
+            <Sparkles className="h-4 w-4 text-primary" /> Ask Smart Buddy
+          </Link>
+        </Button>
+      </div>
 
       <div className="dashboard-grid auto-rows-[minmax(190px,auto)]">
         {/* Row 1: Profile & Analytics */}

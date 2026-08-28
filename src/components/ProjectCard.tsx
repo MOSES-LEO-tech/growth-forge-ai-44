@@ -1,39 +1,45 @@
-import { Calendar, Users, TrendingUp } from "lucide-react";
+import { Calendar, Users, TrendingUp, CheckSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import type { Project } from "@/integrations/supabase/types";
+import type { TaskStats } from "@/lib/supabase/projectTasks";
+import { computeTaskProgress } from "@/lib/supabase/projectTasks";
 import { getProjectStatusLabel, normalizeProjectStatus } from "@/lib/projectStatus";
 
 interface ProjectCardProps {
   project: Project;
+  /** Real task completion stats when available; otherwise a status-based estimate is used. */
+  taskStats?: TaskStats;
 }
 
-const ProjectCard = ({ project }: ProjectCardProps) => {
+const getStatusColor = (status: string | null) => {
+  switch (normalizeProjectStatus(status)) {
+    case 'pending':
+      return 'bg-yellow-500';
+    case 'ongoing':
+      return 'bg-blue-500';
+    case 'complete':
+      return 'bg-green-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
+
+const ProjectCard = ({ project, taskStats }: ProjectCardProps) => {
   const navigate = useNavigate();
 
-  const getStatusColor = (status: string | null) => {
-    switch (normalizeProjectStatus(status)) {
-      case 'pending':
-        return 'bg-yellow-500';
-      case 'ongoing':
-        return 'bg-blue-500';
-      case 'complete':
-        return 'bg-green-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  // Calculate mock progress based on status
   const normalizedStatus = normalizeProjectStatus(project.status);
-  const progress = normalizedStatus === 'complete' ? 100 :
-                   normalizedStatus === 'ongoing' ? 60 : 10;
+  const hasTaskStats = !!taskStats && taskStats.total > 0;
+  const progress = hasTaskStats
+    ? computeTaskProgress(taskStats)
+    : normalizedStatus === 'complete' ? 100
+      : normalizedStatus === 'ongoing' ? 60 : 10;
 
   return (
-    <Card 
+    <Card
       className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
       onClick={() => navigate(`/projects/${project.id}`)}
     >
@@ -55,7 +61,10 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Progress</span>
+            <span className="text-muted-foreground flex items-center gap-1">
+              <CheckSquare className="w-3 h-3" />
+              {hasTaskStats ? `Tasks ${taskStats!.done}/${taskStats!.total}` : 'Progress'}
+            </span>
             <span className="font-medium">{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />

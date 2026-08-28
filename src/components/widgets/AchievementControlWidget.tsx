@@ -48,7 +48,7 @@ export function AchievementControlWidget({ className = "", defaultExpanded = fal
 
     setLoading(true);
     try {
-      const pending = await getPendingAchievements();
+      const pending = await getPendingAchievements(schoolId);
       setAchievements(pending);
     } catch (error) {
       toast({

@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Settings, Moon, Sun, Monitor, Check } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Check, LogOut, Settings, User } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
 import { useTheme } from "@/contexts/ThemeProvider";
+import { COLOR_THEMES, MODE_OPTIONS } from "@/lib/theme-options";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,24 +18,10 @@ import {
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import ProfileSettingsModal from "./ProfileSettingsModal";
+import { NotificationBell } from "./NotificationBell";
 import CustomThemeCreator from "./CustomThemeCreator";
-import HeroVideoUploader from "./HeroVideoUploader";
+import NavLinkStrip from "@/components/NavLinkStrip";
 import type { Profile } from "@/integrations/supabase/types";
-
-const colorThemes = [
-  { name: "Milestone", value: "default", colors: ["#215148", "#bd5d3b"] },
-  { name: "Harbor", value: "ocean", colors: ["#1a5d76", "#bd6b32"] },
-  { name: "Forest", value: "forest", colors: ["#27643c", "#b06f25"] },
-  { name: "Civic", value: "sunset", colors: ["#a5462d", "#2f617f"] },
-  { name: "House", value: "rose", colors: ["#74334d", "#316856"] },
-] as const;
-
-const modeOptions = [
-  { name: "Light", value: "light", icon: Sun },
-  { name: "Dark", value: "dark", icon: Moon },
-  { name: "System", value: "system", icon: Monitor },
-] as const;
 
 interface DashboardHeaderProps {
   profile: Profile | null;
@@ -41,11 +29,9 @@ interface DashboardHeaderProps {
   onProfileUpdated?: () => void;
 }
 
-export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }: DashboardHeaderProps) {
-  const location = useLocation();
+export default function DashboardHeader({ profile, onSignOut }: DashboardHeaderProps) {
   const { theme, setTheme, colorTheme, setColorTheme, customThemes, isTransitioning } = useTheme();
-
-  const isAdmin = profile?.role === 'admin' && profile?.account_status === 'approved';
+  const navigate = useNavigate();
 
   const getInitials = (name: string) => {
     return name
@@ -55,8 +41,6 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
       .toUpperCase()
       .slice(0, 2);
   };
-
-  const isActive = (path: string) => location.pathname === path;
 
   return (
     <header
@@ -75,13 +59,9 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
         {/* Left: Logo */}
         <Logo />
 
-        {/* Center: Navigation Links - removed separate page links since dashboard uses expandable widgets */}
-        <div />
-
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
-          {/* Admin Hero Video Control */}
-          {isAdmin && <HeroVideoUploader />}
+          <NotificationBell profile={profile} />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -98,7 +78,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64" align="end" forceMount>
+            <DropdownMenuContent className="w-64" align="end">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{profile?.full_name || "User"}</p>
@@ -108,8 +88,13 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <ProfileSettingsModal profile={profile} onProfileUpdated={onProfileUpdated || (() => window.location.reload())} />
+              <DropdownMenuItem
+                onSelect={() => navigate("/settings")}
+                className="cursor-pointer focus-ring"
+                aria-label="Open profile settings"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
               </DropdownMenuItem>
               
               {/* Appearance Settings Submenu */}
@@ -121,7 +106,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent className="w-56">
                     <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Mode</DropdownMenuLabel>
-                    {modeOptions.map((mode) => (
+                    {MODE_OPTIONS.map((mode) => (
                       <DropdownMenuItem
                         key={mode.value}
                         onClick={() => setTheme(mode.value)}
@@ -136,7 +121,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                     ))}
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Color Theme</DropdownMenuLabel>
-                    {colorThemes.map((themeOption) => (
+                    {COLOR_THEMES.map((themeOption) => (
                       <DropdownMenuItem
                         key={themeOption.value}
                         onClick={() => setColorTheme(themeOption.value)}
@@ -146,7 +131,7 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                           {themeOption.colors.map((color, i) => (
                             <div
                               key={i}
-                              className="w-3 h-3 rounded-full shadow-sm"
+                              className="w-4 h-4 rounded-full shadow-sm"
                               style={{ backgroundColor: color }}
                             />
                           ))}
@@ -167,11 +152,11 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
                       >
                         <div className="flex gap-1 transition-transform group-hover:scale-110">
                           <div
-                            className="w-3 h-3 rounded-full shadow-sm"
+                            className="w-4 h-4 rounded-full shadow-sm"
                             style={{ backgroundColor: themeOption.colors.primary }}
                           />
                           <div
-                            className="w-3 h-3 rounded-full shadow-sm"
+                            className="w-4 h-4 rounded-full shadow-sm"
                             style={{ backgroundColor: themeOption.colors.secondary }}
                           />
                         </div>
@@ -203,8 +188,12 @@ export default function DashboardHeader({ profile, onSignOut, onProfileUpdated }
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
         </div>
       </div>
+
+      {/* Role-aware primary navigation — the dashboard is the app hub */}
+      <NavLinkStrip role={profile?.role} />
     </header>
   );
 }

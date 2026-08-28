@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { getGalleryEvents, createEvent, deleteEvent, uploadMedia } from "@/lib/supabase/gallery";
-import type { GalleryEvent, GalleryMedia } from "@/integrations/supabase/types";
+import { Link } from "react-router-dom";
+import { getGalleryEvents, createEvent, deleteEvent, uploadMedia, getGalleryFolders } from "@/lib/supabase/gallery";
+import type { GalleryFolder } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,9 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [visibility, setVisibility] = useState('private');
+    const [folders, setFolders] = useState<GalleryFolder[]>([]);
+    const [uploadFolderId, setUploadFolderId] = useState('none');
+    const [tagsText, setTagsText] = useState('');
 
     // Lightbox State
     const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
@@ -75,6 +79,10 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
 
     useEffect(() => {
         fetchItems();
+        const targetId = userId || user?.id;
+        if (targetId) {
+            getGalleryFolders(targetId).then(setFolders).catch(() => {});
+        }
     }, [userId, user?.id]);
 
     useEffect(() => {
@@ -127,6 +135,8 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
         setTitle('');
         setDescription('');
         setVisibility('private');
+        setUploadFolderId('none');
+        setTagsText('');
     };
 
     const handleDelete = async (id: string) => {
@@ -190,6 +200,9 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
                         className="pl-9"
                     />
                 </div>
+                <Button variant="outline" asChild>
+                    <Link to="/gallery/personal">View All</Link>
+                </Button>
                 <Button onClick={() => setOpenUpload(true)}>
                     <Plus className="mr-2 h-4 w-4" /> Add New Item
                 </Button>
@@ -266,6 +279,31 @@ export function GalleryWidget({ className, defaultExpanded, userId, openUploadEx
                                     <SelectItem value="public">Public</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="gallery-folder">Folder</Label>
+                            <Select value={uploadFolderId} onValueChange={setUploadFolderId}>
+                                <SelectTrigger id="gallery-folder">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No folder</SelectItem>
+                                    {folders.map((folder) => (
+                                        <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="gallery-tags">Tags (comma separated)</Label>
+                            <Input
+                                id="gallery-tags"
+                                value={tagsText}
+                                onChange={(e) => setTagsText(e.target.value)}
+                                placeholder="science, projects, field-trip"
+                            />
                         </div>
 
                         <DialogFooter>

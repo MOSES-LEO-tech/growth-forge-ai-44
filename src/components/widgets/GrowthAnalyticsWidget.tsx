@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { getProjects } from "@/lib/supabase/projects";
 import { getAchievements } from "@/lib/supabase/achievements";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
-import { TrendingUp, Award, Bot, Zap, BarChart3, Loader2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { TrendingUp, Award, Bot, BarChart3, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,10 +48,9 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
             try {
                 setLoading(true);
                 
-                const [projectsData, achievementsData, { data: levelData }] = await Promise.all([
+                const [projectsData, achievementsData] = await Promise.all([
                     getProjects(userId),
-                    getAchievements(userId),
-                    supabase.from('student_levels').select('*').eq('user_id', userId).single()
+                    getAchievements(userId)
                 ]);
 
                 const totalProjects = projectsData?.length || 0;
@@ -63,13 +60,7 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                     projectCompletionRate: totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0,
                     verifiedAchievementCount: achievementsData?.filter(a => a.verified).length || 0,
                     achievementCount: achievementsData?.length || 0,
-                    aiUsage: [], // Mocked for now
-                    xp: {
-                        level: levelData?.level || 1,
-                        currentXp: levelData?.points || 0,
-                        nextLevelXp: (levelData?.level || 1) * 1000,
-                        tier: 'basic'
-                    }
+                    aiUsage: [] // Mocked for now
                 };
 
                 setAnalyticsData(data);
@@ -83,26 +74,6 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
 
         fetchAnalytics();
     }, [userId]);
-
-    const getTierColor = (tier: string) => {
-        switch (tier) {
-            case 'pro': return 'bg-accent';
-            case 'plus': return 'bg-primary';
-            default: return 'bg-muted-foreground';
-        }
-    };
-
-    const getTierLabel = (tier: string) => {
-        switch (tier) {
-            case 'pro': return 'Pro';
-            case 'plus': return 'Plus';
-            default: return 'Basic';
-        }
-    };
-
-    const xpPercentage = analyticsData 
-        ? Math.min(100, (analyticsData.xp.currentXp / analyticsData.xp.nextLevelXp) * 100)
-        : 0;
 
     const CollapsedContent = () => (
         <div className="flex flex-col h-full gap-4">
@@ -128,24 +99,6 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                             <p className="text-xs text-muted-foreground">Verified</p>
                         </div>
                     </div>
-
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="flex items-center gap-1">
-                                <Zap className="w-3 h-3 text-amber-500" />
-                                Level {analyticsData.xp.level}
-                            </span>
-                            <span className="text-muted-foreground">
-                                {analyticsData.xp.currentXp}/{analyticsData.xp.nextLevelXp} XP
-                            </span>
-                        </div>
-                        <Progress value={xpPercentage} className="h-2" />
-                        <div className="mt-2 text-center">
-                            <span className={`text-xs px-2 py-1 rounded-full text-white ${getTierColor(analyticsData.xp.tier)}`}>
-                                {getTierLabel(analyticsData.xp.tier)} Plan
-                            </span>
-                        </div>
-                    </div>
                 </>
             ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -167,15 +120,14 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                 </div>
             ) : analyticsData ? (
                 <Tabs defaultValue="overview" className="flex-1 flex flex-col">
-                    <TabsList className="grid w-full max-w-md grid-cols-3 self-center md:self-start mb-4">
+                    <TabsList className="grid w-full max-w-md grid-cols-2 self-center md:self-start mb-4">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="xp">XP & Levels</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
                     </TabsList>
 
                     <ScrollArea className="flex-1 -mx-2 px-2">
                         <TabsContent value="overview" className="mt-0">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
                                 <StatCard
                                     icon={<TrendingUp className="w-6 h-6 text-blue-500" />}
                                     label="Project Completion"
@@ -194,57 +146,7 @@ export function GrowthAnalyticsWidget({ className, defaultExpanded, userId }: Gr
                                     value={`${analyticsData.aiUsage.reduce((sum, d) => sum + d.messages, 0)}`}
                                     sublabel="Last 30 days"
                                 />
-                                <StatCard
-                                    icon={<Zap className="w-6 h-6 text-amber-500" />}
-                                    label="Current XP"
-                                    value={`${analyticsData.xp.currentXp}`}
-                                    sublabel={`Level ${analyticsData.xp.level}`}
-                                />
                             </div>
-                        </TabsContent>
-
-                        <TabsContent value="xp" className="mt-0">
-                            <Card className="max-w-md">
-                                <CardContent className="pt-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white ${getTierColor(analyticsData.xp.tier)}`}>
-                                                {analyticsData.xp.level}
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-bold">Level {analyticsData.xp.level}</h3>
-                                                <p className="text-sm text-muted-foreground">{getTierLabel(analyticsData.xp.tier)} Plan</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span>XP Progress</span>
-                                            <span>{analyticsData.xp.currentXp} / {analyticsData.xp.nextLevelXp}</span>
-                                        </div>
-                                        <Progress value={xpPercentage} className="h-3" />
-                                        <p className="text-xs text-muted-foreground text-center">
-                                            {analyticsData.xp.nextLevelXp - analyticsData.xp.currentXp} XP to next level
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-                                        <div className="bg-muted rounded-lg p-3">
-                                            <p className="text-lg font-bold">Basic</p>
-                                            <p className="text-xs text-muted-foreground">Free tier</p>
-                                        </div>
-                                        <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3">
-                                            <p className="text-lg font-bold text-blue-600">Plus</p>
-                                            <p className="text-xs text-muted-foreground">$9.99/mo</p>
-                                        </div>
-                                        <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-3">
-                                            <p className="text-lg font-bold text-amber-600">Pro</p>
-                                            <p className="text-xs text-muted-foreground">$19.99/mo</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
                         </TabsContent>
 
                         <TabsContent value="activity" className="mt-0">

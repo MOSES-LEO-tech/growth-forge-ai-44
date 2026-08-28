@@ -20,7 +20,7 @@ interface AnalyticsData {
     averageCompletionRate: number;
     recentActivity: Array<{
         type: string;
-        id: number;
+        id: string;
         title: string;
         student_name: string;
         created_at: string;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getChildOverview } from "@/lib/supabase/parent";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
-import { Users, School, BookOpen, Award, Star, Activity, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { Users, School, BookOpen, Award, Activity, CheckCircle, Clock, TrendingUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,8 +14,8 @@ interface ChildOverviewWidgetProps {
 }
 
 type OverviewData = {
-    student: { id: number; fullName: string; email: string; avatarUrl?: string; grade?: string; school?: { name: string; location?: string } | null };
-    stats: { projectsCount: number; projectsCompleted: number; achievementsCount: number; verifiedAchievementsCount: number; level: string; points: number };
+    student: { id: string; fullName: string; email: string; avatarUrl?: string; grade?: string; school?: { name: string; location?: string } | null };
+    stats: { projectsCount: number; projectsCompleted: number; achievementsCount: number; verifiedAchievementsCount: number; level: number; points: number };
     recentActivity: { type: string; label: string; status_text: string; created_at: string }[];
 };
 
@@ -106,20 +106,15 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                                 {data.student.school && <span className="flex items-center gap-1"><School className="w-3.5 h-3.5" />{data.student.school.name}</span>}
                                 {data.student.grade && <span>Grade {data.student.grade}</span>}
                             </div>
-                            <div className="mt-2 flex gap-2">
-                                <Badge variant="outline" className="capitalize">{data.stats.level} plan</Badge>
-                                <Badge variant="secondary">{data.stats.points} XP</Badge>
-                            </div>
                         </div>
                     </div>
 
                     {/* Stats row */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {[
                             { icon: BookOpen, label: "Projects", value: data.stats.projectsCount, sub: `${data.stats.projectsCompleted} completed`, color: "text-blue-500 bg-blue-500/10" },
                             { icon: Award, label: "Achievements", value: data.stats.achievementsCount, sub: `${data.stats.verifiedAchievementsCount} verified`, color: "text-amber-500 bg-amber-500/10" },
                             { icon: TrendingUp, label: "Completion", value: `${completionPct}%`, sub: "of projects", color: "text-purple-500 bg-purple-500/10" },
-                            { icon: Star, label: "XP Points", value: data.stats.points, sub: data.stats.level, color: "text-emerald-500 bg-emerald-500/10" },
                         ].map(({ icon: Icon, label, value, sub, color }) => (
                             <div key={label} className="p-4 rounded-xl border bg-card text-center">
                                 <div className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2 ${color}`}>

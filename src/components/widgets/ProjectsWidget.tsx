@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { getProjects, uploadProjectMedia } from "@/lib/supabase/projects";
 import type { Project } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Rocket, BookOpen, CheckCircle, Loader2, UploadCloud } from "lucide-react";
+import { Search, Plus, Rocket, BookOpen, CheckCircle, Loader2, UploadCloud, ListChecks, Target } from "lucide-react";
 import ProjectCard from "@/components/ProjectCard";
 import AddProjectModal from "@/components/AddProjectModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { normalizeProjectStatus } from "@/lib/projectStatus";
+import { useTaskStats } from "@/hooks/useTaskStats";
 
 interface ProjectsWidgetProps {
     className?: string;
@@ -49,6 +51,9 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
         enabled: !!userId,
     });
 
+    const projectIds = projects?.map((p) => p.id) || [];
+    const { data: taskStatsMap } = useTaskStats(projectIds);
+
     const filteredProjects = projects?.filter((project: Project) =>
         project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,6 +61,29 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
 
     const activeCount = projects?.filter(p => normalizeProjectStatus(p.status) !== 'complete').length || 0;
     const completedCount = projects?.filter(p => normalizeProjectStatus(p.status) === 'complete').length || 0;
+
+    // Aggregate real progress across all projects (task-driven when tasks exist).
+    const aggregate = (projects || []).reduce(
+        (acc, p) => {
+            const stats = taskStatsMap?.get(p.id);
+            if (stats && stats.total > 0) {
+                acc.tasksTotal += stats.total;
+                acc.tasksDone += stats.done;
+                acc.weighted += (stats.done / stats.total) * 100;
+                acc.withTasks += 1;
+            } else if (normalizeProjectStatus(p.status) === 'complete') {
+                acc.weighted += 100;
+            }
+            acc.total += 1;
+            return acc;
+        },
+        { tasksTotal: 0, tasksDone: 0, weighted: 0, withTasks: 0, total: 0 }
+    );
+    const overallProgress = aggregate.total === 0
+        ? 0
+        : aggregate.tasksTotal > 0
+            ? Math.round((aggregate.tasksDone / aggregate.tasksTotal) * 100)
+            : Math.round(aggregate.weighted / aggregate.total);
 
     useEffect(() => {
         if (defaultExpanded || openAdd) {
@@ -102,8 +130,7 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
         }
     };
 
-    // Content for the collapsed state
-    const CollapsedContent = () => (
+    const CollapsedContent = (
         <div className="flex flex-col gap-4 h-full">
             <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="bg-primary/10 rounded-lg p-3">
@@ -116,6 +143,28 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
                     <span className="text-2xl font-bold">{completedCount}</span>
                     <p className="text-xs text-muted-foreground">Completed</p>
                 </div>
+            </div>
+
+            {/* Overall progress */}
+            <div className="border rounded-lg p-3 bg-muted/30">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                        <Target className="w-3.5 h-3.5" /> Overall progress
+                    </span>
+                    <span className="font-semibold">{overallProgress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${overallProgress}%` }}
+                    />
+                </div>
+                {aggregate.tasksTotal > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <ListChecks className="w-3.5 h-3.5" />
+                        {aggregate.tasksDone}/{aggregate.tasksTotal} tasks completed
+                    </p>
+                )}
             </div>
 
             <div className="flex-1">
@@ -132,64 +181,57 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
                 </div>
             </div>
 
-            <Button className="w-full mt-auto" size="sm" variant="outline" onClick={() => setWidgetExpanded(true)}>
-                View All Projects
+            <Button className="w-full mt-auto" size="sm" variant="outline" asChild>
+                <Link to="/projects">View All Projects</Link>
             </Button>
         </div>
     );
 
-    // Content for the expanded state
-    const ExpandedContent = () => {
-        const newProjects = filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'pending');
-        const ongoingProjects = filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'ongoing');
-        const completedProjects = filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'complete');
-
-        return (
-            <div className="flex flex-col h-full gap-6">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="relative w-full md:w-96">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search projects..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
-                    <Button onClick={() => setOpenAdd(true)} disabled={!userId}>
-                        <Plus className="mr-2 h-4 w-4" /> New Project
-                    </Button>
-                    {userId && (
-                        <AddProjectModal userId={userId} onProjectAdded={refetch} open={openAdd} onOpenChange={setOpenAdd} />
-                    )}
+    const ExpandedContent = (
+        <div className="flex flex-col h-full gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search projects..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                    />
                 </div>
-
-                <Tabs defaultValue="all" className="flex-1 flex flex-col">
-                    <TabsList className="grid w-full max-w-md grid-cols-4 self-center md:self-start mb-4">
-                        <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="new">New</TabsTrigger>
-                        <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-                        <TabsTrigger value="completed">Completed</TabsTrigger>
-                    </TabsList>
-
-                    <ScrollArea className="flex-1 -mx-2 px-2">
-                        <TabsContent value="all" className="mt-0">
-                            <ProjectGrid projects={filteredProjects} isLoading={isLoading} onAddMedia={setMediaProject} />
-                        </TabsContent>
-                        <TabsContent value="new" className="mt-0">
-                            <ProjectGrid projects={newProjects} isLoading={isLoading} onAddMedia={setMediaProject} />
-                        </TabsContent>
-                        <TabsContent value="ongoing" className="mt-0">
-                            <ProjectGrid projects={ongoingProjects} isLoading={isLoading} onAddMedia={setMediaProject} />
-                        </TabsContent>
-                        <TabsContent value="completed" className="mt-0">
-                            <ProjectGrid projects={completedProjects} isLoading={isLoading} onAddMedia={setMediaProject} />
-                        </TabsContent>
-                    </ScrollArea>
-                </Tabs>
+                <Button onClick={() => setOpenAdd(true)} disabled={!userId}>
+                    <Plus className="mr-2 h-4 w-4" /> New Project
+                </Button>
+                {userId && (
+                    <AddProjectModal userId={userId} onProjectAdded={refetch} open={openAdd} onOpenChange={setOpenAdd} />
+                )}
             </div>
-        );
-    };
+
+            <Tabs defaultValue="all" className="flex-1 flex flex-col">
+                <TabsList className="grid w-full max-w-md grid-cols-4 self-center md:self-start mb-4">
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="new">New</TabsTrigger>
+                    <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                </TabsList>
+
+                <ScrollArea className="flex-1 -mx-2 px-2">
+                    <TabsContent value="all" className="mt-0">
+                        <ProjectGrid projects={filteredProjects} isLoading={isLoading} taskStatsMap={taskStatsMap} onAddMedia={setMediaProject} />
+                    </TabsContent>
+                    <TabsContent value="new" className="mt-0">
+                        <ProjectGrid projects={filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'pending')} isLoading={isLoading} taskStatsMap={taskStatsMap} onAddMedia={setMediaProject} />
+                    </TabsContent>
+                    <TabsContent value="ongoing" className="mt-0">
+                        <ProjectGrid projects={filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'ongoing')} isLoading={isLoading} taskStatsMap={taskStatsMap} onAddMedia={setMediaProject} />
+                    </TabsContent>
+                    <TabsContent value="completed" className="mt-0">
+                        <ProjectGrid projects={filteredProjects?.filter((p: Project) => normalizeProjectStatus(p.status) === 'complete')} isLoading={isLoading} taskStatsMap={taskStatsMap} onAddMedia={setMediaProject} />
+                    </TabsContent>
+                </ScrollArea>
+            </Tabs>
+        </div>
+    );
 
     return (
         <>
@@ -200,9 +242,9 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
                 defaultExpanded={defaultExpanded}
                 expanded={widgetExpanded}
                 onExpandedChange={handleWidgetExpandedChange}
-                expandedContent={<ExpandedContent />}
+                expandedContent={ExpandedContent}
             >
-                <CollapsedContent />
+                {CollapsedContent}
             </ExpandableWidget>
 
             <Dialog open={!!mediaProject} onOpenChange={(open) => { if (!open) { setMediaProject(null); setMediaFile(null); } }}>
@@ -252,10 +294,12 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
 function ProjectGrid({
     projects,
     isLoading,
+    taskStatsMap,
     onAddMedia,
 }: {
     projects: Project[] | undefined;
     isLoading: boolean;
+    taskStatsMap?: Map<string, { total: number; done: number; inProgress: number }>;
     onAddMedia: (project: Project) => void;
 }) {
     if (isLoading) {
@@ -270,7 +314,7 @@ function ProjectGrid({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
             {projects.map((project) => (
                 <div key={project.id} className="flex min-w-0 flex-col gap-2">
-                    <ProjectCard project={project} />
+                    <ProjectCard project={project} taskStats={taskStatsMap?.get(project.id)} />
                     <Button size="sm" variant="outline" className="w-full" onClick={() => onAddMedia(project)}>
                         <UploadCloud className="mr-2 h-4 w-4" />
                         Add media

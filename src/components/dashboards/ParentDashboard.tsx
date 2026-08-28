@@ -12,7 +12,7 @@ import { SubscriptionWidget } from "@/components/widgets/SubscriptionWidget";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, ChevronDown, AlertCircle } from "lucide-react";
+import { Users, ChevronDown, AlertCircle, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -153,16 +153,19 @@ export function ParentDashboard({ profile }: { profile?: any }) {
                 <DropdownMenuItem
                   key={child.id}
                   onClick={() => setSelectedChild(child)}
-                  className={`flex items-center gap-3 ${selectedChild.id === child.id ? 'bg-muted' : ''}`}
+                  className={`flex items-center gap-3 ${selectedChild.id === child.id ? 'bg-accent text-accent-foreground' : ''}`}
                 >
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={child.avatar_url ?? undefined} />
                     <AvatarFallback className="text-xs">{child.full_name[0]}</AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm truncate">{child.full_name}</div>
                     <div className="text-xs text-muted-foreground truncate">{child.school_name || 'No school'}</div>
                   </div>
+                  {selectedChild.id === child.id && (
+                    <Check className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -199,7 +202,7 @@ export function ParentDashboard({ profile }: { profile?: any }) {
           {/* Row 2 */}
           <ProjectsMonitoringWidget childId={selectedChild.id} />
           <AchievementsMonitoringWidget childId={selectedChild.id} />
-          <AnalyticsWidget childId={selectedChild.id} />
+          <AnalyticsWidget />
 
           {/* Row 3 */}
           <div className="md:col-span-2 xl:col-span-3">

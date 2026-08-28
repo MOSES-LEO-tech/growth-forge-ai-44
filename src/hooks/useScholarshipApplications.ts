@@ -128,14 +128,6 @@ export const useUpdateApplicationStatus = () => {
 
       if (error) throw error;
 
-      // Gamification tie-in
-      if (status === 'applied' || status === 'awarded') {
-        const trigger = status === 'applied' ? 'scholarship_applied' : 'scholarship_won';
-        await supabase.functions.invoke("award-achievement", {
-          body: { trigger_event: trigger }
-        }).catch(err => console.error("Achievement award failed:", err));
-      }
-
       return data;
     },
     onSuccess: (_, variables) => {

@@ -29,11 +29,11 @@ interface SchoolEvent {
 
 const SchoolGallery = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, profile, userRole } = useAuth();
     const { toast } = useToast();
 
     const { data: events, isLoading, refetch } = useQuery({
-        queryKey: ['school-gallery', user?.school_id],
+        queryKey: ['school-gallery', profile?.school_id],
         queryFn: async () => {
             return await getAllEvents();
         },
@@ -77,7 +77,7 @@ const SchoolGallery = () => {
         }
     };
 
-    const canCreate = user?.role === 'teacher' || user?.role === 'admin';
+    const canCreate = userRole === 'teacher' || userRole === 'admin';
 
     const eventsList = events ?? [];
 

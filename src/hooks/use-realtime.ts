@@ -6,11 +6,9 @@ type TableName =
   | 'profiles'
   | 'projects'
   | 'achievements'
-  | 'events'
   | 'scholarships'
   | 'scholarship_applications'
-  | 'recommendations'
-  | 'student_levels';
+  | 'recommendations';
 
 interface SubscribeOptions<T> {
   table: TableName;
@@ -41,7 +39,7 @@ export function useRealtimeSubscription<T extends { id: string }>({
     onInsert?.(payload.new);
   }, [tableKey, onInsert, queryClient]);
 
-  const handleUpdate = useCallback((payload: { new: T; old: T }) => {
+  const handleUpdate = useCallback((payload: { new: T; old: Partial<T> }) => {
     queryClient.setQueryData<T[]>([tableKey], (old) => {
       if (!old) return old;
       return old.map(item => item.id === payload.new.id ? payload.new : item);
@@ -49,12 +47,12 @@ export function useRealtimeSubscription<T extends { id: string }>({
     onUpdate?.(payload.new);
   }, [tableKey, onUpdate, queryClient]);
 
-  const handleDelete = useCallback((payload: { old: T }) => {
+  const handleDelete = useCallback((payload: { old: Partial<T> }) => {
     queryClient.setQueryData<T[]>([tableKey], (old) => {
       if (!old) return old;
       return old.filter(item => item.id !== payload.old.id);
     });
-    onDelete?.(payload.old);
+    onDelete?.(payload.old as T);
   }, [tableKey, onDelete, queryClient]);
 
   useEffect(() => {
