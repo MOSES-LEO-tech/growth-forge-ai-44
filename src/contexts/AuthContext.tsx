@@ -178,13 +178,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (session?.user) {
+        // Keep isLoading true until the profile resolves so role-gated routes
+        // (RequireAuth) never redirect while userRole is still unknown.
         updateState({
           user: session.user,
           session,
           isAuthenticated: true,
-          isLoading: false,
         });
-        void loadProfile(session.user.id);
+        await loadProfile(session.user.id);
+        updateState({ isLoading: false });
       } else {
         updateState({ isLoading: false });
       }
@@ -211,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       if (event === 'SIGNED_OUT') {
@@ -231,12 +233,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user: session.user,
           session,
           isAuthenticated: true,
-          isLoading: false,
         });
-
-        window.setTimeout(() => {
-          if (mounted) void loadProfile(session.user.id);
-        }, 0);
+        await loadProfile(session.user.id);
+        if (mounted) updateState({ isLoading: false });
       }
     });
 
@@ -367,17 +366,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     updateState(s => ({ ...s, isLoading: true }));
-    
-    await supabase.auth.signOut();
-    
-    updateState({
-      user: null,
-      session: null,
-      profile: null,
-      userRole: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      // Best-effort logout: clear local state even if the network call fails so
+      // callers can navigate away instead of surfacing an unhandled rejection.
+      console.warn('Sign out error:', error);
+    } finally {
+      updateState({
+        user: null,
+        session: null,
+        profile: null,
+        userRole: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
   };
 
   const refreshProfile = async () => {

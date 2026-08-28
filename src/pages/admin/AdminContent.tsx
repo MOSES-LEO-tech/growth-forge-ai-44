@@ -334,7 +334,8 @@ interface EntityHeaderProps {
   icon: React.ReactNode;
   title: string;
   description: string;
-  onNew: () => void;
+  /** Optional create action; the button is hidden when absent (e.g. school page editor). */
+  onNew?: () => void;
 }
 
 const EntityHeader = ({ icon, title, description, onNew }: EntityHeaderProps) => (
@@ -346,9 +347,11 @@ const EntityHeader = ({ icon, title, description, onNew }: EntityHeaderProps) =>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </div>
-    <Button size="sm" onClick={onNew}>
-      <Plus className="mr-1.5 h-4 w-4" /> New {title}
-    </Button>
+    {onNew && (
+      <Button size="sm" onClick={onNew}>
+        <Plus className="mr-1.5 h-4 w-4" /> New {title}
+      </Button>
+    )}
   </div>
 );
 

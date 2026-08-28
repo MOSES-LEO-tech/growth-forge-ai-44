@@ -117,13 +117,15 @@ const AdminOverview = () => {
         if (cancelled) return;
 
         const now = Date.now();
+        // Only `cms_news` has a schedule column (`publish_at`); the other CMS
+        // entities expose only `published_at` (null until published).
         const all: { type: string; title: string; status: CmsStatus; updatedAt: string; publishAt?: string | null }[] = [
           ...pages.map((row) => ({
             type: "Page",
             title: row.title,
             status: row.status as CmsStatus,
             updatedAt: row.updated_at,
-            publishAt: row.publish_at,
+            publishAt: row.published_at,
           })),
           ...news.map((row) => ({
             type: "News",
@@ -137,14 +139,14 @@ const AdminOverview = () => {
             title: row.title,
             status: row.status as CmsStatus,
             updatedAt: row.updated_at,
-            publishAt: row.publish_at,
+            publishAt: row.published_at,
           })),
           ...resources.map((row) => ({
             type: "Resource",
             title: row.title,
             status: row.status as CmsStatus,
             updatedAt: row.updated_at,
-            publishAt: row.publish_at,
+            publishAt: row.published_at,
           })),
         ];
 
@@ -153,7 +155,10 @@ const AdminOverview = () => {
           drafts: all.filter((row) => row.status === "draft").length,
           pending: all.filter((row) => row.status === "pending_review").length,
           scheduled: all.filter(
-            (row) => row.publishAt && new Date(row.publishAt).getTime() > now
+            (row) =>
+              row.status !== "published" &&
+              row.publishAt &&
+              new Date(row.publishAt).getTime() > now
           ).length,
         });
         setRecent(
