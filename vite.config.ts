@@ -3,8 +3,6 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
-const isCI = process.env.CI === "true";
-
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -35,7 +33,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    !isCI && VitePWA({
+    VitePWA({
       registerType: "prompt",
       injectRegister: null,
       workbox: {

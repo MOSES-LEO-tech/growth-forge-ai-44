@@ -14,7 +14,27 @@
 | 2026-08-17 | Interactive SmartBuddy widget           | default                 | passed review      | Collapsed form is now a live mini-chat (functional input, inline bubbles, typing indicator, auto-scroll, "Open full chat"). Widget converted to controlled ExpandableWidget. tsc/eslint/build clean. |
 | 2026-08-17 | Fix 1-letter typing glitch in widget     | default                 | passed review      | Root cause: `CollapsedContent`/`ExpandedContent` defined as components inside the parent → new type per render → subtree remount on every keystroke → focus loss. Fix: inlined JSX directly in return so React reconciles in place. tsc/eslint clean. |
 
-## MCP Invocations (2026-08-17, dropdown redo task)
+| 2026-08-28 | Systematic git code review of `59daacf` (role workspaces) | default | passed review | 4 parallel review agents → 19 findings, cross-verified (2 false positives rejected). tsc was failing (4 errors). Applied P0+P1 fixes: `EntityHeader.onNew` optional, `publish_at`→`published_at` (news keeps schedule field), scheduled-count status guard, AuthContext `isLoading` gated on profile load (RequireAuth race), `signOut` try/catch/finally. tsc exit 0, eslint exit 0. Runtime auth verification deferred (needs live session). |
+
+| 2026-08-28 | Set known passwords on 6 seeded QA student accounts | default + MCP (Playwright, integrated_web-dev) | passed review | Root cause found on the way: manually-inserted `auth.users` rows had NULL token columns (`confirmation_token`/`recovery_token`/`email_change_token_new`/`email_change`), which GoTrue scans as non-nullable strings → "Database error querying schema". Fixed via `qa_fix_null_tokens.sql` (empty strings). Verified logins for `student.qa+1` and `student.qa+6` (200 OK). Diagnostic file `qa_diag.sql` deleted after use. |
+| 2026-08-28 | Set known password on QA school admin | default + MCP (Playwright, integrated_web-dev) | passed review | `admin.qa+20260821@example.com` (UUID `0069eda0-…491c`, "QA Admin", QA Demo School) had an unrecoverable UI-signup hash. Set `QaAdmin!2026` via `qa_admin_password.sql` (bcrypt, targeted by id+email, idempotent). Verified login 200 OK; JWT shows role admin + school. |
+
+## MCP Invocations (2026-08-28, code review task)
+
+| Server | Tool | Args | Status |
+| ------ | ---- | ---- | ------ |
+| integrated_web-dev | supabase_get_project | - | ok |
+| integrated_web-dev | supabase_apply_migration | qa_set_passwords.sql | ok |
+| mcp_Playwright | playwright_post | token?grant_type=password (student.qa+1, correct + wrong pw) | 500 → diagnosed |
+| mcp_Playwright | playwright_post | token?grant_type=password (widget.qa+…b) | 200 ok |
+| mcp_Playwright | playwright_post | admin/users/{id} (broken user) | 500 → diagnosed |
+| integrated_web-dev | supabase_apply_migration | qa_diag.sql (full-row diff) | ok (raised data) |
+| integrated_web-dev | supabase_apply_migration | qa_fix_null_tokens.sql | ok |
+| mcp_Playwright | playwright_post | token?grant_type=password (student.qa+1, +6) | 200 ok |
+| integrated_web-dev | supabase_apply_migration | qa_admin_password.sql | ok |
+| mcp_Playwright | playwright_post | token?grant_type=password (admin.qa+20260821) | 200 ok |
+
+### MCP Invocations (2026-08-17, dropdown redo task)
 
 | Server | Tool | Args | Status |
 | ------ | ---- | ---- | ------ |
