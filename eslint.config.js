@@ -29,4 +29,26 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "off",
     },
   },
+  {
+    // Render paths must not default a numeric value to 0. 0 is a real
+    // measurement; absence is not zero. Use NumericValue + formatNumber from
+    // src/lib/numeric.ts. Error-level: the 36 original sites are migrated or
+    // annotated with a documented reason (W9 complete).
+    files: ["src/pages/**/*.tsx", "src/components/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "LogicalExpression[operator='||'][right.value=0]",
+          message:
+            "Do not default a number to 0 (|| 0). Use NumericValue + formatNumber (src/lib/numeric.ts) so loading/error/empty never render as 0.",
+        },
+        {
+          selector: "LogicalExpression[operator='??'][right.value=0]",
+          message:
+            "Do not coalesce a number to 0 (?? 0). Use NumericValue + formatNumber (src/lib/numeric.ts).",
+        },
+      ],
+    },
+  },
 );

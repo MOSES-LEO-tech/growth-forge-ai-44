@@ -45,3 +45,9 @@ package-lock.json
 *.sw?
 .vercel
 .env*
+# ...but the documented template must be committable (README references it).
+!.env.example
+
+# Python bytecode
+__pycache__/
+*.pyc

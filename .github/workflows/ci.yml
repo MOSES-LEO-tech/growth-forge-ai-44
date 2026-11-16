@@ -10,12 +10,22 @@ jobs:
     env:
       CI: true
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      VITE_SUPABASE_URL: https://xrnnsysvwbbulezhvszb.supabase.co
-      VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhybm5zeXN2d2JidWxlemh2c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5MzIwMTQsImV4cCI6MjA3NjUwODAxNH0.NmTxEvkGqepNU80IbjddfVCTUKmaTfEqpvFa175MsFk
-      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhybm5zeXN2d2JidWxlemh2c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5MzIwMTQsImV4cCI6MjA3NjUwODAxNH0.NmTxEvkGqepNU80IbjddfVCTUKmaTfEqpvFa175MsFk
+      # Canonical Supabase project: tobclczszdikmgvkvngf.
+      # Anon/publishable keys are public-by-design (they ship in the client bundle),
+      # but they MUST be issued by the canonical project. The previous values were
+      # JWTs for xrnnsysvwbbulezhvszb, a project that no longer exists, so every
+      # RLS-scoped request they signed was invalid.
+      VITE_SUPABASE_URL: https://tobclczszdikmgvkvngf.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Check Supabase secrets
+        run: |
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::warning::VITE_SUPABASE_ANON_KEY is unset. The client falls back to the hardcoded project URL, and authenticated E2E specs will self-skip."
+          fi
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -24,9 +34,15 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Run TypeScript type check
         run: bun x tsc --noEmit
+      - name: Run unit tests
+        run: bun run test
       - name: Run build
         run: bun run build
       - name: Install Playwright browsers
         run: bun x playwright install --with-deps chromium
       - name: Run Playwright tests
-        run: bun x playwright test
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/pw-report.json
+        run: bun x playwright test --reporter=line --reporter=json
+      - name: Fail if every E2E spec skipped
+        run: node scripts/ci/assert-playwright-not-all-skipped.mjs test-results/pw-report.json
