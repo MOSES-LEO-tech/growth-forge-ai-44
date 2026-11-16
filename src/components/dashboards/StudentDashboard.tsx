@@ -5,11 +5,11 @@ import { GalleryWidget } from "@/components/widgets/GalleryWidget";
 import { ScholarshipsWidget } from "@/components/widgets/ScholarshipsWidget";
 import { RecommendationsWidget } from "@/components/widgets/RecommendationsWidget";
 import { SmartBuddyWidget } from "@/components/widgets/SmartBuddyWidget";
-import { GrowthAnalyticsWidget } from "@/components/widgets/GrowthAnalyticsWidget";
 import { ProfileOverviewWidget } from "@/components/widgets/ProfileOverviewWidget";
+import { ParentLinkPanel } from "@/components/links/ParentLinkPanel";
 import { Link, useSearchParams } from "react-router-dom";
 import { useDashboard } from "@/contexts/DashboardContext";
-import { BookOpenCheck, Plus, Sparkles, Trophy, Upload } from "lucide-react";
+import { BookOpenCheck, MessageCircle, Plus, Trophy, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const StudentDashboard = ({ profile }: { profile: Profile }) => {
@@ -45,18 +45,18 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
       </section>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Button variant="outline" className="justify-start gap-2" onClick={openProjectModal}>
-          <Plus className="h-4 w-4 text-primary" /> New project
+        <Button className="justify-start gap-2" onClick={openProjectModal}>
+          <Plus className="h-4 w-4" /> New project
         </Button>
         <Button variant="outline" className="justify-start gap-2" onClick={openAchievementModal}>
-          <Trophy className="h-4 w-4 text-primary" /> Add achievement
+          <Trophy className="h-4 w-4 text-muted-foreground" /> Add achievement
         </Button>
         <Button variant="outline" className="justify-start gap-2" onClick={openEventModal}>
-          <Upload className="h-4 w-4 text-primary" /> Upload to gallery
+          <Upload className="h-4 w-4 text-muted-foreground" /> Upload to gallery
         </Button>
         <Button variant="outline" className="justify-start gap-2" asChild>
           <Link to="/buddy">
-            <Sparkles className="h-4 w-4 text-primary" /> Ask Smart Buddy
+            <MessageCircle className="h-4 w-4 text-muted-foreground" /> Ask Smart Buddy
           </Link>
         </Button>
       </div>
@@ -67,12 +67,6 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
           className="md:col-span-1 xl:col-span-1"
           profile={profile}
           defaultExpanded={activeWidget === 'profile'}
-        />
-
-        <GrowthAnalyticsWidget
-          className="md:col-span-2 xl:col-span-2"
-          userId={profile.id}
-          defaultExpanded={activeWidget === 'analytics'}
         />
 
         {/* Row 2: Achievements & Smart Buddy */}
@@ -125,6 +119,15 @@ const StudentDashboard = ({ profile }: { profile: Profile }) => {
           className="md:col-span-1 xl:col-span-1"
           defaultExpanded={activeWidget === 'recommendations'}
         />
+      </div>
+
+      {/*
+       * Guardians. A parent's request stays pending until the student accepts,
+       * so the student side has to be reachable — without this the panel only
+       * existed for parents and acceptance was impossible in the UI.
+       */}
+      <div className="mt-6">
+        <ParentLinkPanel viewer="student" />
       </div>
     </div>
   );

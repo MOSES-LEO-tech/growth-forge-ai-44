@@ -48,7 +48,7 @@ export const getChildOverview = async (childId: string) => {
     { data: achievements, error: achievementsError }
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', childId).single(),
-    supabase.from('projects').select('*').eq('owner_id', childId).is('deleted_at', null),
+    supabase.from('projects').select('*').eq('user_id', childId).is('deleted_at', null),
     supabase.from('achievements').select('*').eq('user_id', childId)
   ]);
 
