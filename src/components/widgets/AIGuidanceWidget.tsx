@@ -107,8 +107,8 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
         <div className="flex flex-col h-[450px] gap-3 p-2">
             {isLocked ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center">
-                    <div className="w-16 h-16 rounded-full bg-violet-500/10 flex items-center justify-center">
-                        <Lock className="w-8 h-8 text-violet-400" />
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Lock className="w-8 h-8 text-primary" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-lg">Guidance is a Plus feature</h3>
@@ -116,7 +116,7 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
                             Upgrade to Plus to get personalized advice for supporting your child's academic journey.
                         </p>
                     </div>
-                    <Button variant="outline" className="border-violet-400 text-violet-700 hover:bg-violet-50">
+                    <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/5">
                         Upgrade to Plus
                     </Button>
                 </div>
@@ -126,7 +126,7 @@ export function AIGuidanceWidget({ className, defaultExpanded, childId, parentPl
                     <ScrollArea className="flex-1 rounded-xl border bg-muted/30 p-3" ref={scrollRef as any}>
                         {messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center gap-4 py-6">
-                                <Bot className="w-12 h-12 text-violet-400 opacity-60" />
+                                <Bot className="w-12 h-12 text-primary opacity-60" />
                                 <p className="text-sm text-muted-foreground text-center">Hi! Ask me anything about supporting your child.</p>
                                 <div className="flex flex-col gap-2 w-full max-w-sm">
                                     {SUGGESTIONS.map(s => (

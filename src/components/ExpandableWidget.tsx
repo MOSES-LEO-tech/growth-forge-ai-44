@@ -40,19 +40,19 @@ export function ExpandableWidget({
 
   return (
     <>
-      <Card className={cn("luxury-card flex h-full min-h-[190px] flex-col overflow-hidden", className)}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b bg-muted/20 px-4 py-3">
-          <CardTitle className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+      <Card className={cn("luxury-card flex h-full min-h-[190px] flex-col overflow-hidden transition-shadow hover:shadow-md", className)}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/60 bg-muted/30 px-4 py-2.5">
+          <CardTitle className="flex min-w-0 items-center gap-2 text-[13px] font-semibold tracking-tight">
             {icon}
             <span className="truncate">{title}</span>
           </CardTitle>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             onClick={() => handleToggle(true)}
           >
-            <Maximize2 className="h-4 w-4" />
+            <Maximize2 className="h-3.5 w-3.5" />
             <span className="sr-only">Expand {title}</span>
           </Button>
         </CardHeader>

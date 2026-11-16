@@ -83,6 +83,7 @@ export function NotificationBell({ profile }: NotificationBellProps) {
     try {
       const data = await getNotifications(user.id);
       setNotifications((data.notifications as Notification[]) || []);
+      // eslint-disable-next-line no-restricted-syntax -- badge renders only when > 0; 0 is the correct 'no unread' state
       setUnreadCount(data.unreadCount || 0);
     } catch (error) {
       console.error("Failed to fetch notifications", error);

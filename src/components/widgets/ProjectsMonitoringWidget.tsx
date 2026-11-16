@@ -30,9 +30,9 @@ type ProjectItem = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    complete: "bg-emerald-500/15 text-emerald-700",
-    in_progress: "bg-blue-500/15 text-blue-700",
-    pending: "bg-amber-500/15 text-amber-700",
+    complete: "bg-success/15 text-success-ink",
+    in_progress: "bg-info/15 text-info-ink",
+    pending: "bg-warning/15 text-warning-ink",
 };
 
 export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }: ProjectsMonitoringWidgetProps) {
@@ -85,12 +85,12 @@ export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }
             {loading ? <Skeleton className="h-16 w-full" /> : error ? <p className="text-sm text-destructive">{error}</p> : (
                 <>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-blue-500/10 text-center">
-                            <div className="text-xl font-bold text-blue-600">{inProgress.length}</div>
+                        <div className="p-3 rounded-lg bg-info/10 text-center">
+                            <div className="text-xl font-bold text-info-ink">{inProgress.length}</div>
                             <div className="text-xs text-muted-foreground">In Progress</div>
                         </div>
-                        <div className="p-3 rounded-lg bg-emerald-500/10 text-center">
-                            <div className="text-xl font-bold text-emerald-600">{completed.length}</div>
+                        <div className="p-3 rounded-lg bg-success/10 text-center">
+                            <div className="text-xl font-bold text-success-ink">{completed.length}</div>
                             <div className="text-xs text-muted-foreground">Completed</div>
                         </div>
                     </div>
@@ -128,7 +128,7 @@ export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }
                                         </span>
                                         {project.verified && (
                                             <Badge variant="secondary" className="text-[10px] h-5">
-                                                <CheckCircle className="w-3 h-3 mr-1 text-emerald-500" />Verified
+                                                <CheckCircle className="w-3 h-3 mr-1 text-success-ink" />Verified
                                             </Badge>
                                         )}
                                     </div>
@@ -175,7 +175,7 @@ export function ProjectsMonitoringWidget({ className, defaultExpanded, childId }
     return (
         <ExpandableWidget
             title="Projects"
-            icon={<FolderOpen className="w-5 h-5 text-blue-500" />}
+            icon={<FolderOpen className="w-5 h-5 text-info-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

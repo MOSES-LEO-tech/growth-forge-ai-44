@@ -39,7 +39,19 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
             try {
                 const studentsData = await getStudentsBySchool(user.id);
                 setStudents(studentsData);
-                setClasses([]); // Mocked classes for now
+
+                // Class list is derived from the students themselves (profiles.class_name).
+                // There is no separate class_id column, so name is the join key.
+                const classMap = new Map<string, { id: string; name: string; student_count: number }>();
+                studentsData.forEach((student: any) => {
+                    const name = (student.class_name || '').trim();
+                    if (!name) return;
+                    const key = name.toLowerCase();
+                    const entry = classMap.get(key) ?? { id: name, name, student_count: 0 };
+                    entry.student_count += 1;
+                    classMap.set(key, entry);
+                });
+                setClasses([...classMap.values()].sort((a, b) => a.name.localeCompare(b.name)));
             } catch (error) {
                 console.error("Failed to fetch data", error);
             } finally {
@@ -54,16 +66,16 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
         const matchesSearch = !searchQuery || 
             student.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             student.email?.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesClass = !selectedClass || student.class_id === parseInt(selectedClass);
+        const matchesClass = !selectedClass || (student.class_name || '').trim() === selectedClass;
         return matchesSearch && matchesClass;
     });
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Active': return 'bg-green-500';
-            case 'Absent': return 'bg-amber-500';
-            case 'Inactive': return 'bg-slate-400';
-            default: return 'bg-slate-400';
+            case 'Active': return 'bg-success';
+            case 'Absent': return 'bg-warning';
+            case 'Inactive': return 'bg-muted-foreground/40';
+            default: return 'bg-muted-foreground/40';
         }
     };
 
@@ -217,7 +229,7 @@ export function StudentDirectoryWidget({ className, defaultExpanded }: StudentDi
     return (
         <ExpandableWidget
             title="Class Directory"
-            icon={<Users className="w-5 h-5 text-blue-500" />}
+            icon={<Users className="w-5 h-5 text-info-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

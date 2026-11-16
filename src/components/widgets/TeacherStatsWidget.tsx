@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatNullable } from "@/lib/numeric";
 import { getTeacherAnalytics } from "@/lib/supabase/teacher";
 import { useAuth } from "@/contexts/AuthContext";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
@@ -50,13 +51,13 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
 
     // Transform analytics to stats
     const stats = analytics ? [
-        { label: "Total Students", value: analytics.totalStudents, icon: Users, color: "text-blue-500" },
-        { label: "Pending Projects", value: analytics.pendingProjects, icon: FileText, color: "text-amber-500" },
-        { label: "Pending Achievements", value: analytics.pendingAchievements, icon: Trophy, color: "text-green-500" },
+        { label: "Total Students", value: analytics.totalStudents, icon: Users, color: "text-info-ink" },
+        { label: "Pending Projects", value: analytics.pendingProjects, icon: FileText, color: "text-warning-ink" },
+        { label: "Pending Achievements", value: analytics.pendingAchievements, icon: Trophy, color: "text-warning-ink" },
     ] : [
-        { label: "Total Students", value: "-", icon: Users, color: "text-blue-500" },
-        { label: "Pending Projects", value: "-", icon: FileText, color: "text-amber-500" },
-        { label: "Pending Achievements", value: "-", icon: Trophy, color: "text-green-500" },
+        { label: "Total Students", value: "-", icon: Users, color: "text-info-ink" },
+        { label: "Pending Projects", value: "-", icon: FileText, color: "text-warning-ink" },
+        { label: "Pending Achievements", value: "-", icon: Trophy, color: "text-warning-ink" },
     ];
 
     const CollapsedContent = () => (
@@ -106,9 +107,9 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{analytics?.totalStudents || 0}</div>
+                                <div className="text-2xl font-bold">{formatNullable(analytics?.totalStudents)}</div>
                                 <p className="text-xs text-muted-foreground">
-                                    Across {analytics?.totalClasses || 0} classes
+                                    Across {formatNullable(analytics?.totalClasses)} classes
                                 </p>
                             </CardContent>
                         </Card>
@@ -120,7 +121,7 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
                                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{analytics?.averageCompletionRate || 0}%</div>
+                                <div className="text-2xl font-bold">{formatNullable(analytics?.averageCompletionRate)}%</div>
                                 <p className="text-xs text-muted-foreground">
                                     Average completion rate
                                 </p>
@@ -135,10 +136,10 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {(analytics?.pendingProjects || 0) + (analytics?.pendingAchievements || 0)}
+                                    {formatNullable(analytics ? analytics.pendingProjects + analytics.pendingAchievements : null)}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {analytics?.pendingProjects || 0} projects, {analytics?.pendingAchievements || 0} achievements
+                                    {formatNullable(analytics?.pendingProjects)} projects, {formatNullable(analytics?.pendingAchievements)} achievements
                                 </p>
                             </CardContent>
                         </Card>
@@ -155,9 +156,9 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
                                     {analytics.recentActivity.map((item, i) => (
                                         <div key={i} className="flex items-center gap-3 p-2 rounded bg-background">
                                             {item.type === 'project' ? (
-                                                <FileText className="w-4 h-4 text-blue-500" />
+                                                <FileText className="w-4 h-4 text-info-ink" />
                                             ) : (
-                                                <Trophy className="w-4 h-4 text-amber-500" />
+                                                <Trophy className="w-4 h-4 text-warning-ink" />
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium truncate">{item.title}</p>
@@ -192,7 +193,7 @@ export function TeacherStatsWidget({ className, defaultExpanded }: TeacherStatsW
     return (
         <ExpandableWidget
             title="Class Statistics"
-            icon={<Activity className="w-5 h-5 text-indigo-500" />}
+            icon={<Activity className="w-5 h-5 text-info-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

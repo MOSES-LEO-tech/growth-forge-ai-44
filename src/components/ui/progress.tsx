@@ -14,6 +14,7 @@ const Progress = React.forwardRef<
   >
     <ProgressPrimitive.Indicator
       className="h-full w-full flex-1 bg-primary transition-all"
+      // eslint-disable-next-line no-restricted-syntax -- progress geometry: a missing value means 0% fill, never a displayed number
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />
   </ProgressPrimitive.Root>

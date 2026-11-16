@@ -59,7 +59,9 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
         project.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // eslint-disable-next-line no-restricted-syntax -- derived count over an in-memory list
     const activeCount = projects?.filter(p => normalizeProjectStatus(p.status) !== 'complete').length || 0;
+    // eslint-disable-next-line no-restricted-syntax -- derived count over an in-memory list
     const completedCount = projects?.filter(p => normalizeProjectStatus(p.status) === 'complete').length || 0;
 
     // Aggregate real progress across all projects (task-driven when tasks exist).
@@ -138,8 +140,8 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
                     <span className="text-2xl font-bold">{activeCount}</span>
                     <p className="text-xs text-muted-foreground">Active</p>
                 </div>
-                <div className="bg-green-500/10 rounded-lg p-3">
-                    <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
+                <div className="bg-success/10 rounded-lg p-3">
+                    <CheckCircle className="w-5 h-5 mx-auto mb-1 text-success-ink" />
                     <span className="text-2xl font-bold">{completedCount}</span>
                     <p className="text-xs text-muted-foreground">Completed</p>
                 </div>
@@ -237,7 +239,7 @@ export function ProjectsWidget({ className, defaultExpanded, userId, openAddExte
         <>
             <ExpandableWidget
                 title="Projects"
-                icon={<BookOpen className="w-5 h-5 text-blue-500" />}
+                icon={<BookOpen className="w-5 h-5 text-info-ink" />}
                 className={className}
                 defaultExpanded={defaultExpanded}
                 expanded={widgetExpanded}

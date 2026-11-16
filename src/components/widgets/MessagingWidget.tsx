@@ -84,12 +84,12 @@ export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetP
             {loading ? <Skeleton className="h-16 w-full" /> : error ? <p className="text-sm text-destructive">{error}</p> : (
                 <>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-sky-500/10 text-center">
-                            <div className="text-xl font-bold text-sky-600">{messages.length}</div>
+                        <div className="p-3 rounded-lg bg-info/10 text-center">
+                            <div className="text-xl font-bold text-info-ink">{messages.length}</div>
                             <div className="text-xs text-muted-foreground">Total</div>
                         </div>
-                        <div className="p-3 rounded-lg bg-orange-500/10 text-center">
-                            <div className="text-xl font-bold text-orange-600">{unread}</div>
+                        <div className="p-3 rounded-lg bg-warning/10 text-center">
+                            <div className="text-xl font-bold text-warning-ink">{unread}</div>
                             <div className="text-xs text-muted-foreground">Unread</div>
                         </div>
                     </div>
@@ -107,7 +107,7 @@ export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetP
         <div className="flex flex-col gap-4 p-2">
             <div className="flex justify-between items-center">
                 <h4 className="font-semibold flex items-center gap-2">
-                    <Inbox className="w-4 h-4 text-sky-500" />Inbox {unread > 0 && <Badge variant="destructive" className="text-xs">{unread} new</Badge>}
+                    <Inbox className="w-4 h-4 text-info-ink" />Inbox {unread > 0 && <Badge variant="destructive" className="text-xs">{unread} new</Badge>}
                 </h4>
                 <Button size="sm" onClick={() => setComposing(!composing)} variant={composing ? "secondary" : "default"}>
                     <Send className="w-3 h-3 mr-1" />New Message
@@ -139,11 +139,11 @@ export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetP
                 <ScrollArea className="max-h-[350px]">
                     <div className="space-y-2 pr-2">
                         {messages.map(msg => (
-                            <div key={msg.id} className={`p-3 rounded-xl border bg-card cursor-pointer hover:shadow-sm transition-shadow ${msg.direction === 'received' && !msg.read_status ? 'border-sky-300 bg-sky-50/50 dark:bg-sky-950/20' : ''}`}>
+                            <div key={msg.id} className={`p-3 rounded-xl border bg-card cursor-pointer hover:shadow-sm transition-shadow ${msg.direction === 'received' && !msg.read_status ? 'border-info/30 bg-info-soft dark:bg-info/20' : ''}`}>
                                 <div className="flex items-start justify-between gap-2" onClick={() => setExpandedId(expandedId === msg.id ? null : msg.id)}>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <ArrowRight className={`w-3 h-3 flex-shrink-0 ${msg.direction === 'sent' ? 'text-muted-foreground rotate-0' : 'text-sky-500 rotate-180'}`} />
+                                            <ArrowRight className={`w-3 h-3 flex-shrink-0 ${msg.direction === 'sent' ? 'text-muted-foreground rotate-0' : 'text-info-ink rotate-180'}`} />
                                             <span className="text-xs text-muted-foreground">{msg.direction === 'sent' ? `To: ${msg.receiver_name}` : `From: ${msg.sender_name}`}</span>
                                         </div>
                                         {msg.subject && <p className="font-medium text-sm truncate mt-0.5">{msg.subject}</p>}
@@ -168,7 +168,7 @@ export function MessagingWidget({ className, defaultExpanded }: MessagingWidgetP
     return (
         <ExpandableWidget
             title="Messages"
-            icon={<MessageSquare className="w-5 h-5 text-sky-500" />}
+            icon={<MessageSquare className="w-5 h-5 text-info-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

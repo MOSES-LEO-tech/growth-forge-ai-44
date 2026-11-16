@@ -297,7 +297,11 @@ export function SchoolSettingsWidget({
               </div>
 
               <div className="grid gap-2">
-                <Label>School Logo</Label>
+                <Label>School badge</Label>
+                <p className="text-xs text-muted-foreground">
+                  Shown on school cards and your school header. For upload, ordering and gallery
+                  management use <span className="font-medium">Settings → Badge &amp; gallery</span>.
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                     {form.logo_url ? (

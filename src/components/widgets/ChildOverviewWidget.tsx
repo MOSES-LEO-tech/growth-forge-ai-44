@@ -15,7 +15,7 @@ interface ChildOverviewWidgetProps {
 
 type OverviewData = {
     student: { id: string; fullName: string; email: string; avatarUrl?: string; grade?: string; school?: { name: string; location?: string } | null };
-    stats: { projectsCount: number; projectsCompleted: number; achievementsCount: number; verifiedAchievementsCount: number; level: number; points: number };
+    stats: { projectsCount: number; projectsCompleted: number; achievementsCount: number; verifiedAchievementsCount: number };
     recentActivity: { type: string; label: string; status_text: string; created_at: string }[];
 };
 
@@ -67,9 +67,9 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                     </div>
                     <div className="grid grid-cols-3 gap-2 mt-1">
                         {[
-                            { icon: BookOpen, label: "Projects", value: data.stats.projectsCount, color: "text-blue-500" },
-                            { icon: Award, label: "Achievements", value: data.stats.achievementsCount, color: "text-amber-500" },
-                            { icon: CheckCircle, label: "Verified", value: data.stats.verifiedAchievementsCount, color: "text-emerald-500" },
+                            { icon: BookOpen, label: "Projects", value: data.stats.projectsCount, color: "text-info-ink" },
+                            { icon: Award, label: "Achievements", value: data.stats.achievementsCount, color: "text-warning-ink" },
+                            { icon: CheckCircle, label: "Verified", value: data.stats.verifiedAchievementsCount, color: "text-success-ink" },
                         ].map(({ icon: Icon, label, value, color }) => (
                             <div key={label} className="text-center p-2 rounded-lg bg-muted/50">
                                 <Icon className={`w-4 h-4 mx-auto mb-1 ${color}`} />
@@ -112,8 +112,8 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                     {/* Stats row */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {[
-                            { icon: BookOpen, label: "Projects", value: data.stats.projectsCount, sub: `${data.stats.projectsCompleted} completed`, color: "text-blue-500 bg-blue-500/10" },
-                            { icon: Award, label: "Achievements", value: data.stats.achievementsCount, sub: `${data.stats.verifiedAchievementsCount} verified`, color: "text-amber-500 bg-amber-500/10" },
+                            { icon: BookOpen, label: "Projects", value: data.stats.projectsCount, sub: `${data.stats.projectsCompleted} completed`, color: "text-info-ink bg-info/10" },
+                            { icon: Award, label: "Achievements", value: data.stats.achievementsCount, sub: `${data.stats.verifiedAchievementsCount} verified`, color: "text-warning-ink bg-warning/10" },
                             { icon: TrendingUp, label: "Completion", value: `${completionPct}%`, sub: "of projects", color: "text-purple-500 bg-purple-500/10" },
                         ].map(({ icon: Icon, label, value, sub, color }) => (
                             <div key={label} className="p-4 rounded-xl border bg-card text-center">
@@ -136,7 +136,7 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
                             <div className="space-y-2">
                                 {data.recentActivity.map((item, i) => (
                                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 text-sm">
-                                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${item.type === 'achievement' ? 'bg-amber-400' : 'bg-blue-400'}`} />
+                                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${item.type === 'achievement' ? 'bg-warning' : 'bg-info'}`} />
                                         <div className="flex-1 min-w-0">
                                             <span className="truncate font-medium">{item.label}</span>
                                             <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
@@ -158,7 +158,7 @@ export function ChildOverviewWidget({ className, defaultExpanded, childId, child
     return (
         <ExpandableWidget
             title={`${childName}'s Overview`}
-            icon={<Users className="w-5 h-5 text-blue-500" />}
+            icon={<Users className="w-5 h-5 text-info-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

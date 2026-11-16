@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ready, formatNumber as fmt } from "@/lib/numeric";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -81,15 +82,15 @@ const statusLabel = (status: string | null | undefined) => roleLabel(status || "
 const statusClasses = (status: string | null | undefined) => {
   switch ((status || "").toLowerCase()) {
     case "pending":
-      return "bg-amber-500/10 text-amber-700 border-amber-200";
+      return "bg-warning/10 text-warning-ink border-warning/30";
     case "ongoing":
     case "in_progress":
-      return "bg-blue-500/10 text-blue-700 border-blue-200";
+      return "bg-info/10 text-info-ink border-info/30";
     case "complete":
     case "approved":
-      return "bg-emerald-500/10 text-emerald-700 border-emerald-200";
+      return "bg-success/10 text-success-ink border-success/30";
     case "needs_review":
-      return "bg-red-500/10 text-red-700 border-red-200";
+      return "bg-destructive/10 text-destructive-ink border-destructive/30";
     default:
       return "bg-muted text-muted-foreground";
   }
@@ -98,14 +99,14 @@ const statusClasses = (status: string | null | undefined) => {
 const activityIcon = (type: ActivityItem["type"]) => {
   switch (type) {
     case "project":
-      return <FolderRoot className="h-4 w-4 text-blue-600" />;
+      return <FolderRoot className="h-4 w-4 text-info-ink" />;
     case "achievement":
-      return <Award className="h-4 w-4 text-amber-600" />;
+      return <Award className="h-4 w-4 text-warning-ink" />;
     case "recommendation":
     case "smartbuddy":
-      return <Compass className="h-4 w-4 text-emerald-600" />;
+      return <Compass className="h-4 w-4 text-success-ink" />;
     case "gallery":
-      return <Image className="h-4 w-4 text-pink-600" />;
+      return <Image className="h-4 w-4 text-muted-foreground" />;
     default:
       return <Activity className="h-4 w-4 text-muted-foreground" />;
   }
@@ -380,17 +381,17 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
   }, [contentSearch, data]);
 
   const statCards = [
-    { label: "Total Users", value: data?.stats.totalUsers ?? 0, detail: `${formatNumber(data?.stats.activeStudents ?? 0)} students`, icon: Users },
-    { label: "Partner Schools", value: data?.stats.partnerSchools ?? 0, detail: "Registered institutions", icon: School },
+    { label: "Total Users", value: ready(data?.stats.totalUsers), detail: `${fmt(ready(data?.stats.activeStudents))} students`, icon: Users },
+    { label: "Partner Schools", value: ready(data?.stats.partnerSchools), detail: "Registered institutions", icon: School },
     {
       label: "Total Projects",
-      value: data?.stats.totalProjects ?? 0,
-      detail: `${formatNumber(data?.stats.pendingProjects ?? 0)} pending review`,
+      value: ready(data?.stats.totalProjects),
+      detail: `${fmt(ready(data?.stats.pendingProjects))} pending review`,
       icon: FolderRoot,
     },
     {
       label: "Guidance Requests",
-      value: data?.stats.guidanceRequests ?? 0,
+      value: ready(data?.stats.guidanceRequests),
       detail: "SmartBuddy and recommendations",
       icon: Compass,
     },
@@ -471,7 +472,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                   <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatNumber(stat.value)}</div>
+                  <div className="text-2xl font-bold">{fmt(stat.value)}</div>
                   <p className="text-xs text-muted-foreground">{stat.detail}</p>
                 </CardContent>
               </Card>
@@ -1054,7 +1055,7 @@ const SuperAdminDashboard = ({ profile }: SuperAdminDashboardProps) => {
                       </div>
                       <div className="rounded-lg border p-3">
                         <p className="text-xs text-muted-foreground">Errors</p>
-                        <p className="text-xl font-semibold">{formatNumber(data.smartBuddyStatusCounts.error || 0)}</p>
+                        <p className="text-xl font-semibold">{fmt(ready(data.smartBuddyStatusCounts.error))}</p>
                       </div>
                     </div>
                     <div className="relative">

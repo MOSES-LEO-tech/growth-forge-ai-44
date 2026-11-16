@@ -154,7 +154,7 @@ export function AchievementControlWidget({ className = "", defaultExpanded = fal
               {achievements.map((achievement) => (
                 <div key={achievement.id} className="flex flex-col justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50 md:flex-row md:items-center">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-yellow-100 p-2 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200">
+                    <div className="rounded-lg bg-warning-soft p-2 text-warning-ink dark:bg-warning dark:text-warning-ink">
                       <Award className="h-5 w-5" />
                     </div>
                     <div>
@@ -170,11 +170,11 @@ export function AchievementControlWidget({ className = "", defaultExpanded = fal
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="button" size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openReview({ id: achievement.id, title: achievement.title, action: "approve" })}>
+                    <Button type="button" size="sm" className="bg-success hover:bg-success" onClick={() => openReview({ id: achievement.id, title: achievement.title, action: "approve" })}>
                       <Check className="mr-2 h-4 w-4" />
                       Approve
                     </Button>
-                    <Button type="button" size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" onClick={() => openReview({ id: achievement.id, title: achievement.title, action: "reject" })}>
+                    <Button type="button" size="sm" variant="outline" className="border-destructive/30 text-destructive-ink hover:bg-destructive-soft" onClick={() => openReview({ id: achievement.id, title: achievement.title, action: "reject" })}>
                       <X className="mr-2 h-4 w-4" />
                       Reject
                     </Button>

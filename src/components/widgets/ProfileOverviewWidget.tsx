@@ -58,7 +58,9 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
                     getAchievements(profile.id)
                 ]);
                 setStats({
+                    // eslint-disable-next-line no-restricted-syntax -- derived count over an in-memory list
                     projects: projectsData?.length || 0,
+                    // eslint-disable-next-line no-restricted-syntax -- derived count over an in-memory list
                     achievements: achievementsData?.length || 0
                 });
             } catch (error) {
@@ -103,13 +105,13 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="bg-blue-500/10 rounded-lg p-2">
-                    <BookOpen className="w-4 h-4 mx-auto mb-1 text-blue-500" />
+                <div className="bg-info/10 rounded-lg p-2">
+                    <BookOpen className="w-4 h-4 mx-auto mb-1 text-info-ink" />
                     <span className="text-lg font-bold">{stats.projects}</span>
                     <p className="text-xs text-muted-foreground">Projects</p>
                 </div>
-                <div className="bg-amber-500/10 rounded-lg p-2">
-                    <Award className="w-4 h-4 mx-auto mb-1 text-amber-500" />
+                <div className="bg-warning/10 rounded-lg p-2">
+                    <Award className="w-4 h-4 mx-auto mb-1 text-warning-ink" />
                     <span className="text-lg font-bold">{stats.achievements}</span>
                     <p className="text-xs text-muted-foreground">Achievements</p>
                 </div>
@@ -158,14 +160,14 @@ export function ProfileOverviewWidget({ className, defaultExpanded, profile }: P
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card>
                     <CardContent className="pt-6 text-center">
-                        <BookOpen className="w-6 h-6 mx-auto mb-2 text-blue-500" />
+                        <BookOpen className="w-6 h-6 mx-auto mb-2 text-info-ink" />
                         <p className="text-2xl font-bold">{stats.projects}</p>
                         <p className="text-xs text-muted-foreground">Projects</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardContent className="pt-6 text-center">
-                        <Award className="w-6 h-6 mx-auto mb-2 text-amber-500" />
+                        <Award className="w-6 h-6 mx-auto mb-2 text-warning-ink" />
                         <p className="text-2xl font-bold">{stats.achievements}</p>
                         <p className="text-xs text-muted-foreground">Achievements</p>
                     </CardContent>

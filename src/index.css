@@ -32,6 +32,32 @@
     --input: 35 15% 82%;
     --ring: 164 42% 22%;
 
+    /*
+     * Status colors are semantic, never decorative. Every dashboard reads the
+     * same meaning from them in every theme:
+     *   success = approved / verified      warning = awaiting review / due
+     *   info    = neutral information      destructive = rejected / failed
+     * `--*-ink` is the text color on a `--*-soft` tint or on card; `--*` is the
+     * solid fill for dots, icons and bars; `--*-foreground` sits on the solid.
+     */
+    --success: 152 55% 30%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 150 45% 94%;
+    --success-ink: 152 62% 22%;
+
+    --warning: 32 90% 40%;
+    --warning-foreground: 28 90% 10%;
+    --warning-soft: 40 95% 93%;
+    --warning-ink: 27 82% 26%;
+
+    --info: 212 70% 44%;
+    --info-foreground: 0 0% 100%;
+    --info-soft: 210 80% 95%;
+    --info-ink: 214 75% 30%;
+
+    --destructive-soft: 0 80% 96%;
+    --destructive-ink: 0 65% 36%;
+
     --radius: 0.5rem;
 
     --sidebar-background: 42 20% 97%;
@@ -54,8 +80,10 @@
     --popover: 210 18% 12%;
     --popover-foreground: 42 22% 92%;
 
-    --primary: 45 26% 72%;
-    --primary-foreground: 210 24% 10%;
+    /* Brand hue survives dark mode: the forest green lightens instead of
+       inverting to cream, so primary actions stay recognisably "Milestone". */
+    --primary: 164 38% 62%;
+    --primary-foreground: 164 40% 10%;
 
     --secondary: 205 16% 20%;
     --secondary-foreground: 42 22% 92%;
@@ -71,66 +99,130 @@
 
     --border: 205 14% 24%;
     --input: 205 14% 24%;
-    --ring: 45 26% 72%;
+    --ring: 164 38% 62%;
+
+    --success: 152 50% 46%;
+    --success-foreground: 150 50% 8%;
+    --success-soft: 152 30% 17%;
+    --success-ink: 150 55% 74%;
+
+    --warning: 38 88% 56%;
+    --warning-foreground: 30 85% 10%;
+    --warning-soft: 35 38% 17%;
+    --warning-ink: 40 90% 78%;
+
+    --info: 212 68% 60%;
+    --info-foreground: 214 60% 10%;
+    --info-soft: 212 34% 18%;
+    --info-ink: 210 80% 80%;
+
+    --destructive-soft: 0 32% 18%;
+    --destructive-ink: 0 80% 78%;
 
     --sidebar-background: 210 20% 9%;
     --sidebar-foreground: 42 22% 92%;
-    --sidebar-primary: 45 26% 72%;
-    --sidebar-primary-foreground: 210 24% 10%;
+    --sidebar-primary: 164 38% 62%;
+    --sidebar-primary-foreground: 164 40% 10%;
     --sidebar-accent: 205 16% 20%;
     --sidebar-accent-foreground: 42 22% 92%;
     --sidebar-border: 205 14% 24%;
-    --sidebar-ring: 45 26% 72%;
+    --sidebar-ring: 164 38% 62%;
   }
 
-  .theme-ocean:not(.dark) {
+  /*
+   * Colour themes. Each theme owns BOTH modes — the original selectors were
+   * `.theme-x:not(.dark)`, so in dark mode the class was applied but never
+   * matched, and every theme silently rendered as Default.
+   *
+   * Dark values reuse the theme hue at a measured lightness: primary/accent sit
+   * at 62% with 10% ink, which clears AA against card in every theme.
+   */
+  .theme-ocean {
     --background: 190 18% 96%;
     --foreground: 205 34% 12%;
     --card: 0 0% 100%;
     --card-foreground: 205 34% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 205 34% 12%;
-    --primary: 199 64% 28%;
+    --primary: 199 62% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 188 22% 86%;
     --secondary-foreground: 205 34% 12%;
     --muted: 190 18% 90%;
     --muted-foreground: 200 12% 42%;
-    --accent: 26 58% 46%;
+    --accent: 26 62% 41%;
     --accent-foreground: 0 0% 100%;
     --border: 190 16% 80%;
     --input: 190 16% 80%;
-    --ring: 199 64% 28%;
+    --ring: 199 62% 28%;
   }
 
-  .theme-forest:not(.dark) {
+  .dark.theme-ocean {
+    --background: 200 18% 9%;
+    --foreground: 200 12% 93%;
+    --card: 200 16% 12%;
+    --card-foreground: 200 12% 93%;
+    --popover: 200 16% 12%;
+    --popover-foreground: 200 12% 93%;
+    --primary: 199 62% 62%;
+    --primary-foreground: 199 40% 10%;
+    --secondary: 200 16% 20%;
+    --secondary-foreground: 200 12% 93%;
+    --muted: 200 14% 17%;
+    --muted-foreground: 200 10% 68%;
+    --accent: 26 62% 62%;
+    --accent-foreground: 26 40% 10%;
+    --border: 200 14% 24%;
+    --input: 200 14% 24%;
+    --ring: 199 62% 62%;
+  }
+  .theme-forest {
     --background: 90 16% 96%;
     --foreground: 145 32% 12%;
     --card: 0 0% 100%;
     --card-foreground: 145 32% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 145 32% 12%;
-    --primary: 142 42% 26%;
+    --primary: 142 44% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 82 18% 84%;
     --secondary-foreground: 145 32% 12%;
     --muted: 90 14% 90%;
     --muted-foreground: 145 10% 42%;
-    --accent: 32 62% 43%;
+    --accent: 32 66% 38%;
     --accent-foreground: 0 0% 100%;
     --border: 90 14% 80%;
     --input: 90 14% 80%;
-    --ring: 142 42% 26%;
+    --ring: 142 44% 28%;
   }
 
-  .theme-sunset:not(.dark) {
+  .dark.theme-forest {
+    --background: 120 18% 9%;
+    --foreground: 120 12% 93%;
+    --card: 120 16% 12%;
+    --card-foreground: 120 12% 93%;
+    --popover: 120 16% 12%;
+    --popover-foreground: 120 12% 93%;
+    --primary: 142 44% 62%;
+    --primary-foreground: 142 40% 10%;
+    --secondary: 120 16% 20%;
+    --secondary-foreground: 120 12% 93%;
+    --muted: 120 14% 17%;
+    --muted-foreground: 120 10% 68%;
+    --accent: 32 64% 62%;
+    --accent-foreground: 32 40% 10%;
+    --border: 120 14% 24%;
+    --input: 120 14% 24%;
+    --ring: 142 44% 62%;
+  }
+  .theme-sunset {
     --background: 32 18% 96%;
     --foreground: 220 20% 12%;
     --card: 0 0% 100%;
     --card-foreground: 220 20% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 12%;
-    --primary: 16 58% 42%;
+    --primary: 16 62% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 38 24% 85%;
     --secondary-foreground: 220 20% 12%;
@@ -140,17 +232,36 @@
     --accent-foreground: 0 0% 100%;
     --border: 32 14% 80%;
     --input: 32 14% 80%;
-    --ring: 16 58% 42%;
+    --ring: 16 62% 28%;
   }
 
-  .theme-rose:not(.dark) {
+  .dark.theme-sunset {
+    --background: 24 18% 9%;
+    --foreground: 24 12% 93%;
+    --card: 24 16% 12%;
+    --card-foreground: 24 12% 93%;
+    --popover: 24 16% 12%;
+    --popover-foreground: 24 12% 93%;
+    --primary: 16 62% 62%;
+    --primary-foreground: 16 40% 10%;
+    --secondary: 24 16% 20%;
+    --secondary-foreground: 24 12% 93%;
+    --muted: 24 14% 17%;
+    --muted-foreground: 24 10% 68%;
+    --accent: 205 48% 62%;
+    --accent-foreground: 205 40% 10%;
+    --border: 24 14% 24%;
+    --input: 24 14% 24%;
+    --ring: 16 62% 62%;
+  }
+  .theme-rose {
     --background: 330 12% 96%;
     --foreground: 225 18% 12%;
     --card: 0 0% 100%;
     --card-foreground: 225 18% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 225 18% 12%;
-    --primary: 344 42% 32%;
+    --primary: 344 46% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 338 18% 86%;
     --secondary-foreground: 225 18% 12%;
@@ -160,8 +271,29 @@
     --accent-foreground: 0 0% 100%;
     --border: 330 12% 80%;
     --input: 330 12% 80%;
-    --ring: 344 42% 32%;
+    --ring: 344 46% 28%;
   }
+
+  .dark.theme-rose {
+    --background: 330 18% 9%;
+    --foreground: 330 12% 93%;
+    --card: 330 16% 12%;
+    --card-foreground: 330 12% 93%;
+    --popover: 330 16% 12%;
+    --popover-foreground: 330 12% 93%;
+    --primary: 344 46% 62%;
+    --primary-foreground: 344 40% 10%;
+    --secondary: 330 16% 20%;
+    --secondary-foreground: 330 12% 93%;
+    --muted: 330 14% 17%;
+    --muted-foreground: 330 10% 68%;
+    --accent: 162 38% 62%;
+    --accent-foreground: 162 40% 10%;
+    --border: 330 14% 24%;
+    --input: 330 14% 24%;
+    --ring: 344 46% 62%;
+  }
+
 
   * {
     @apply border-border;
@@ -274,7 +406,7 @@
   }
 
   .flat-icon {
-    @apply flex items-center justify-center rounded-md bg-secondary text-secondary-foreground;
+    @apply flex items-center justify-center rounded-md bg-primary/10 text-primary;
   }
 
   .editorial-kicker {
@@ -289,8 +421,50 @@
     @apply grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4;
   }
 
+  /*
+   * Dashboard hero: a whisper of the brand hue marks "this is your workspace"
+   * without spending a second accent colour. Foreground stays full-strength
+   * ink, so text contrast is unaffected by the tint.
+   */
   .dashboard-hero {
-    @apply mb-6 rounded-lg border bg-card p-5 shadow-sm md:p-6;
+    @apply mb-6 rounded-lg border border-primary/15 bg-primary/5 p-5 shadow-sm md:p-6;
+  }
+
+  /*
+   * The app navbar is fixed at 4rem. Any full-width app page must clear it with
+   * this offset — previously each page guessed its own padding, and pages that
+   * lost their secondary header ended up underneath the bar.
+   */
+  .app-main {
+    @apply pt-20 pb-16;
+  }
+
+  /*
+   * Printed CV. The sheet is rendered at 794px (A4 @96dpi) on screen and the
+   * browser's own "Save as PDF" is the exporter, so the paper geometry lives
+   * here rather than in a PDF library.
+   */
+  @media print {
+    @page {
+      size: A4;
+      margin: 14mm;
+    }
+
+    html,
+    body {
+      background: #fff !important;
+    }
+
+    .cv-document {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    .cv-document section,
+    .cv-document li,
+    .cv-document header {
+      break-inside: avoid;
+    }
   }
 
   .rich-text {

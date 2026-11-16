@@ -29,6 +29,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
         try {
             const data = await getNotifications(user.id);
             setNotifications(data.notifications as Notification[] || []);
+            // eslint-disable-next-line no-restricted-syntax -- badge renders only when > 0; 0 is the correct 'no unread' state
             setUnreadCount(data.unreadCount || 0);
         } catch (error) {
             console.error("Failed to fetch notifications", error);
@@ -69,13 +70,13 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
     const getNotificationIcon = (type: string) => {
         switch (type) {
             case 'project_submission':
-                return <FileText className="w-4 h-4 text-blue-500" />;
+                return <FileText className="w-4 h-4 text-info-ink" />;
             case 'achievement_submission':
-                return <Trophy className="w-4 h-4 text-amber-500" />;
+                return <Trophy className="w-4 h-4 text-warning-ink" />;
             case 'parent_message':
-                return <MessageSquare className="w-4 h-4 text-green-500" />;
+                return <MessageSquare className="w-4 h-4 text-success-ink" />;
             case 'deadline_reminder':
-                return <AlertCircle className="w-4 h-4 text-red-500" />;
+                return <AlertCircle className="w-4 h-4 text-destructive-ink" />;
             default:
                 return <Bell className="w-4 h-4 text-gray-500" />;
         }
@@ -112,7 +113,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
     const CollapsedContent = () => (
         <div className="flex flex-col h-full items-center justify-center text-center gap-3">
             <div className="relative">
-                <Bell className={`w-10 h-10 ${unreadCount > 0 ? 'text-amber-500' : 'text-gray-400'}`} />
+                <Bell className={`w-10 h-10 ${unreadCount > 0 ? 'text-warning-ink' : 'text-gray-400'}`} />
                 {unreadCount > 0 && (
                     <Badge 
                         variant="destructive" 
@@ -127,7 +128,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
                 <p className="text-sm text-muted-foreground">Notifications</p>
             </div>
             {unreadCount > 0 && (
-                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                <p className="text-xs text-warning-ink bg-warning-soft px-2 py-1 rounded border border-warning/30">
                     {unreadCount} unread
                 </p>
             )}
@@ -174,7 +175,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
                                 className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                                     notification.read 
                                         ? 'bg-card hover:bg-accent' 
-                                        : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                                        : 'bg-info-soft border-info/30 hover:bg-info-soft'
                                 }`}
                             >
                                 <div className="mt-0.5">
@@ -184,7 +185,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
                                     <div className="flex items-center gap-2">
                                         <p className="font-medium text-sm truncate">{notification.title}</p>
                                         {!notification.read && (
-                                            <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                                            <span className="w-2 h-2 rounded-full bg-info flex-shrink-0" />
                                         )}
                                     </div>
                                     {notification.message && (
@@ -222,7 +223,7 @@ export function NotificationsWidget({ className, defaultExpanded }: Notification
     return (
         <ExpandableWidget
             title="Notifications"
-            icon={<Bell className={`w-5 h-5 ${unreadCount > 0 ? "text-amber-500" : "text-gray-500"}`} />}
+            icon={<Bell className={`w-5 h-5 ${unreadCount > 0 ? "text-warning-ink" : "text-gray-500"}`} />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

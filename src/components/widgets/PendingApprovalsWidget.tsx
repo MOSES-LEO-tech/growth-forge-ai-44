@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { formatNullable } from "@/lib/numeric";
 import { getPendingMediaEvents, approveMediaEvent, rejectMediaEvent } from "@/lib/supabase/gallery";
 import { getPendingProjects, rejectProject, verifyProject } from "@/lib/supabase/projects";
 import type { Project } from "@/integrations/supabase/types";
@@ -127,7 +128,7 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
   const CollapsedContent = () => (
     <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
       <div className="relative">
-        <CheckCircle className={`h-12 w-12 ${totalPending > 0 ? "text-amber-500" : "text-green-500"} opacity-80`} />
+        <CheckCircle className={`h-12 w-12 ${totalPending > 0 ? "text-warning-ink" : "text-success-ink"} opacity-80`} />
         {totalPending > 0 && (
           <Badge variant="destructive" className="absolute -right-2 -top-2 min-w-[20px] justify-center rounded-full px-2 py-0.5">
             {totalPending}
@@ -139,7 +140,7 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
         <p className="text-sm text-muted-foreground">Teacher Reviews</p>
       </div>
       {totalPending > 0 && (
-        <p className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+        <p className="rounded border border-warning/30 bg-warning-soft px-2 py-1 text-xs text-warning-ink">
           Projects and media waiting
         </p>
       )}
@@ -172,11 +173,11 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
             <ExternalLink className="mr-2 h-4 w-4" />
             View
           </Button>
-          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 sm:flex-initial" onClick={() => openReview({ id: item.id, type: "project", action: "approve", title: item.title })}>
+          <Button size="sm" className="flex-1 bg-success hover:bg-success sm:flex-initial" onClick={() => openReview({ id: item.id, type: "project", action: "approve", title: item.title })}>
             <Check className="mr-2 h-4 w-4" />
             Approve
           </Button>
-          <Button size="sm" variant="outline" className="flex-1 border-red-200 text-red-700 hover:bg-red-50 sm:flex-initial" onClick={() => openReview({ id: item.id, type: "project", action: "reject", title: item.title })}>
+          <Button size="sm" variant="outline" className="flex-1 border-destructive/30 text-destructive-ink hover:bg-destructive-soft sm:flex-initial" onClick={() => openReview({ id: item.id, type: "project", action: "reject", title: item.title })}>
             <X className="mr-2 h-4 w-4" />
             Reject
           </Button>
@@ -212,15 +213,15 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
               <Badge variant="outline" className="bg-primary/5">{item.student_name || item.student_email || "Unknown student"}</Badge>
             </div>
             <p className="line-clamp-2 text-sm text-muted-foreground">{item.description || "No description provided."}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{item.media_count || 0} file(s) submitted</p>
+            <p className="mt-2 text-xs text-muted-foreground">{formatNullable(item.media_count)} file(s) submitted</p>
           </div>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 sm:flex-initial" onClick={() => openReview({ id: item.id, type: "media", action: "approve", title: item.title })}>
+          <Button size="sm" className="flex-1 bg-success hover:bg-success sm:flex-initial" onClick={() => openReview({ id: item.id, type: "media", action: "approve", title: item.title })}>
             <Check className="mr-2 h-4 w-4" />
             Approve
           </Button>
-          <Button size="sm" variant="outline" className="flex-1 border-red-200 text-red-700 hover:bg-red-50 sm:flex-initial" onClick={() => openReview({ id: item.id, type: "media", action: "reject", title: item.title })}>
+          <Button size="sm" variant="outline" className="flex-1 border-destructive/30 text-destructive-ink hover:bg-destructive-soft sm:flex-initial" onClick={() => openReview({ id: item.id, type: "media", action: "reject", title: item.title })}>
             <X className="mr-2 h-4 w-4" />
             Reject
           </Button>
@@ -295,7 +296,7 @@ export function PendingApprovalsWidget({ className, defaultExpanded }: PendingAp
   return (
     <ExpandableWidget
       title="Teacher Approvals"
-      icon={<AlertCircle className={`h-5 w-5 ${totalPending > 0 ? "text-amber-500" : "text-green-500"}`} />}
+      icon={<AlertCircle className={`h-5 w-5 ${totalPending > 0 ? "text-warning-ink" : "text-success-ink"}`} />}
       className={className}
       defaultExpanded={defaultExpanded}
       expandedContent={<ExpandedContent />}

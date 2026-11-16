@@ -17,27 +17,27 @@ type PlanData = { tier: string; features: string[]; updatedAt: string | null };
 const PLAN_CONFIG = {
     basic: {
         label: "Basic",
-        color: "text-slate-600",
-        bg: "bg-slate-50 dark:bg-slate-900/30",
-        border: "border-slate-200 dark:border-slate-700",
+        color: "text-muted-foreground",
+        bg: "bg-muted",
+        border: "border-border",
         icon: Shield,
         iconBg: "bg-muted text-muted-foreground",
         badgeVariant: "secondary" as const,
     },
     plus: {
         label: "Plus",
-        color: "text-blue-600",
-        bg: "bg-blue-50 dark:bg-blue-950/30",
-        border: "border-blue-200 dark:border-blue-800",
+        color: "text-info-ink",
+        bg: "bg-info-soft dark:bg-info/30",
+        border: "border-info/30 dark:border-info/50",
         icon: Zap,
         iconBg: "bg-primary text-primary-foreground",
         badgeVariant: "default" as const,
     },
     pro: {
         label: "Pro",
-        color: "text-amber-600",
-        bg: "bg-amber-50 dark:bg-amber-950/30",
-        border: "border-amber-200 dark:border-amber-800",
+        color: "text-warning-ink",
+        bg: "bg-warning-soft dark:bg-warning/30",
+        border: "border-warning/30 dark:border-warning/50",
         icon: Crown,
         iconBg: "bg-accent text-accent-foreground",
         badgeVariant: "default" as const,
@@ -119,14 +119,14 @@ export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionW
 
                     {/* Feature comparison */}
                     <div>
-                        <h4 className="font-semibold mb-4 flex items-center gap-2"><Star className="w-4 h-4 text-amber-500" />Feature Comparison</h4>
+                        <h4 className="font-semibold mb-4 flex items-center gap-2"><Star className="w-4 h-4 text-warning-ink" />Feature Comparison</h4>
                         <div className="space-y-2">
                             {ALL_PLAN_FEATURES.map(({ label, plans }) => {
                                 const included = plans.includes(plan.tier);
                                 return (
                                     <div key={label} className="flex items-center gap-3 text-sm">
-                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${included ? 'bg-emerald-500/10' : 'bg-muted'}`}>
-                                            <Check className={`w-3 h-3 ${included ? 'text-emerald-600' : 'text-muted-foreground opacity-30'}`} />
+                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${included ? 'bg-success/10' : 'bg-muted'}`}>
+                                            <Check className={`w-3 h-3 ${included ? 'text-success-ink' : 'text-muted-foreground opacity-30'}`} />
                                         </div>
                                         <span className={included ? 'font-medium' : 'text-muted-foreground line-through text-xs'}>{label}</span>
                                         {!included && (
@@ -142,15 +142,15 @@ export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionW
 
                     {/* Upgrade CTA */}
                     {plan.tier !== 'pro' && (
-                        <div className="p-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 text-center">
-                            <Crown className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                        <div className="p-4 rounded-xl border border-dashed border-warning/30 bg-warning-soft dark:bg-warning/20 text-center">
+                            <Crown className="w-8 h-8 text-warning-ink mx-auto mb-2" />
                             <p className="text-sm font-semibold mb-1">
                                 {plan.tier === 'basic' ? 'Unlock Guidance & Messaging' : 'Get Full Analytics & Reports'}
                             </p>
                             <p className="text-xs text-muted-foreground mb-3">
                                 Upgrade to {plan.tier === 'basic' ? 'Plus' : 'Pro'} for more features
                             </p>
-                            <Button size="sm" variant="outline" className="border-amber-400 text-amber-700 hover:bg-amber-100">
+                            <Button size="sm" variant="outline" className="border-warning/50 text-warning-ink hover:bg-warning-soft">
                                 Upgrade Now
                             </Button>
                         </div>
@@ -163,7 +163,7 @@ export function SubscriptionWidget({ className, defaultExpanded }: SubscriptionW
     return (
         <ExpandableWidget
             title="Subscription"
-            icon={<Crown className="w-5 h-5 text-amber-500" />}
+            icon={<Crown className="w-5 h-5 text-warning-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

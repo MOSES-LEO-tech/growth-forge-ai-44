@@ -165,13 +165,13 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
             ) : achievements.length > 0 ? (
                 <>
                     <div className="grid grid-cols-2 gap-2 text-center">
-                        <div className="bg-amber-500/10 rounded-lg p-3">
-                            <Award className="w-5 h-5 mx-auto mb-1 text-amber-500" />
+                        <div className="bg-warning/10 rounded-lg p-3">
+                            <Award className="w-5 h-5 mx-auto mb-1 text-warning-ink" />
                             <span className="text-2xl font-bold">{achievements.length}</span>
                             <p className="text-xs text-muted-foreground">Total</p>
                         </div>
-                        <div className="bg-emerald-500/10 rounded-lg p-3">
-                            <CheckCircle className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
+                        <div className="bg-success/10 rounded-lg p-3">
+                            <CheckCircle className="w-5 h-5 mx-auto mb-1 text-success-ink" />
                             <span className="text-2xl font-bold">{verified}</span>
                             <p className="text-xs text-muted-foreground">Verified</p>
                         </div>
@@ -187,8 +187,8 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
                                     <div className="text-xs text-muted-foreground">{a.category ?? "—"}</div>
                                 </div>
                                 {a.verified
-                                    ? <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                    : <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                                    ? <CheckCircle className="w-4 h-4 text-success-ink flex-shrink-0" />
+                                    : <Clock className="w-4 h-4 text-warning-ink flex-shrink-0" />
                                 }
                             </div>
                         ))}
@@ -255,7 +255,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
                                     </div>
                                     <div className="flex items-center gap-1 flex-shrink-0">
                                         {achievement.verified
-                                            ? <Badge className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-200"><CheckCircle className="w-3 h-3 mr-1" />Verified</Badge>
+                                            ? <Badge className="text-[10px] bg-success/10 text-success-ink border-success/30"><CheckCircle className="w-3 h-3 mr-1" />Verified</Badge>
                                             : <Badge variant="secondary" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
                                         }
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(achievement.id)}>
@@ -329,7 +329,7 @@ export function AchievementsWidget({ className, defaultExpanded, userId, openAdd
     return (
         <ExpandableWidget
             title="Achievements"
-            icon={<Award className="w-5 h-5 text-amber-500" />}
+            icon={<Award className="w-5 h-5 text-warning-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expanded={widgetExpanded}

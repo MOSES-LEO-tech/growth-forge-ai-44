@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { formatNullable } from "@/lib/numeric";
 import {
   BookMarked,
   Calendar,
@@ -148,11 +149,11 @@ export function AcademicStructureWidget({
                   {classes.map((cls) => (
                     <div key={cls.id} className="flex items-center justify-between gap-2 rounded-lg border p-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <GraduationCap className="h-5 w-5 shrink-0 text-blue-500" />
+                        <GraduationCap className="h-5 w-5 shrink-0 text-info-ink" />
                         <div className="min-w-0">
                           <p className="truncate font-medium">{cls.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Grade {cls.grade || "—"} · {cls.student_count ?? 0} students · {cls.teacher_name || "Unassigned"}
+                            Grade {cls.grade || "—"} · {formatNullable(cls.student_count)} students · {cls.teacher_name || "Unassigned"}
                           </p>
                         </div>
                       </div>
@@ -178,7 +179,7 @@ export function AcademicStructureWidget({
                   {subjects.map((subject) => (
                     <div key={subject.id} className="flex items-center justify-between gap-2 rounded-lg border p-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <BookMarked className="h-5 w-5 shrink-0 text-green-500" />
+                        <BookMarked className="h-5 w-5 shrink-0 text-success-ink" />
                         <div className="min-w-0">
                           <p className="truncate font-medium">{subject.name}</p>
                           <p className="text-sm text-muted-foreground">{subject.code || "—"} · Grade {subject.grade || "—"}</p>
@@ -209,7 +210,7 @@ export function AcademicStructureWidget({
                         <Calendar className="h-5 w-5 shrink-0 text-muted-foreground" />
                         <div className="min-w-0">
                           <p className="truncate font-medium">
-                            {year.name} {year.is_active && <span className="ml-1 text-xs text-green-600">(Active)</span>}
+                            {year.name} {year.is_active && <span className="ml-1 text-xs text-success-ink">(Active)</span>}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {year.start_date || "—"} to {year.end_date || "—"}

@@ -90,13 +90,13 @@ export function RecommendationsWidget({ className, defaultExpanded }: Recommenda
         <div className="flex flex-col h-full gap-4">
             <div className="flex-1 flex flex-col items-center justify-center text-center p-2">
                 <Compass className="w-8 h-8 text-primary mb-2 opacity-80" />
-                <p className="text-sm font-medium">Get Suggestions</p>
+                <p className="text-sm font-medium">Suggested next steps</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                    {matches.length > 0 ? `${matches.length} fresh ideas for you` : "Unlock your next step"}
+                    {matches.length > 0 ? `${matches.length} suggestions from your work` : "Based on your profile and projects"}
                 </p>
             </div>
             <Button size="sm" variant="outline" className="w-full mt-auto" onClick={(e) => { e.stopPropagation(); generateRecommendations(); }}>
-                {loading ? "Thinking..." : "Generate"}
+                {loading ? "Finding..." : "Show suggestions"}
             </Button>
         </div>
     );
@@ -153,7 +153,7 @@ export function RecommendationsWidget({ className, defaultExpanded }: Recommenda
     return (
         <ExpandableWidget
             title="Recommendations"
-            icon={<Lightbulb className="w-5 h-5 text-yellow-500" />}
+            icon={<Lightbulb className="w-5 h-5 text-warning-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

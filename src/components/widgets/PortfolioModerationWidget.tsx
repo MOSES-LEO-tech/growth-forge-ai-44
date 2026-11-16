@@ -33,9 +33,9 @@ interface SchoolProject {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  approved: "bg-green-100 text-green-800 border-green-200",
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  rejected: "bg-red-100 text-red-800 border-red-200",
+  approved: "bg-success-soft text-success-ink border-success/30",
+  pending: "bg-warning-soft text-warning-ink border-warning/30",
+  rejected: "bg-destructive-soft text-destructive-ink border-destructive/30",
 };
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -221,10 +221,10 @@ export function PortfolioModerationWidget({
                     </Badge>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={busyId !== null} onClick={() => void approve(project)}>
+                    <Button size="sm" className="bg-success hover:bg-success" disabled={busyId !== null} onClick={() => void approve(project)}>
                       <Check className="mr-1.5 h-4 w-4" /> Approve
                     </Button>
-                    <Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" disabled={busyId !== null} onClick={() => { setRejectTarget(project); setReason(""); }}>
+                    <Button size="sm" variant="outline" className="border-destructive/30 text-destructive-ink hover:bg-destructive-soft" disabled={busyId !== null} onClick={() => { setRejectTarget(project); setReason(""); }}>
                       <X className="mr-1.5 h-4 w-4" /> Reject
                     </Button>
                     <Button size="sm" variant="ghost" aria-label="Delete" disabled={busyId !== null} onClick={() => void remove(project)}>

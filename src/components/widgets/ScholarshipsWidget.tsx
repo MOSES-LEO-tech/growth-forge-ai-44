@@ -6,9 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GraduationCap, ExternalLink, Sparkles } from "lucide-react";
+import { Calendar, GraduationCap, ExternalLink } from "lucide-react";
 import { ExpandableWidget } from "@/components/ExpandableWidget";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import OnlineDiscovery from "@/components/scholarships/OnlineDiscovery";
 
 interface ScholarshipsWidgetProps {
     className?: string;
@@ -30,6 +31,8 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
     const [browseAll, setBrowseAll] = useState<Scholarship[]>([]);
     const [view, setView] = useState<'matches' | 'browse'>('matches');
     const [loading, setLoading] = useState(false);
+    // Web search runs only after the student opens the widget — never on page load.
+    const [onlineReady, setOnlineReady] = useState(false);
 
     const getMatchColor = (score: string) => {
         switch (score) {
@@ -84,7 +87,9 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
 
     // Auto-load matches on first expand
     const onExpand = (expanded: boolean) => {
-        if (expanded && matches.length === 0 && !loading) {
+        if (!expanded) return;
+        setOnlineReady(true);
+        if (matches.length === 0 && !loading) {
             findMatches(false);
         }
     };
@@ -107,7 +112,7 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
                         </Badge>
                     )}
                     {scholarship.amount != null && scholarship.amount > 0 && (
-                        <Badge variant="outline" className="text-lg px-3 py-1 bg-green-50 text-green-700 border-green-200">
+                        <Badge variant="outline" className="text-lg px-3 py-1 bg-success-soft text-success-ink border-success/30">
                             ${scholarship.amount.toLocaleString()}
                         </Badge>
                     )}
@@ -151,7 +156,7 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
                     <h4 className="font-bold text-lg">{scholarship.title}</h4>
                 </div>
                 {scholarship.amount != null && scholarship.amount > 0 && (
-                    <Badge variant="outline" className="text-lg px-3 py-1 bg-green-50 text-green-700 border-green-200">
+                    <Badge variant="outline" className="text-lg px-3 py-1 bg-success-soft text-success-ink border-success/30">
                         ${scholarship.amount.toLocaleString()}
                     </Badge>
                 )}
@@ -188,8 +193,7 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
             <div className="flex justify-between items-center gap-4">
                 <div className="flex gap-2">
                     <Button size="sm" variant={view === 'matches' ? 'default' : 'outline'} onClick={() => setView('matches')}>
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        AI Matches
+                        Matches
                     </Button>
                     <Button size="sm" variant={view === 'browse' ? 'default' : 'outline'} onClick={() => { setView('browse'); loadBrowseAll(); }}>
                         Browse all
@@ -228,13 +232,14 @@ export function ScholarshipsWidget({ className, defaultExpanded }: ScholarshipsW
                     )
                 )}
             </ScrollArea>
+            <OnlineDiscovery enabled={onlineReady} />
         </div>
     );
 
     return (
         <ExpandableWidget
             title="Scholarships"
-            icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}
+            icon={<GraduationCap className="w-5 h-5 text-info-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

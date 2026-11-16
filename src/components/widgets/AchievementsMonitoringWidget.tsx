@@ -26,13 +26,11 @@ type AchievementItem = {
 
 const CATEGORY_OPTIONS = ["all", "academic", "sports", "leadership", "arts", "other"];
 
-const CATEGORY_COLORS: Record<string, string> = {
-    academic: "bg-blue-500/10 text-blue-700",
-    sports: "bg-emerald-500/10 text-emerald-700",
-    leadership: "bg-purple-500/10 text-purple-700",
-    arts: "bg-pink-500/10 text-pink-700",
-    other: "bg-muted text-muted-foreground",
-};
+/*
+ * Categories are labels, not states: they all share one neutral chip so hue
+ * keeps meaning status (approved / awaiting / rejected) rather than decoration.
+ */
+const CATEGORY_CHIP = "bg-muted text-muted-foreground border-border";
 
 export function AchievementsMonitoringWidget({ className, defaultExpanded, childId }: AchievementsMonitoringWidgetProps) {
     const [achievements, setAchievements] = useState<AchievementItem[]>([]);
@@ -65,12 +63,12 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
             {loading ? <Skeleton className="h-16 w-full" /> : error ? <p className="text-sm text-destructive">{error}</p> : (
                 <>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-amber-500/10 text-center">
-                            <div className="text-xl font-bold text-amber-600">{achievements.length}</div>
+                        <div className="p-3 rounded-lg bg-warning/10 text-center">
+                            <div className="text-xl font-bold text-warning-ink">{achievements.length}</div>
                             <div className="text-xs text-muted-foreground">Total</div>
                         </div>
-                        <div className="p-3 rounded-lg bg-emerald-500/10 text-center">
-                            <div className="text-xl font-bold text-emerald-600">{verified.length}</div>
+                        <div className="p-3 rounded-lg bg-success/10 text-center">
+                            <div className="text-xl font-bold text-success-ink">{verified.length}</div>
                             <div className="text-xs text-muted-foreground">Verified</div>
                         </div>
                     </div>
@@ -140,10 +138,10 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
                                             <div className="flex gap-1 flex-shrink-0">
                                                 {achievement.verified && (
                                                     <Badge variant="secondary" className="text-[10px] h-5">
-                                                        <CheckCircle className="w-3 h-3 mr-1 text-emerald-500" />Verified
+                                                        <CheckCircle className="w-3 h-3 mr-1 text-success-ink" />Verified
                                                     </Badge>
                                                 )}
-                                                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${CATEGORY_COLORS[achievement.category] || CATEGORY_COLORS.other}`}>
+                                                <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${CATEGORY_CHIP}`}>
                                                     {achievement.category}
                                                 </span>
                                             </div>
@@ -170,7 +168,7 @@ export function AchievementsMonitoringWidget({ className, defaultExpanded, child
     return (
         <ExpandableWidget
             title="Achievements"
-            icon={<Award className="w-5 h-5 text-amber-500" />}
+            icon={<Award className="w-5 h-5 text-warning-ink" />}
             className={className}
             defaultExpanded={defaultExpanded}
             expandedContent={<ExpandedContent />}

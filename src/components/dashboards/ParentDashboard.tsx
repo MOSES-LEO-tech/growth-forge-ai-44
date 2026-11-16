@@ -153,7 +153,7 @@ export function ParentDashboard({ profile }: { profile?: any }) {
                 <DropdownMenuItem
                   key={child.id}
                   onClick={() => setSelectedChild(child)}
-                  className={`flex items-center gap-3 ${selectedChild.id === child.id ? 'bg-accent text-accent-foreground' : ''}`}
+                  className={`flex items-center gap-3 ${selectedChild.id === child.id ? 'bg-muted font-medium text-foreground' : ''}`}
                 >
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={child.avatar_url ?? undefined} />

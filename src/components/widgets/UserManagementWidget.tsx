@@ -131,7 +131,7 @@ export function UserManagementWidget({ className = "", defaultExpanded = false, 
                           <Button size="sm" variant="ghost">
                             <UserCog className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-red-500">
+                          <Button size="sm" variant="ghost" className="text-destructive-ink">
                             <UserX className="h-4 w-4" />
                           </Button>
                         </div>
@@ -158,7 +158,7 @@ export function UserManagementWidget({ className = "", defaultExpanded = false, 
                           <Button size="sm" variant="ghost">
                             <UserCog className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-red-500">
+                          <Button size="sm" variant="ghost" className="text-destructive-ink">
                             <UserX className="h-4 w-4" />
                           </Button>
                         </div>
@@ -185,7 +185,7 @@ export function UserManagementWidget({ className = "", defaultExpanded = false, 
                           <Button size="sm" variant="ghost">
                             <UserCog className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-red-500">
+                          <Button size="sm" variant="ghost" className="text-destructive-ink">
                             <UserX className="h-4 w-4" />
                           </Button>
                         </div>
