@@ -1,15 +1,25 @@
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Children this parent holds an ACTIVE link to.
+ *
+ * Reads parent_student_links (the consent model), not the retired
+ * parent_child_links table. Profile rows are readable because the
+ * parent_reads_linked_child_profile policy grants an active parent the child's
+ * profile — without it this function found the link, joined nothing, and the
+ * dashboard claimed "No children linked yet" while the link existed.
+ */
 export const getChildren = async (parentId: string) => {
   const { data: links, error: linkError } = await supabase
-    .from('parent_child_links')
-    .select('child_id')
-    .eq('parent_id', parentId);
+    .from('parent_student_links')
+    .select('student_id')
+    .eq('parent_id', parentId)
+    .eq('state', 'active');
 
   if (linkError) throw linkError;
 
   const childIds = (links || [])
-    .map(link => link.child_id)
+    .map(link => link.student_id)
     .filter((id): id is string => Boolean(id));
 
   if (childIds.length === 0) return [];

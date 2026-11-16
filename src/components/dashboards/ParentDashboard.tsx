@@ -115,9 +115,9 @@ export function ParentDashboard({ profile }: { profile?: any }) {
         </div>
         <h2 className="text-xl font-semibold">No children linked yet</h2>
         <p className="text-muted-foreground max-w-sm">
-          Your account has no student accounts linked to it. Ask your child's school administrator to create a parent–student link, or have your child link your account from their profile settings.
+          No student account is linked to yours yet. Request a link with your child&apos;s email, then ask
+          them to accept it.
         </p>
-        <Badge variant="outline">Error Code: PARENT_CHILD_NOT_LINKED</Badge>
       </div>
     );
   }

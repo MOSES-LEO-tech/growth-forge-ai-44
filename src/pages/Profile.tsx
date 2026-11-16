@@ -103,8 +103,14 @@ const Profile = () => {
         }
         setSaving(true);
         try {
-            await linkParent(user.id, parentEmail);
-            toast({ title: "Success", description: "Link created with parent" });
+            const result = await linkParent(user.id, parentEmail);
+            toast({
+                title: result?.status === "already_exists" ? "Already requested" : "Request sent",
+                description:
+                    result?.status === "already_exists"
+                        ? "There is already a link or pending request with this parent."
+                        : "Your parent needs to accept the request before they can see your portfolio.",
+            });
             setParentEmail('');
             setParentEmailTouched(false);
         } catch (error: any) {

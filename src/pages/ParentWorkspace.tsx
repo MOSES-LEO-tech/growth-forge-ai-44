@@ -154,13 +154,9 @@ const ParentWorkspace = () => {
               </div>
               <h2 className="text-xl font-semibold">No children linked yet</h2>
               <p className="max-w-md text-sm text-muted-foreground">
-                Ask your child to link you from their profile, or ask their school admin to create the
-                parent–student link. You can also add a child from Settings.
+                Enter your child&apos;s email in the <strong>Your children</strong> panel below. They will be
+                asked to accept — unless they are a minor, in which case the link is active immediately.
               </p>
-              <Button asChild size="sm">
-                <Link to="/settings">Link a child</Link>
-              </Button>
-              <Badge variant="outline">PARENT_CHILD_NOT_LINKED</Badge>
             </CardContent>
           </Card>
         ) : (

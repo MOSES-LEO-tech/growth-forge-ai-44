@@ -48,24 +48,20 @@ export const uploadAvatar = async (userId: string, file: File) => {
   return (profile && profile.length > 0) ? profile[0] as Profile : null;
 };
 
-export const linkParent = async (studentId: string, parentEmail: string) => {
-  // 1. Find parent by email
-  const { data: parent, error: parentError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', parentEmail)
-    .eq('role', 'parent')
-    .single();
+/**
+ * Student invites a parent.
+ *
+ * Writes through invite_parent_link() instead of inserting into the retired
+ * parent_child_links table: a link a browser can create is not consent, so the
+ * parent must accept it (or the guardian rule applies for a minor).
+ *
+ * `studentId` is kept for call-site compatibility; the RPC acts as auth.uid().
+ */
+export const linkParent = async (_studentId: string, parentEmail: string) => {
+  const { data, error } = await supabase.rpc('invite_parent_link', {
+    p_parent_email: parentEmail.trim(),
+  });
 
-  if (parentError) throw new Error('Parent not found with this email');
-
-  // 2. Create link
-  const { error: linkError } = await supabase
-    .from('parent_child_links')
-    .insert({
-      parent_id: parent.id,
-      child_id: studentId
-    });
-
-  if (linkError) throw linkError;
+  if (error) throw error;
+  return data as { status: string; link_id?: string };
 };
