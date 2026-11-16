@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ParentLinkPanel } from "@/components/links/ParentLinkPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +23,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DashboardHeader from "@/components/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getChildren } from "@/lib/supabase/parent";
@@ -31,6 +31,7 @@ import { ProjectsMonitoringWidget } from "@/components/widgets/ProjectsMonitorin
 import { AchievementsMonitoringWidget } from "@/components/widgets/AchievementsMonitoringWidget";
 import { AIGuidanceWidget } from "@/components/widgets/AIGuidanceWidget";
 import { NotificationsWidget } from "@/components/widgets/NotificationsWidget";
+import Navbar from "@/components/Navbar";
 
 type LinkedChild = {
   id: string;
@@ -83,8 +84,8 @@ const ParentWorkspace = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
-      <main id="main-content" role="main" className="container mx-auto px-4 py-8">
+      <Navbar />
+      <main id="main-content" role="main" className="container mx-auto px-4 app-main">
         <section className="dashboard-hero flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="editorial-kicker mb-2">Parent workspace</p>
@@ -231,6 +232,9 @@ const ParentWorkspace = () => {
             </>
           )
         )}
+        <div className="mt-6">
+          <ParentLinkPanel viewer="parent" />
+        </div>
       </main>
     </div>
   );

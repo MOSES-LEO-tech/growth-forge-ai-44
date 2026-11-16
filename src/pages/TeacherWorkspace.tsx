@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { ClipboardCheck, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DashboardHeader from "@/components/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { PendingApprovalsWidget } from "@/components/widgets/PendingApprovalsWidget";
 import { TeacherStatsWidget } from "@/components/widgets/TeacherStatsWidget";
 import { StudentDirectoryWidget } from "@/components/widgets/StudentDirectoryWidget";
 import { NotificationsWidget } from "@/components/widgets/NotificationsWidget";
+import Navbar from "@/components/Navbar";
 
 const TeacherWorkspace = () => {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -25,8 +25,8 @@ const TeacherWorkspace = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
-      <main id="main-content" role="main" className="container mx-auto px-4 py-8">
+      <Navbar />
+      <main id="main-content" role="main" className="container mx-auto px-4 app-main">
         <section className="dashboard-hero flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="editorial-kicker mb-2">Teacher workspace</p>

@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import DashboardHeader from "@/components/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { MessagingWidget } from "@/components/widgets/MessagingWidget";
+import Navbar from "@/components/Navbar";
 
 const ParentMessages = () => {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -16,8 +16,8 @@ const ParentMessages = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
-      <main id="main-content" role="main" className="container mx-auto px-4 py-8">
+      <Navbar />
+      <main id="main-content" role="main" className="container mx-auto px-4 app-main">
         <section className="dashboard-hero">
           <p className="editorial-kicker mb-2">Messages</p>
           <h1 className="text-2xl md:text-3xl">Conversations</h1>

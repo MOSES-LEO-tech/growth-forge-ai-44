@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardHeader from "@/components/DashboardHeader";
+import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,12 +28,8 @@ const AdminShell = ({ children }: AdminShellProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader
-        profile={profile}
-        onSignOut={handleSignOut}
-        onProfileUpdated={refreshProfile}
-      />
+    <div className="min-h-screen bg-background pt-16">
+      <Navbar />
       <main id="main-content" role="main">
         {children}
       </main>

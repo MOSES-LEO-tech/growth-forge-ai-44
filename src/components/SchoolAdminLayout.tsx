@@ -4,13 +4,14 @@ import {
   BookOpen,
   ExternalLink,
   FileText,
+  GraduationCap,
   LayoutDashboard,
   Megaphone,
   Settings,
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import DashboardHeader from "@/components/DashboardHeader";
+import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { ReactNode } from "react";
@@ -22,6 +23,7 @@ export const SCHOOL_ADMIN_SECTIONS = [
   { label: "Academic", to: "/admin/academic", icon: BookOpen },
   { label: "Moderation", to: "/admin/moderation", icon: ShieldCheck },
   { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
+  { label: "Scholarships", to: "/admin/scholarships", icon: GraduationCap },
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ] as const;
 
@@ -54,14 +56,11 @@ const SchoolAdminLayout = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <div className="editorial min-h-screen bg-background">
-      <DashboardHeader
-        profile={profile}
-        onSignOut={handleSignOut}
-        onProfileUpdated={refreshProfile}
-      />
+    <div className="editorial min-h-screen bg-background pt-16">
+      {/* Single brand + account bar; the section nav below is admin navigation. */}
+      <Navbar />
 
-      {/* Top section navigation — replaces the old side menu */}
+      {/* Top section navigation */}
       <nav
         aria-label="School admin"
         className="sticky top-16 z-40 border-b border-border bg-background"

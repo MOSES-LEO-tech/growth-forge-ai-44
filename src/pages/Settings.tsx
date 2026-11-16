@@ -26,14 +26,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeProvider";
-import DashboardHeader from "@/components/DashboardHeader";
 import RoleOnboardingWizard from "@/components/RoleOnboardingWizard";
 import { SchoolAccessWidget } from "@/components/widgets/SchoolAccessWidget";
 import { SchoolSettingsWidget } from "@/components/widgets/SchoolSettingsWidget";
+import SchoolMediaManager from "@/components/admin/SchoolMediaManager";
 import { updateProfile, uploadAvatar } from "@/lib/supabase/profile";
 import { COLOR_THEMES, MODE_OPTIONS } from "@/lib/theme-options";
 import { EDUCATION_SYSTEMS, GRADE_OPTIONS } from "@/lib/onboarding";
 import type { Profile } from "@/integrations/supabase/types";
+import Navbar from "@/components/Navbar";
 
 const TIMEZONES = [
   "UTC",
@@ -227,8 +228,8 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader profile={profile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
-      <main id="main-content" role="main" className="container mx-auto px-4 py-8">
+      <Navbar />
+      <main id="main-content" role="main" className="container mx-auto px-4 app-main">
         <section className="dashboard-hero flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="editorial-kicker mb-2">Settings</p>
@@ -459,6 +460,11 @@ const Settings = () => {
             <div className="grid gap-4 xl:grid-cols-2">
               <SchoolAccessWidget defaultExpanded schoolId={profile.school_id} canManage={isAdmin} />
               {isAdmin && <SchoolSettingsWidget defaultExpanded schoolId={profile.school_id} />}
+              {isAdmin && (
+                <div className="xl:col-span-2">
+                  <SchoolMediaManager schoolId={profile.school_id ?? null} />
+                </div>
+              )}
               {!isAdmin && (
                 <Card>
                   <CardHeader>

@@ -6,7 +6,6 @@ import { DashboardProvider, useDashboard } from "@/contexts/DashboardContext";
 import StudentDashboard from "@/components/dashboards/StudentDashboard";
 import SchoolAdminDashboard from "@/components/dashboards/SchoolAdminDashboard";
 import SuperAdminDashboard from "@/components/dashboards/SuperAdminDashboard";
-import DashboardHeader from "@/components/DashboardHeader";
 import { QuickActions } from "@/components/QuickActions";
 import RoleOnboardingWizard from "@/components/RoleOnboardingWizard";
 import { needsOnboarding } from "@/lib/onboarding";
@@ -15,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ShieldCheck } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 const Dashboard = () => {
   const { user, profile: authProfile, isLoading: authLoading, signOut, refreshProfile } = useAuth();
@@ -118,9 +118,9 @@ const Dashboard = () => {
   return (
     <DashboardProvider>
       <div className="min-h-screen bg-background">
-        <DashboardHeader profile={dashboardProfile} onSignOut={handleSignOut} onProfileUpdated={refreshProfile} />
+        <Navbar />
 
-        <main id="main-content" role="main">
+        <main id="main-content" role="main" className="app-main">
           {needsOnboarding(dashboardProfile) && !showOnboarding && (
             <div className="container mx-auto mt-4 px-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm">
