@@ -206,7 +206,10 @@ serve(async (req) => {
       case "scholarships": {
         let query = supabase
           .from("scholarships")
-          .select("id,title,amount,deadline,requirements,school_id,created_at", { count: "exact" });
+          .select("id,title,amount,deadline,requirements,school_id,created_at", { count: "exact" })
+          // This client uses the service role, which bypasses RLS — the
+          // published filter has to be explicit here or drafts leak publicly.
+          .eq("status", "published");
 
         if (search) query = query.or(`title.ilike.%${search}%,requirements.ilike.%${search}%`);
 
@@ -222,6 +225,7 @@ serve(async (req) => {
           .from("scholarships")
           .select("id,title,amount,deadline,requirements,school_id,created_at")
           .eq("id", id)
+          .eq("status", "published")
           .maybeSingle();
 
         if (error) throw error;

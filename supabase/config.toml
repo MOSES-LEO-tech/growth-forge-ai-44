@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.public-data]
 verify_jwt = false
+
+[functions.discover-scholarships]
+verify_jwt = true
