@@ -690,6 +690,29 @@ export type Database = {
           requirements: string | null
           school_id: string | null
           created_at: string
+          provider_name: string | null
+          provider_contact: string | null
+          category: string
+          description: string | null
+          award_min: number | null
+          award_max: number | null
+          currency: string
+          award_type: string | null
+          application_mode: string
+          application_url: string | null
+          eligibility_rules: Record<string, unknown>
+          steps: unknown[]
+          renewal_terms: string | null
+          opens_at: string | null
+          closes_at: string | null
+          decision_by: string | null
+          source_url: string | null
+          verified_at: string | null
+          verified_by: string | null
+          status: string
+          version: number
+          created_by: string | null
+          updated_by: string | null
         }
         Insert: {
           id?: string
@@ -699,6 +722,29 @@ export type Database = {
           requirements?: string | null
           school_id?: string | null
           created_at?: string
+          provider_name?: string | null
+          provider_contact?: string | null
+          category?: string
+          description?: string | null
+          award_min?: number | null
+          award_max?: number | null
+          currency?: string
+          award_type?: string | null
+          application_mode?: string
+          application_url?: string | null
+          eligibility_rules?: Record<string, unknown>
+          steps?: unknown[]
+          renewal_terms?: string | null
+          opens_at?: string | null
+          closes_at?: string | null
+          decision_by?: string | null
+          source_url?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          status?: string
+          version?: number
+          created_by?: string | null
+          updated_by?: string | null
         }
         Update: {
           id?: string
@@ -707,6 +753,164 @@ export type Database = {
           deadline?: string | null
           requirements?: string | null
           school_id?: string | null
+          created_at?: string
+          provider_name?: string | null
+          provider_contact?: string | null
+          category?: string
+          description?: string | null
+          award_min?: number | null
+          award_max?: number | null
+          currency?: string
+          award_type?: string | null
+          application_mode?: string
+          application_url?: string | null
+          eligibility_rules?: Record<string, unknown>
+          steps?: unknown[]
+          renewal_terms?: string | null
+          opens_at?: string | null
+          closes_at?: string | null
+          decision_by?: string | null
+          source_url?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          status?: string
+          version?: number
+          created_by?: string | null
+          updated_by?: string | null
+        }
+      }
+      scholarship_candidates: {
+        Relationships: []
+        Row: {
+          id: string
+          url: string
+          url_normalized: string
+          title: string
+          domain: string
+          snippet: string | null
+          query: string | null
+          score: number
+          status: string
+          hits: number
+          flagged_reason: string | null
+          promoted_scholarship_id: string | null
+          first_seen_at: string
+          last_seen_at: string
+        }
+        Insert: {
+          id?: string
+          url: string
+          url_normalized: string
+          title: string
+          domain: string
+          snippet?: string | null
+          query?: string | null
+          score?: number
+          status?: string
+          hits?: number
+          flagged_reason?: string | null
+          promoted_scholarship_id?: string | null
+          first_seen_at?: string
+          last_seen_at?: string
+        }
+        Update: {
+          id?: string
+          url?: string
+          url_normalized?: string
+          title?: string
+          domain?: string
+          snippet?: string | null
+          query?: string | null
+          score?: number
+          status?: string
+          hits?: number
+          flagged_reason?: string | null
+          promoted_scholarship_id?: string | null
+          first_seen_at?: string
+          last_seen_at?: string
+        }
+      }
+      scholarship_requirements: {
+        Relationships: []
+        Row: {
+          id: string
+          scholarship_id: string
+          key: string
+          label: string
+          why: string | null
+          example: string | null
+          doc_type: string
+          required: boolean
+          applies_when: Record<string, unknown>
+          max_files: number
+          sensitivity: string
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          scholarship_id: string
+          key: string
+          label: string
+          why?: string | null
+          example?: string | null
+          doc_type?: string
+          required?: boolean
+          applies_when?: Record<string, unknown>
+          max_files?: number
+          sensitivity?: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          scholarship_id?: string
+          key?: string
+          label?: string
+          why?: string | null
+          example?: string | null
+          doc_type?: string
+          required?: boolean
+          applies_when?: Record<string, unknown>
+          max_files?: number
+          sensitivity?: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      catalog_events: {
+        Relationships: []
+        Row: {
+          id: string
+          scholarship_id: string | null
+          actor_id: string | null
+          action: string
+          field: string | null
+          before: Record<string, unknown> | null
+          after: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          scholarship_id?: string | null
+          actor_id?: string | null
+          action: string
+          field?: string | null
+          before?: Record<string, unknown> | null
+          after?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          scholarship_id?: string | null
+          actor_id?: string | null
+          action?: string
+          field?: string | null
+          before?: Record<string, unknown> | null
+          after?: Record<string, unknown> | null
           created_at?: string
         }
       }
@@ -1455,6 +1659,121 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_overview: {
+        Args: Record<string, never>
+        Returns: {
+          students: number
+          pending_projects: number
+          approved_projects: number
+          pending_achievements: number
+          verified_achievements: number
+        }
+      }
+      public_showcase: {
+        Args: { p_limit?: number }
+        Returns: {
+          schools: Array<{
+            id: string
+            name: string
+            location: string | null
+            country: string | null
+            logo_url: string | null
+            student_count: number
+          }>
+          projects: Array<{
+            id: string
+            title: string
+            description: string | null
+            tags: string[] | null
+            updated_at: string | null
+            school_name: string | null
+            student: string
+          }>
+          awards: Array<{
+            id: string
+            title: string
+            category: string | null
+            date_earned: string | null
+            school_name: string | null
+            student: string
+          }>
+        }
+      }
+      mask_student_name: {
+        Args: { p_full: string }
+        Returns: string
+      }
+      track_event: {
+        Args: { p_name: string; p_props?: Record<string, unknown> }
+        Returns: undefined
+      }
+      support_find_account: {
+        Args: { p_email: string }
+        Returns: Array<{
+          user_id: string
+          full_name: string | null
+          email: string | null
+          role: string
+          account_status: string
+          school_name: string | null
+          created_at: string
+          onboarding_completed_at: string | null
+        }>
+      }
+      support_reset_onboarding: {
+        Args: { p_user_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      my_parent_links: {
+        Args: Record<string, never>
+        Returns: Array<{
+          link_id: string
+          direction: string
+          counterparty_id: string
+          counterparty_name: string | null
+          counterparty_email: string | null
+          state: string
+          initiated_by_me: boolean
+          can_accept: boolean
+          can_revoke: boolean
+          reason: string | null
+          expires_at: string | null
+          updated_at: string
+        }>
+      }
+      request_parent_link: {
+        Args: { p_student_email: string }
+        Returns: { status: string; link_id?: string; minor_auto_activated?: boolean }
+      }
+      invite_parent_link: {
+        Args: { p_parent_email: string }
+        Returns: { status: string; link_id?: string }
+      }
+      accept_parent_link: {
+        Args: { p_link_id: string }
+        Returns: { status: string; link_id: string }
+      }
+      decline_parent_link: {
+        Args: { p_link_id: string; p_reason?: string }
+        Returns: { status: string; link_id: string }
+      }
+      revoke_parent_link: {
+        Args: { p_link_id: string; p_reason?: string }
+        Returns: { status: string; link_id: string }
+      }
+      school_pending_students: {
+        Args: { p_school_id: string }
+        Returns: Array<{
+          full_name: string
+          grade_level: string | null
+          requested_at: string
+          request_id: string
+        }>
+      }
+      log_sensitive_read: {
+        Args: { p_entity_type: string; p_entity_id: string; p_reason?: string }
+        Returns: undefined
+      }
       link_parent_to_student_by_email: {
         Args: { p_student_email: string }
         Returns: {

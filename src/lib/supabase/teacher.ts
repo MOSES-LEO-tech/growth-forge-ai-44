@@ -43,23 +43,35 @@ export const getTeacherAnalytics = async (teacherId: string) => {
     };
   }
 
-  // 3. Get pending counts and activity
+  // 3. Get pending counts, workload shape and activity
   const [
     { count: pendingProjects, error: projectsError },
     { count: pendingAchievements, error: achievementsError },
     { data: recentProjects, error: recentProjectsError },
-    { data: recentAchievements, error: recentAchievementsError }
+    { data: recentAchievements, error: recentAchievementsError },
+    { data: classRows, error: classRowsError },
+    { count: totalProjects, error: totalProjectsError },
+    { count: completedProjects, error: completedProjectsError }
   ] = await Promise.all([
     supabase.from('projects').select('*', { count: 'exact', head: true }).in('owner_id', studentIds).eq('status', 'pending'),
     supabase.from('achievements').select('*', { count: 'exact', head: true }).in('user_id', studentIds).eq('verified', false),
     supabase.from('projects').select('id, title, created_at, owner_id, profiles(full_name)').in('owner_id', studentIds).order('created_at', { ascending: false }).limit(5),
-    supabase.from('achievements').select('id, title, created_at, user_id, profiles(full_name)').in('user_id', studentIds).order('created_at', { ascending: false }).limit(5)
+    supabase.from('achievements').select('id, title, created_at, user_id, profiles(full_name)').in('user_id', studentIds).order('created_at', { ascending: false }).limit(5),
+    // Real class count: distinct class_name across the school's students.
+    supabase.from('profiles').select('class_name').in('id', studentIds).not('class_name', 'is', null),
+    // Completion rate is derived from projects, not invented.
+    supabase.from('projects').select('id', { count: 'exact', head: true }).in('owner_id', studentIds).is('deleted_at', null),
+    supabase.from('projects').select('id', { count: 'exact', head: true }).in('owner_id', studentIds).is('deleted_at', null)
+      .in('status', ['complete', 'completed', 'done'])
   ]);
 
   if (projectsError) throw projectsError;
   if (achievementsError) throw achievementsError;
   if (recentProjectsError) throw recentProjectsError;
   if (recentAchievementsError) throw recentAchievementsError;
+  if (classRowsError) throw classRowsError;
+  if (totalProjectsError) throw totalProjectsError;
+  if (completedProjectsError) throw completedProjectsError;
 
   // 4. Combine and format recent activity
   const activity = [
@@ -79,12 +91,22 @@ export const getTeacherAnalytics = async (teacherId: string) => {
     }))
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
 
+  // Real workload numbers: distinct classes present in this school's student
+  // profiles, and the share of their (non-deleted) projects marked complete.
+  const distinctClasses = new Set(
+    (classRows || [])
+      .map(row => (row.class_name || '').trim())
+      .filter(Boolean)
+  );
+
   return {
     totalStudents: studentIds.length,
-    totalClasses: 1, // Mocked for now
+    totalClasses: distinctClasses.size,
     pendingProjects: pendingProjects || 0,
     pendingAchievements: pendingAchievements || 0,
-    averageCompletionRate: 75, // Mocked for now
+    averageCompletionRate: totalProjects
+      ? Math.round(((completedProjects || 0) / totalProjects) * 100)
+      : 0,
     recentActivity: activity
   };
 };

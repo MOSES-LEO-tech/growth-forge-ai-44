@@ -1,16 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { SchoolGalleryMedia } from "@/integrations/supabase/types";
+import { SCHOOL_ASSETS_BUCKET, storagePathFromPublicUrl } from "@/lib/storagePath";
 
 export type SchoolGalleryMediaType = "image" | "video";
 
-const SCHOOL_ASSETS_BUCKET = "school-assets";
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 const mediaTypeOf = (file: File): SchoolGalleryMediaType =>
   file.type.startsWith("video/") ? "video" : "image";
 
-const buildAssetPath = (schoolId: string, folder: "hero" | "gallery", file: File) => {
+const buildAssetPath = (schoolId: string, folder: "hero" | "gallery" | "logo", file: File) => {
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
   const safeName =
     file.name
@@ -27,7 +27,7 @@ const buildAssetPath = (schoolId: string, folder: "hero" | "gallery", file: File
 export const uploadSchoolMedia = async (
   schoolId: string,
   file: File,
-  folder: "hero" | "gallery"
+  folder: "hero" | "gallery" | "logo"
 ): Promise<{ url: string; mediaType: SchoolGalleryMediaType }> => {
   const mediaType = mediaTypeOf(file);
   const maxBytes = mediaType === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
@@ -107,6 +107,22 @@ export const removeSchoolGalleryMedia = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
+/**
+ * Delete the stored file behind a public asset URL.
+ *
+ * Best-effort by design: if the object is already gone (or was never ours, e.g.
+ * an external link), the caller still removes the database row. Returns true
+ * when a file was actually deleted.
+ */
+export const deleteSchoolMediaObject = async (publicUrl: string | null | undefined): Promise<boolean> => {
+  const path = storagePathFromPublicUrl(publicUrl);
+  if (!path) return false;
+
+  const { error } = await supabase.storage.from(SCHOOL_ASSETS_BUCKET).remove([path]);
+  if (error) throw error;
+  return true;
+};
+
 /** Persist the new ordering by rewriting sort_order for each id in sequence. */
 export const reorderSchoolGalleryMedia = async (orderedIds: string[]): Promise<void> => {
   await Promise.all(
@@ -132,4 +148,22 @@ export const saveSchoolHero = async (schoolId: string, patch: SchoolHeroInput): 
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", schoolId);
   if (error) throw error;
+};
+
+/**
+ * Write the badge URL for a school.
+ *
+ * Uses `.select()` to prove the row was actually changed: an RLS-filtered update
+ * returns no error and zero rows, which used to look like a silent success.
+ */
+export const saveSchoolBadge = async (schoolId: string, logoUrl: string | null): Promise<void> => {
+  const { data, error } = await supabase
+    .from("schools")
+    .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
+    .eq("id", schoolId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("Only an approved admin of this school can change its badge.");
 };

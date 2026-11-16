@@ -149,7 +149,6 @@ export const getProjectDetails = async (id: string) => {
       reviewer_name: (c.profiles as any)?.full_name || 'Unknown',
       reviewer_avatar: (c.profiles as any)?.avatar_url,
       comment: c.content,
-      rating: 5, // Mocked rating
       created_at: c.created_at
     })),
     media: await buildProjectMedia(data.media_urls)
