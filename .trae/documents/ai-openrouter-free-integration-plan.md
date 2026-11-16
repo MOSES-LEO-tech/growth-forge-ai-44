@@ -117,7 +117,7 @@ Single Deno helper replacing all per-function provider fetch logic:
 
 ### 4.8 Secrets / env (no secrets in source files)
 
-- Remote (user or CLI, after this plan is approved): `supabase secrets set OPENROUTER_API_KEY=<user-provided> TAVILY_API_KEY=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`
+- Remote (user or CLI, after this plan is approved): `supabase secrets set OPENROUTER_API_KEY=<user-provided> TAVILY_API_KEY=<set-via-supabase-secrets-set>`
 - Local dev: add both keys to `.env` (gitignored — verified only Supabase keys live there today).
 - **No API key will ever be written to a tracked file, `llm_config`, or any function source.**
 

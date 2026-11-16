@@ -249,6 +249,34 @@
   - Mobile 375×667 (genuine via `playwright_resize`; `navigate`'s width/height were ignored): /gallery/personal ✓, /profile ✓, /buddy ✗ → **fixed header overflow** (persona Select + 3 action buttons = 324 px fixed row) via `flex-wrap` + `w-full sm:w-auto` + `w-full sm:w-[180px]` select. After fix: scrollWidth = 375, zero overflowing elements, desktop select back to 180 px.
   - Dark mode: html `dark`, body `#12171c`, nav matches body, h1/input light text (rgb(239,236,230)) — contrast OK, no overflow on /buddy + /profile.
 
+## Vercel Production Deployment & Verification (2026-08-31, 8-step checklist)
+
+| Step | Item | Result | Notes |
+| ---- | ---- | ------ | ----- |
+| 1 | Config compliance (`vercel.json`, `package.json`, `vite.config.ts`) | passed | SPA rewrite `/(.*)` → `/index.html`; `/assets/*` immutable cache; `/sw.js` no-cache; build `vite build`; Vercel auto-detects framework preset (Vite). PWA `registerSW` unconditional → CI/PWA gate removed earlier (`d3c7f86`). |
+| 2 | Deps + local build (`CI=true npm run build`) | passed | Produced `index-DHnGPJmB.js` with `https://tobclczszdikmgvkvngf.supabase.co` inlined; no `placeholder.supabase` literal. |
+| 3 | Production env vars | fixed in code | Root cause: Vercel project env `VITE_SUPABASE_URL` contained a **publishable key** (`sb_publishable_…`) → `new URL()` threw → app crashed with `Invalid supabaseUrl`. Old `\|\|` fallback only triggered on empty values, never on non-empty invalid ones. Fix (`14e5102`): `resolveSupabaseUrl()` validates via `new URL()` and falls back to hardcoded `DEFAULT_SUPABASE_URL`; `.vercelignore` now excludes `.env*`. ⚠️ Recommend deleting the bogus `VITE_SUPABASE_URL` var in the Vercel dashboard for hygiene (harmless now). |
+| 4 | Repo link + main-branch production rules | already connected | Git integration exists (GitHub `MOSES-LEO-tech/growth-forge-ai-44`, branch `main`). Git pushes create previews on protected team-scoped URLs; they do **not** auto-promote the production alias — production promotion handled via `vercel alias set` (step 5). |
+| 5 | Deploy + monitor | passed | CLI login completed (`vercel login` device flow, token valid). Deployments: `dpl_9MemL1zTCbx7V8U6Jng1wDsffdfw` (commit `14e5102`, "fix: fall back to valid Supabase URL when env injects invalid value") → URL `growth-forge-ai-44-5n47t7vo9-moses-leo-techs-projects.vercel.app`. Production alias `growth-forge-ai-44.vercel.app` re-pointed to it via `vercel alias set`. `deploy_to_remote` (integrated_web-dev) was confirmed to produce stale aliases — CLI alias reassignment required. |
+| 6 | Verify production | passed | Landing renders ("Growth Forge AI — Track. Build. Unlock."). Served bundle is **`index--7qlQDeH.js`** (contains correct Supabase URL, no `sb_publishable_` literal). `/auth` login with `admin.qa+20260821@example.com` / `QaAdmin!2026` → `/admin/overview` loads "QA Demo School" workspace (5 published; Overview/Content/Announcements/Academic/Moderation/Analytics tabs). PWA: cleared service worker caches + unregistered SW to bypass stale-bundle caching; only stale `index-TWnJZRVR.js` console entries from earlier loads, none from the fixed bundle. |
+| 7 | Custom domain | skipped by user | Default `growth-forge-ai-44.vercel.app` + automatic HTTPS/SSL retained. |
+| 8 | This report | done | See below. |
+
+### Deployment record
+
+- **Deployment ID:** `dpl_9MemL1zTCbx7V8U6Jng1wDsffdfw`
+- **Commit:** `14e5102` (`main`, pushed to `origin/main`)
+- **Bundle:** `assets/index--7qlQDeH.js`
+- **URL:** `https://growth-forge-ai-44.vercel.app/` (alias → `growth-forge-ai-44-5n47t7vo9-moses-leo-techs-projects.vercel.app`)
+- **Project:** `prj_v06J2jgeJpTAYyMHVXDEoQcUgDOv` · Team `moses-leo-techs-projects`
+- **Verified:** landing 200, login 200, school admin dashboard loads; Supabase URL correct in bundle.
+
+### Follow-ups (non-blocking)
+
+1. Delete/repair `VITE_SUPABASE_URL` (and any `VITE_SUPABASE_PUBLISHABLE_KEY`) in Vercel dashboard env so the project env reflects real values.
+2. Git-connected pushes deploy to protected preview URLs behind deployment protection; to promote a new push to the production alias, either set the git production branch correctly or re-run `vercel alias set <deployment-url> growth-forge-ai-44.vercel.app`.
+3. Vercel CLI auth token (`auth.json` in `.vercel/xdg`) expires 2026-08-29 (~`expiresAt 1788193133`) — re-login via device flow before then for future CLI deploys.
+
 ## Assumptions
 
 1. Super admin promotion is an operator action — flagged in seed migration comment.
