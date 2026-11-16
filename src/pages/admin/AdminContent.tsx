@@ -78,10 +78,10 @@ import {
 type CmsStatus = "draft" | "pending_review" | "published" | "rejected";
 
 const STATUS_STYLES: Record<CmsStatus, string> = {
-  draft: "bg-slate-100 text-slate-700 border-slate-200",
-  pending_review: "bg-amber-100 text-amber-700 border-amber-200",
-  published: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  rejected: "bg-rose-100 text-rose-700 border-rose-200",
+  draft: "bg-muted text-muted-foreground border-border",
+  pending_review: "bg-warning-soft text-warning-ink border-warning/30",
+  published: "bg-success-soft text-success-ink border-success/30",
+  rejected: "bg-destructive-soft text-destructive-ink border-destructive/30",
 };
 
 const STATUS_LABELS: Record<CmsStatus, string> = {
@@ -112,7 +112,7 @@ const fieldClasses = "mt-1.5 w-full";
 const labelClasses = "text-sm font-medium";
 
 const StatusBadge = ({ status, scheduled = false }: { status: CmsStatus; scheduled?: boolean }) => (
-  <Badge variant="outline" className={scheduled ? "bg-sky-100 text-sky-700 border-sky-200" : STATUS_STYLES[status]}>
+  <Badge variant="outline" className={scheduled ? "bg-info-soft text-info-ink border-info/30" : STATUS_STYLES[status]}>
     {scheduled ? "Scheduled" : STATUS_LABELS[status]}
   </Badge>
 );

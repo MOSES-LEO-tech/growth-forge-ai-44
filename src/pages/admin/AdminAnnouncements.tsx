@@ -51,9 +51,9 @@ const AUDIENCE_LABELS: Record<AnnouncementAudience, string> = {
 };
 
 const AUDIENCE_STYLES: Record<AnnouncementAudience, string> = {
-  students: "bg-blue-100 text-blue-700 border-blue-200",
-  parents: "bg-purple-100 text-purple-700 border-purple-200",
-  staff: "bg-orange-100 text-orange-700 border-orange-200",
+  students: "bg-info-soft text-info-ink border-info/30",
+  parents: "bg-muted text-muted-foreground border-border",
+  staff: "bg-warning-soft text-warning-ink border-warning/30",
 };
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -264,8 +264,8 @@ const AdminAnnouncements = () => {
                       variant="outline"
                       className={
                         item.status === "published"
-                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
+                          ? "bg-success-soft text-success-ink border-success/30"
+                          : "bg-muted text-muted-foreground border-border"
                       }
                     >
                       {item.status === "published" ? "Published" : "Draft"}

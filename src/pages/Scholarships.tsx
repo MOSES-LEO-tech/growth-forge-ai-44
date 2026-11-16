@@ -190,6 +190,7 @@ const Scholarships = () => {
   const filteredAndSortedScholarships = (scholarships || []).filter(s => {
     // Amount Filter
     if (amountFilter !== "all") {
+      // eslint-disable-next-line no-restricted-syntax -- filter threshold math, not display
       const amount = s.amount || 0;
       if (amountFilter === "under5k" && amount >= 5000) return false;
       if (amountFilter === "5k-15k" && (amount < 5000 || amount > 15000)) return false;
@@ -220,6 +221,7 @@ const Scholarships = () => {
       if (!b.deadline) return -1;
       return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
     }
+    // eslint-disable-next-line no-restricted-syntax -- sort comparator math, not display
     if (sortBy === "amount") return (b.amount || 0) - (a.amount || 0);
     return 0;
   });
@@ -240,7 +242,7 @@ const Scholarships = () => {
             <p className="editorial-kicker mb-3">Opportunity desk</p>
             <h1 className="mb-6 text-5xl font-semibold md:text-6xl">Scholarships & Opportunities</h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Discover funding opportunities to support your academic journey and unlock your potential.
+              Funding opportunities that match your level, subjects and plans.
             </p>
 
             {/* Search Bar */}

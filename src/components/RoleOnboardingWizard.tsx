@@ -20,6 +20,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateProfile } from "@/lib/supabase/profile";
+import { getErrorMessage } from "@/lib/errors";
 import { requestSchoolConnection } from "@/lib/supabase/schoolSystem";
 import {
   completeOnboarding,
@@ -42,31 +43,9 @@ interface Step {
   description: string;
 }
 
-const STEP_SETS: Record<UserRole, Step[]> = {
-  student: [
-    { key: "basics", title: "Tell us about yourself", description: "Let's start with your name." },
-    { key: "education", title: "Your education", description: "What you're studying helps us tailor your experience." },
-    { key: "interests", title: "Your interests", description: "Optional, but great for recommendations." },
-    { key: "school", title: "Connect a school", description: "Optional — enter a school join code if you have one." },
-  ],
-  parent: [
-    { key: "basics", title: "Tell us about yourself", description: "Let's start with your name." },
-    { key: "child", title: "Link your child", description: "Optional — enter your child's student email to link accounts." },
-    { key: "school", title: "Connect a school", description: "Optional — enter a school join code if you have one." },
-  ],
-  teacher: [
-    { key: "basics", title: "Tell us about yourself", description: "Let's start with your name." },
-    { key: "school", title: "Connect your school", description: "Enter your school's join code to access school tools." },
-    { key: "subjects", title: "What do you teach?", description: "Optional — helps match you to classes and approvals." },
-  ],
-  admin: [
-    { key: "basics", title: "Tell us about yourself", description: "Let's start with your name." },
-    { key: "school", title: "Connect your school", description: "Enter your school's join code. New schools are registered by Milestone support." },
-  ],
-  super_admin: [
-    { key: "basics", title: "Tell us about yourself", description: "Let's start with your name." },
-  ],
-};
+import { onboardingSteps } from "@/lib/onboardingFlows";
+
+// Steps come from the single config in src/lib/onboardingFlows.ts.
 
 const listToText = (value?: string[] | null) => (Array.isArray(value) ? value.join(", ") : "");
 const textToList = (value: string) => {
@@ -74,13 +53,10 @@ const textToList = (value: string) => {
   return list.length > 0 ? list : null;
 };
 
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback;
-
 const RoleOnboardingWizard = ({ open, onClose, profile, onCompleted }: RoleOnboardingWizardProps) => {
   const { toast } = useToast();
   const role: UserRole = profile?.role ?? "student";
-  const steps = STEP_SETS[role];
+  const steps = onboardingSteps(role);
 
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -113,6 +89,8 @@ const RoleOnboardingWizard = ({ open, onClose, profile, onCompleted }: RoleOnboa
   }, [open, profile]);
 
   if (!profile) return null;
+  // Defence in depth: a role with no configured steps must not crash the page.
+  if (steps.length === 0) return null;
 
   const set = (patch: Partial<typeof form>) => setForm((current) => ({ ...current, ...patch }));
 

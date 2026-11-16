@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import Index from "./pages/Index";
+import HomeEntry from "./pages/HomeEntry";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RequireAuth from "@/components/RequireAuth";
 import { Loader2 } from "lucide-react";
@@ -32,7 +33,11 @@ const StudentGallery = lazy(() => import("./pages/StudentGallery"));
 const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
 const SchoolGallery = lazy(() => import("./pages/SchoolGallery"));
 const SmartBuddy = lazy(() => import("./pages/SmartBuddy"));
-const StudentQaSeed = lazy(() => import("./pages/StudentQaSeed"));
+// Dev-only QA seeder. Guarded at import level so Rollup drops the chunk from
+// production builds entirely (a DEV-gated route alone still emits the module).
+const StudentQaSeed = import.meta.env.DEV
+  ? lazy(() => import("./pages/StudentQaSeed"))
+  : null;
 const ParentWorkspace = lazy(() => import("./pages/ParentWorkspace"));
 const ParentMessages = lazy(() => import("./pages/ParentMessages"));
 const ParentSubscription = lazy(() => import("./pages/ParentSubscription"));
@@ -44,6 +49,11 @@ const AdminAcademic = lazy(() => import("./pages/admin/AdminAcademic"));
 const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminScholarships = lazy(() => import("./pages/admin/AdminScholarships"));
+const AdminScholarshipEditor = lazy(() => import("./pages/admin/AdminScholarshipEditor"));
+const AdminScholarshipCandidates = lazy(() => import("./pages/admin/AdminScholarshipCandidates"));
+const Achievements = lazy(() => import("./pages/Achievements"));
+const CvBuilder = lazy(() => import("./pages/CvBuilder"));
 
 const PageLoader = () => (
   <div className="h-screen w-screen flex items-center justify-center bg-background">
@@ -73,7 +83,7 @@ const App = () => (
             <BrowserRouter>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<HomeEntry />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/features" element={<Features />} />
                   <Route path="/how-it-works" element={<HowItWorks />} />
@@ -90,7 +100,10 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/profile/:id" element={<Profile />} />
                     <Route path="/settings" element={<Settings />} />
-                    <Route path="/qa/student-seed" element={<StudentQaSeed />} />
+                    {/* QA seed tool: development builds only. Never reachable in production. */}
+                    {import.meta.env.DEV && StudentQaSeed && (
+                      <Route path="/qa/student-seed" element={<StudentQaSeed />} />
+                    )}
                   </Route>
                   <Route element={<RequireAuth allowedRoles={['student']} />}>
                     <Route path="/projects" element={<Projects />} />
@@ -99,6 +112,8 @@ const App = () => (
                     <Route path="/recommendations" element={<Recommendations />} />
                     <Route path="/my-applications" element={<MyApplications />} />
                     <Route path="/buddy" element={<SmartBuddy />} />
+                    <Route path="/achievements" element={<Achievements />} />
+                    <Route path="/cv" element={<CvBuilder />} />
                   </Route>
                   <Route element={<RequireAuth allowedRoles={['parent']} />}>
                     <Route path="/parent" element={<ParentWorkspace />} />
@@ -121,6 +136,10 @@ const App = () => (
                     <Route path="/admin/moderation" element={<AdminModeration />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
+                    <Route path="/admin/scholarships" element={<AdminScholarships />} />
+                    <Route path="/admin/scholarships/new" element={<AdminScholarshipEditor />} />
+                    <Route path="/admin/scholarships/:id/edit" element={<AdminScholarshipEditor />} />
+                    <Route path="/admin/scholarships/candidates" element={<AdminScholarshipCandidates />} />
                     <Route path="/admin/cms" element={<Navigate to="/admin/content" replace />} />
                     {/* Students section removed for privacy — old links land on the workspace home. */}
                     <Route path="/admin/students" element={<Navigate to="/admin/overview" replace />} />

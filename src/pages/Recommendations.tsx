@@ -104,6 +104,7 @@ const Recommendations = () => {
                             className="text-primary transition-all duration-1000 ease-out"
                             strokeWidth="8"
                             strokeDasharray={364}
+                            // eslint-disable-next-line no-restricted-syntax -- ring geometry: missing completeness means 0% arc, never a displayed number
                             strokeDashoffset={364 - (364 * (data?.profile_completeness || 0)) / 100}
                             strokeLinecap="round"
                             stroke="currentColor"
@@ -236,7 +237,7 @@ const Recommendations = () => {
                       </div>
                       <h4 className="text-xl font-bold text-slate-900">No Scholarship Matches Yet</h4>
                       <p className="text-slate-500 max-w-sm mx-auto mt-2">
-                        Complete more of your profile and add projects to unlock scholarship matching.
+                        Complete more of your profile and add projects to see scholarship matches.
                       </p>
                     </div>
                   )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatNullable } from "@/lib/numeric";
 import { useMyApplications, useUpdateApplicationStatus, ScholarshipStatus, ScholarshipApplication } from "@/hooks/useScholarshipApplications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -195,7 +196,7 @@ const MyApplications = () => {
                     <column.icon className="h-4 w-4 text-slate-600" />
                     <h2 className="text-sm font-bold text-slate-700">{column.label}</h2>
                     <Badge variant="secondary" className="ml-auto bg-slate-100 text-slate-500 border-none h-5 px-1.5 text-[10px]">
-                      {applications?.filter(a => a.status === column.id).length || 0}
+                      {formatNullable(applications?.filter(a => a.status === column.id).length)}
                     </Badge>
                   </div>
 

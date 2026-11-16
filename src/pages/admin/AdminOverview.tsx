@@ -1,382 +1,172 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import {
-  ArrowUpRight,
-  BarChart3,
-  BookOpen,
-  CalendarClock,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  ExternalLink,
-  FileDown,
-  FileText,
-  Images,
-  LayoutGrid,
-  Megaphone,
-  PencilLine,
-  Settings,
-  ShieldCheck,
-  type LucideIcon,
-} from "lucide-react";
 import SchoolAdminLayout from "@/components/SchoolAdminLayout";
-import { SchoolAccessWidget } from "@/components/widgets/SchoolAccessWidget";
-import { SchoolOverviewWidget } from "@/components/widgets/SchoolOverviewWidget";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSchool } from "@/hooks/useSchools";
-import {
-  listSchoolEvents,
-  listSchoolNews,
-  listSchoolPages,
-  listSchoolResources,
-} from "@/lib/supabase/cms";
-import { Badge } from "@/components/ui/badge";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatNullable } from "@/lib/numeric";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  ClipboardCheck,
+  FolderKanban,
+  Megaphone,
+  Trophy,
+  Users,
+} from "lucide-react";
 
-type CmsStatus = "draft" | "pending_review" | "published" | "rejected";
+const TILE = "editorial-panel flex items-start gap-3 p-5";
 
-interface ContentItem {
-  id: string;
-  type: string;
-  title: string;
-  status: CmsStatus;
-  updatedAt: string;
-}
-
-const STATUS_BADGES: Record<CmsStatus, string> = {
-  draft: "bg-slate-100 text-slate-700 border-slate-200",
-  pending_review: "bg-amber-100 text-amber-700 border-amber-200",
-  published: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  rejected: "bg-rose-100 text-rose-700 border-rose-200",
-};
-
-const STATUS_LABELS: Record<CmsStatus, string> = {
-  draft: "Draft",
-  pending_review: "Pending review",
-  published: "Published",
-  rejected: "Rejected",
-};
-
-const TYPE_ICONS: Record<string, LucideIcon> = {
-  Page: LayoutGrid,
-  News: FileText,
-  Event: CalendarDays,
-  Resource: FileDown,
-};
-
-const SectionHeading = ({ title, action }: { title: string; action?: ReactNode }) => (
-  <div className="mb-3 flex items-center justify-between gap-3">
-    <h2 className="caps-label text-muted-foreground">
-      {title}
-    </h2>
-    {action}
-  </div>
-);
-
-const WORKSPACE_LINKS = [
-  { to: "/admin/content", label: "Content", desc: "Pages, news, events & gallery", icon: FileText },
-  { to: "/admin/announcements", label: "Announcements", desc: "Send updates to your community", icon: Megaphone },
-  { to: "/admin/academic", label: "Academic", desc: "Classes & subjects", icon: BookOpen },
-  { to: "/admin/moderation", label: "Moderation", desc: "Review & approvals", icon: ShieldCheck },
-  { to: "/admin/analytics", label: "Analytics", desc: "Engagement & growth", icon: BarChart3 },
-  { to: "/admin/settings", label: "Settings", desc: "Profile, access & safety", icon: Settings },
-];
-
+/**
+ * The admin landing page: only what an admin can act on.
+ *
+ * Analytics lives in /admin/analytics, the CMS in /admin/content, join codes in
+ * /admin/settings. Repeating them here made the page long without making it
+ * useful, so it now shows counts and the work waiting for a decision.
+ */
 const AdminOverview = () => {
   const { profile } = useAuth();
-  const schoolId = profile?.school_id ?? null;
-  const { data: school } = useSchool(schoolId || "");
-  const [coverFailed, setCoverFailed] = useState(false);
 
-  const [counts, setCounts] = useState({
-    published: 0,
-    drafts: 0,
-    pending: 0,
-    scheduled: 0,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin-overview", profile?.school_id ?? "platform"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_overview");
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(profile?.id),
   });
-  const [recent, setRecent] = useState<ContentItem[]>([]);
-  const [contentLoading, setContentLoading] = useState(true);
 
-  useEffect(() => {
-    if (!schoolId) {
-      setContentLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setContentLoading(true);
-
-    Promise.all([
-      listSchoolPages(schoolId),
-      listSchoolNews(schoolId),
-      listSchoolEvents(schoolId),
-      listSchoolResources(schoolId),
-    ])
-      .then(([pages, news, events, resources]) => {
-        if (cancelled) return;
-
-        const now = Date.now();
-        // Only `cms_news` has a schedule column (`publish_at`); the other CMS
-        // entities expose only `published_at` (null until published).
-        const all: { type: string; title: string; status: CmsStatus; updatedAt: string; publishAt?: string | null }[] = [
-          ...pages.map((row) => ({
-            type: "Page",
-            title: row.title,
-            status: row.status as CmsStatus,
-            updatedAt: row.updated_at,
-            publishAt: row.published_at,
-          })),
-          ...news.map((row) => ({
-            type: "News",
-            title: row.title,
-            status: row.status as CmsStatus,
-            updatedAt: row.updated_at,
-            publishAt: row.publish_at,
-          })),
-          ...events.map((row) => ({
-            type: "Event",
-            title: row.title,
-            status: row.status as CmsStatus,
-            updatedAt: row.updated_at,
-            publishAt: row.published_at,
-          })),
-          ...resources.map((row) => ({
-            type: "Resource",
-            title: row.title,
-            status: row.status as CmsStatus,
-            updatedAt: row.updated_at,
-            publishAt: row.published_at,
-          })),
-        ];
-
-        setCounts({
-          published: all.filter((row) => row.status === "published").length,
-          drafts: all.filter((row) => row.status === "draft").length,
-          pending: all.filter((row) => row.status === "pending_review").length,
-          scheduled: all.filter(
-            (row) =>
-              row.status !== "published" &&
-              row.publishAt &&
-              new Date(row.publishAt).getTime() > now
-          ).length,
-        });
-        setRecent(
-          all
-            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-            .slice(0, 6)
-            .map((row) => ({
-              id: `${row.type}-${row.title}-${row.updatedAt}`,
-              type: row.type,
-              title: row.title,
-              status: row.status,
-              updatedAt: row.updatedAt,
-            }))
-        );
-      })
-      .catch((error) => {
-        console.warn("Failed to load content pulse:", error);
-      })
-      .finally(() => {
-        if (!cancelled) setContentLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolId]);
-
-  const schoolName = school?.name || profile?.full_name || "Your school";
-  const initial = schoolName.charAt(0).toUpperCase();
-  const location = [school?.location, school?.country].filter(Boolean).join(", ");
-  const cover = school?.cover_url && !coverFailed ? school.cover_url : null;
-
-  const ledger = [
-    { label: "Published", value: counts.published, icon: CheckCircle2, iconClass: "text-muted-foreground" },
-    { label: "Drafts", value: counts.drafts, icon: PencilLine, iconClass: "text-muted-foreground" },
-    { label: "Pending review", value: counts.pending, icon: Clock3, iconClass: "text-muted-foreground" },
-    { label: "Scheduled", value: counts.scheduled, icon: CalendarClock, iconClass: "text-muted-foreground" },
-  ];
+  const pendingProjects = data?.pending_projects;
+  const pendingAchievements = data?.pending_achievements;
+  // Unknown (still loading) is not zero: waiting stays null until data arrives.
+  const waiting = data ? data.pending_projects + data.pending_achievements : null;
+  const hasPendingProjects = typeof pendingProjects === "number" && pendingProjects > 0;
+  const hasPendingAchievements = typeof pendingAchievements === "number" && pendingAchievements > 0;
 
   return (
     <SchoolAdminLayout>
-      {/* School presence hero — 50/50 split: dark editorial text + full-bleed cover */}
-      <section className="mb-8 grid overflow-hidden border border-border md:grid-cols-2">
-        <div className="flex flex-col justify-center bg-[hsl(var(--primary))] p-6 text-[hsl(var(--primary-foreground))] md:p-10">
-          <p className="caps-label text-[hsl(var(--primary-foreground)/0.62)]">School workspace</p>
-          <h1 className="mt-3 text-3xl font-semibold leading-[1.05] tracking-tight md:text-4xl">
-            {schoolName}
-          </h1>
-          {location && (
-            <p className="mt-4 max-w-md text-sm leading-6 text-[hsl(var(--primary-foreground)/0.8)]">
-              {location}
-            </p>
-          )}
-          <div className="mt-7 flex flex-wrap gap-3">
-            {schoolId && (
-              <Button asChild variant="secondary" size="sm">
-                <Link to={`/schools/${schoolId}`}>
-                  View public page
-                  <ExternalLink className="ml-1.5 h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
-            )}
-            <Button
-              asChild
-              size="sm"
-              variant="outline"
-              className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
-            >
-              <Link to="/admin/content">Edit content</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="relative min-h-[240px] bg-[hsl(var(--secondary))] md:min-h-[360px]">
-          {cover ? (
-            <img
-              src={cover}
-              alt={`${schoolName} campus`}
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={() => setCoverFailed(true)}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-6xl font-semibold text-white/25">
-              {initial}
-            </div>
-          )}
-        </div>
-      </section>
+      <AdminPageHeader
+        kicker="Overview"
+        title={profile?.full_name ? `Good to see you, ${profile.full_name.split(" ")[0]}` : "School overview"}
+        description="What needs a decision today. Detailed metrics, content and settings live in their own sections."
+      />
 
-      {/* Content pulse ledger */}
-      <section aria-label="Content status" className="editorial-panel mb-8 overflow-hidden">
-        <div className="grid grid-cols-2 divide-x divide-y divide-border md:grid-cols-4 md:divide-y-0">
-          {ledger.map(({ label, value, icon: Icon, iconClass }) => (
-            <div key={label} className="flex items-start gap-3 p-5">
-              <Icon className={`mt-1 h-4 w-4 shrink-0 ${iconClass}`} aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="caps-label text-muted-foreground">
-                  {label}
-                </p>
-                <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight">
-                  {contentLoading ? "–" : value}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-8 lg:col-span-2">
-          <section>
-            <SectionHeading
-              title="School overview"
-              action={
-                <Link to="/admin/analytics" className="text-xs font-medium text-muted-foreground hover:text-primary">
-                  All metrics
-                </Link>
-              }
-            />
-            <SchoolOverviewWidget defaultExpanded schoolId={schoolId} />
-          </section>
-
-          <section>
-            <SectionHeading
-              title="Recent content"
-              action={
-                <Link to="/admin/content" className="text-xs font-medium text-muted-foreground hover:text-primary">
-                  Open CMS
-                </Link>
-              }
-            />
-            <div className="editorial-panel overflow-hidden">
-              {contentLoading ? (
-                <div className="space-y-3 p-4">
-                  {[...Array(4)].map((_, index) => (
-                    <Skeleton key={index} className="h-12 rounded-lg" />
-                  ))}
-                </div>
-              ) : recent.length === 0 ? (
-                <div className="px-5 py-10 text-center">
-                  <Images className="mx-auto mb-3 h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                  <p className="text-sm text-muted-foreground">
-                    Nothing published yet. Start with your school&apos;s About page.
+      {error ? (
+        <Card className="border-destructive/40">
+          <CardContent className="p-6 text-sm text-destructive">
+            {getErrorMessage(error, "The overview could not be loaded.")}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <section aria-label="Key numbers" className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "Students", value: data?.students, icon: Users, tone: "text-primary" },
+              { label: "Pending review", value: data?.pending_projects, icon: ClipboardCheck, tone: "text-warning-ink" },
+              { label: "Approved projects", value: data?.approved_projects, icon: FolderKanban, tone: "text-success-ink" },
+              { label: "Verified awards", value: data?.verified_achievements, icon: Trophy, tone: "text-primary" },
+            ].map(({ label, value, icon: Icon, tone }) => (
+              <div key={label} className={TILE}>
+                <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tone}`} aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="caps-label text-muted-foreground">{label}</p>
+                  <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight">
+                    {isLoading ? <Skeleton className="h-8 w-12" /> : formatNullable(value)}
                   </p>
-                  <Button asChild size="sm" variant="outline" className="mt-4">
-                    <Link to="/admin/content">Open the CMS</Link>
-                  </Button>
                 </div>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {recent.map((item) => {
-                    const TypeIcon = TYPE_ICONS[item.type] ?? FileText;
-                    return (
-                      <li key={item.id}>
-                        <Link
-                          to="/admin/content"
-                          className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
-                        >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                            <TypeIcon className="h-4 w-4" aria-hidden="true" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium">{item.title}</span>
-                            <span className="block text-xs text-muted-foreground">
-                              {item.type} ·{" "}
-                              {new Date(item.updatedAt).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </span>
-                          </span>
-                          <Badge variant="outline" className={STATUS_BADGES[item.status]}>
-                            {STATUS_LABELS[item.status]}
-                          </Badge>
+              </div>
+            ))}
+          </section>
+
+          <section aria-label="Needs attention" className="mb-8">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Needs your attention
+            </h2>
+
+            {isLoading ? (
+              <Skeleton className="h-24 rounded-xl" />
+            ) : waiting === 0 ? (
+              <div className="flex items-center gap-3 rounded-xl border border-dashed p-5">
+                <CheckCircle2 className="h-5 w-5 text-success-ink" />
+                <div>
+                  <p className="font-medium">Nothing is waiting</p>
+                  <p className="text-sm text-muted-foreground">
+                    Student work you approve appears on the school page and the home showcase.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    show: hasPendingProjects,
+                    title: `${formatNullable(pendingProjects)} project${pendingProjects === 1 ? "" : "s"} to review`,
+                    desc: "Approve, reject with a reason, or send back for more evidence.",
+                    to: "/admin/moderation",
+                    label: "Open moderation",
+                    icon: FolderKanban,
+                  },
+                  {
+                    show: hasPendingAchievements,
+                    title: `${formatNullable(pendingAchievements)} award${pendingAchievements === 1 ? "" : "s"} to verify`,
+                    desc: "Only verified awards carry the school's endorsement.",
+                    to: "/admin/moderation",
+                    label: "Verify awards",
+                    icon: Trophy,
+                  },
+                ]
+                  .filter((item) => item.show)
+                  .map(({ title, desc, to, label, icon: Icon }) => (
+                    <div key={title} className="editorial-panel flex flex-col gap-3 p-5">
+                      <div className="flex items-start gap-3">
+                        <span className="rounded-lg bg-muted p-2 text-muted-foreground">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="font-medium">{title}</p>
+                          <p className="text-sm text-muted-foreground">{desc}</p>
+                        </div>
+                      </div>
+                      <Button asChild size="sm" variant="outline" className="gap-2 self-start">
+                        <Link to={to}>
+                          {label}
+                          <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </section>
-        </div>
-
-        <div className="min-w-0 space-y-8">
-          <section>
-            <SectionHeading title="Access" />
-            <SchoolAccessWidget defaultExpanded schoolId={schoolId} />
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            )}
           </section>
 
-          <section>
-            <SectionHeading title="Workspace" />
-            <div className="editorial-panel overflow-hidden">
-              <ul className="divide-y divide-border">
-                {WORKSPACE_LINKS.map(({ to, label, desc, icon: Icon }) => (
-                  <li key={to}>
-                    <Link
-                      to={to}
-                      className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium">{label}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{desc}</span>
-                      </span>
-                      <ArrowUpRight
-                        className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary"
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <section aria-label="Shortcuts" className="grid gap-3 sm:grid-cols-2">
+            {[
+              { to: "/admin/announcements", label: "Post an announcement", desc: "Reaches students, parents or staff", icon: Megaphone },
+              { to: "/admin/settings", label: "Badge & gallery", desc: "How your school appears publicly", icon: Users },
+            ].map(({ to, label, desc, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                className="group flex items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/40"
+              >
+                <span className="rounded-lg bg-muted p-2 text-muted-foreground group-hover:text-primary">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{label}</span>
+                  <span className="block text-xs text-muted-foreground">{desc}</span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
+              </Link>
+            ))}
           </section>
-        </div>
-      </div>
+        </>
+      )}
     </SchoolAdminLayout>
   );
 };

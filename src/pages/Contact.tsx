@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Clock, Send, MessageCircle, HelpCircle } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
 import { useToast } from "@/hooks/use-toast";
+import { contact } from "@/lib/brand";
 
 const Contact = () => {
   const { ref: titleRef, isInView: titleInView } = useInView({ threshold: 0.1, triggerOnce: true });
@@ -20,11 +21,17 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // The form previously toasted "Message Sent!" while discarding the message.
+    // Hand the text to the real mailbox instead of faking a delivery.
+    const subject = encodeURIComponent(formData.subject || `Message from ${formData.name}`);
+    const body = encodeURIComponent(
+      `${formData.message}\n\n— ${formData.name}${formData.email ? ` (${formData.email})` : ""}`
+    );
+    window.location.href = `mailto:${contact.email}?subject=${subject}&body=${body}`;
     toast({
-      title: "Message Sent!",
-      description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+      title: "Opening your email app",
+      description: `Send the message to ${contact.email}, or contact us on WhatsApp.`,
     });
-    setFormData({ name: "", email: "", subject: "", message: "" });
   };
 
   const faqs = [
@@ -84,32 +91,47 @@ const Contact = () => {
                   <Mail className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-semibold mb-1">Email</p>
-                    <p className="text-sm text-muted-foreground">support@milestone.app</p>
-                    <p className="text-sm text-muted-foreground">partnerships@milestone.app</p>
+                    <a
+                      href={`mailto:${contact.email}`}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {contact.email}
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                   <Phone className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold mb-1">Phone</p>
-                    <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
-                    <p className="text-sm text-muted-foreground">Mon-Fri, 9:00 AM - 5:00 PM EST</p>
+                    <p className="font-semibold mb-1">Phone &amp; WhatsApp</p>
+                    <a
+                      href={contact.phoneHref}
+                      className="block text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {contact.phone}
+                    </a>
+                    <a
+                      href={contact.whatsappHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Chat on WhatsApp
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                   <MapPin className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold mb-1">Address</p>
-                    <p className="text-sm text-muted-foreground">123 Education Way, Suite 100</p>
-                    <p className="text-sm text-muted-foreground">Learning City, LC 12345</p>
+                    <p className="font-semibold mb-1">Location</p>
+                    <p className="text-sm text-muted-foreground">{contact.location}</p>
+                    <p className="text-sm text-muted-foreground">{contact.company}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                   <Clock className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold mb-1">Business Hours</p>
-                    <p className="text-sm text-muted-foreground">Monday - Friday: 9:00 AM - 5:00 PM</p>
-                    <p className="text-sm text-muted-foreground">Saturday - Sunday: Closed</p>
+                    <p className="font-semibold mb-1">Response time</p>
+                    <p className="text-sm text-muted-foreground">{contact.responseTime}</p>
                   </div>
                 </div>
               </CardContent>

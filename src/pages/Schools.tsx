@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatNullable } from "@/lib/numeric";
 import { Link } from "react-router-dom";
 import { Search, MapPin, Globe, Users, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -129,10 +130,10 @@ const Schools = () => {
                         <Globe className="w-3 h-3 mr-1" />
                         {school.country}
                       </Badge>
-                      {school.student_count && (
+                      {school.student_count != null && (
                         <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none font-medium">
                           <Users className="w-3 h-3 mr-1" />
-                          {school.student_count.toLocaleString()} Students
+                          {formatNullable(school.student_count)} Students
                         </Badge>
                       )}
                     </div>

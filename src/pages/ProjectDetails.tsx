@@ -24,7 +24,7 @@ import AddProjectModal from '@/components/AddProjectModal';
 import ProjectFilesPanel from '@/components/ProjectFilesPanel';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import {
-  Loader2, Plus, CheckCircle, FileText, Star, Pencil, Trash2,
+  Loader2, Plus, CheckCircle, FileText, Pencil, Trash2,
   ListChecks, CalendarDays,
 } from 'lucide-react';
 import { MediaDisplay } from '@/components/MediaDisplay';
@@ -90,7 +90,6 @@ const ProjectDetails = () => {
 
   // Feedback State
   const [comment, setComment] = useState('');
-  const [rating, setRating] = useState(5);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   // Verification State
@@ -192,7 +191,6 @@ const ProjectDetails = () => {
       await postProjectComment(id, comment);
       toast({ title: "Feedback Added", description: "Thank you for your review" });
       setComment('');
-      setRating(5);
       fetchProject();
     } catch (error) {
       toast({ title: "Error", description: "Failed to submit feedback", variant: "destructive" });
@@ -518,11 +516,6 @@ const ProjectDetails = () => {
                     <div key={f.id} className="border-b pb-4 last:border-0 last:pb-0">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-semibold text-sm">{f.reviewer_name}</span>
-                        <div className="flex text-yellow-500">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`h-3 w-3 ${i < f.rating ? 'fill-current' : 'text-gray-300'}`} />
-                          ))}
-                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground">{f.comment}</p>
                       <div className="text-xs text-muted-foreground mt-1">{new Date(f.created_at).toLocaleDateString()}</div>
@@ -535,13 +528,6 @@ const ProjectDetails = () => {
               {(userRole === 'teacher' || userRole === 'parent' || userRole === 'admin') && (
                 <form onSubmit={handleFeedback} className="space-y-3 pt-4 border-t">
                   <h4 className="font-medium text-sm">Leave Feedback</h4>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button key={star} type="button" onClick={() => setRating(star)} className="text-yellow-500 focus:outline-none">
-                        <Star className={`h-5 w-5 ${star <= rating ? 'fill-current' : 'text-gray-300'}`} />
-                      </button>
-                    ))}
-                  </div>
                   <Textarea placeholder="Write a comment..." value={comment} onChange={e => setComment(e.target.value)} required className="min-h-[80px]" />
                   <Button type="submit" size="sm" className="w-full" disabled={submittingFeedback}>Submit Feedback</Button>
                 </form>

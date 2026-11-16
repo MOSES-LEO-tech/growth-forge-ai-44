@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatNullable } from "@/lib/numeric";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
   ArrowLeft, MapPin, Calendar, Users, Trophy, 
@@ -16,32 +17,10 @@ import Footer from "@/components/Footer";
 import { useSchool, useSchoolStats } from "@/hooks/useSchools";
 import { getPublishedSchoolCms, getPublishedSchoolPage } from "@/lib/supabase/cms";
 import { listSchoolGalleryMedia } from "@/lib/supabase/schoolMedia";
+import { selectGalleryImages } from "@/lib/schoolGallery";
 import SanitizedHtml from "@/components/SanitizedHtml";
 import type { SchoolCmsBundle } from "@/lib/supabase/cms";
 import type { CmsPage, SchoolGalleryMedia } from "@/integrations/supabase/types";
-
-const DEFAULT_SCHOOL_COVER_IMAGE =
-  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1800&q=80";
-
-const DEFAULT_SCHOOL_GALLERY_IMAGES = [
-  "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1560785496-3c9d27877182?auto=format&fit=crop&w=1200&q=80",
-];
-
-const uniqueImageUrls = (urls: Array<string | null | undefined>) => {
-  const seen = new Set<string>();
-  return urls
-    .map((url) => url?.trim())
-    .filter((url): url is string => {
-      if (!url || seen.has(url)) return false;
-      seen.add(url);
-      return true;
-    });
-};
 
 const formatDate = (value?: string | null) => {
   if (!value) return "";
@@ -62,6 +41,7 @@ const SchoolProfile = () => {
   const [cmsLoading, setCmsLoading] = useState(true);
   const [galleryMedia, setGalleryMedia] = useState<SchoolGalleryMedia[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(true);
+  const [brokenGalleryUrls, setBrokenGalleryUrls] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -140,12 +120,14 @@ const SchoolProfile = () => {
     );
   }
 
-  const galleryImages = uniqueImageUrls(school.gallery_urls || []);
-  const displayGalleryImages = galleryImages.length > 0
-    ? galleryImages
-    : uniqueImageUrls([school.cover_url, school.logo_url, ...DEFAULT_SCHOOL_GALLERY_IMAGES]).slice(0, 6);
-  const coverImage = school.cover_url?.trim() || displayGalleryImages[0] || DEFAULT_SCHOOL_COVER_IMAGE;
-  const coverFallback = displayGalleryImages.find((url) => url !== coverImage) || DEFAULT_SCHOOL_COVER_IMAGE;
+  const galleryImages = selectGalleryImages(school.gallery_urls, []);
+  // Gallery photos come from the gallery only. A logo or cover image is not a
+  // gallery entry, and a stock photo standing in for a missing upload is
+  // fabricated imagery — it makes an empty gallery look populated with pictures
+  // the school never took and never approved.
+  const displayGalleryImages = selectGalleryImages(school.gallery_urls, brokenGalleryUrls);
+  const visibleGalleryMedia = galleryMedia.filter((item) => !brokenGalleryUrls.includes(item.url));
+  const coverImage = school.cover_url?.trim() || galleryImages[0] || null;
   const schoolLocation = [school.location, school.country].filter(Boolean).join(", ") || "Milestone partner school";
 
   return (
@@ -170,22 +152,29 @@ const SchoolProfile = () => {
               {school.hero_video_url ? (
                 <video
                   src={school.hero_video_url}
-                  poster={coverImage}
+                  poster={coverImage ?? undefined}
                   className="h-full w-full object-cover"
                   autoPlay
                   muted
                   loop
                   playsInline
                 />
-              ) : (
+              ) : coverImage ? (
                 <img
                   src={coverImage}
                   alt={`${school.name} campus`}
                   className="h-full w-full object-cover"
                   onError={(event) => {
+                    // A broken link hides the surface; it must not be replaced
+                    // with someone else's photograph.
                     event.currentTarget.onerror = null;
-                    event.currentTarget.src = coverFallback;
+                    event.currentTarget.style.display = "none";
                   }}
+                />
+              ) : (
+                <div
+                  className="h-full w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950"
+                  aria-hidden="true"
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent" />
@@ -232,7 +221,7 @@ const SchoolProfile = () => {
                 {isLoadingStats ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-semibold">{stats?.total_students || 0}</div>
+                  <div className="text-3xl font-semibold">{formatNullable(stats?.total_students)}</div>
                 )}
               </CardContent>
             </Card>
@@ -245,7 +234,7 @@ const SchoolProfile = () => {
                 {isLoadingStats ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-semibold">{stats?.total_achievements || 0}</div>
+                  <div className="text-3xl font-semibold">{formatNullable(stats?.total_achievements)}</div>
                 )}
               </CardContent>
             </Card>
@@ -258,7 +247,7 @@ const SchoolProfile = () => {
                 {isLoadingStats ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-semibold">{stats?.total_scholarships_won || 0}</div>
+                  <div className="text-3xl font-semibold">{formatNullable(stats?.total_scholarships_won)}</div>
                 )}
               </CardContent>
             </Card>
@@ -477,8 +466,8 @@ const SchoolProfile = () => {
                       [...Array(6)].map((_, i) => (
                         <Skeleton key={i} className="aspect-video rounded-lg" />
                       ))
-                    ) : galleryMedia.length > 0 ? (
-                      galleryMedia.map((item) => (
+                    ) : visibleGalleryMedia.length > 0 ? (
+                      visibleGalleryMedia.map((item) => (
                         <figure key={item.id} className="overflow-hidden rounded-lg border bg-card">
                           <div className="aspect-video bg-muted">
                             {item.media_type === "video" ? (
@@ -495,6 +484,12 @@ const SchoolProfile = () => {
                                 src={item.url}
                                 alt={item.caption || `${school.name} gallery`}
                                 className="h-full w-full object-cover"
+                                onError={(event) => {
+                                  event.currentTarget.onerror = null;
+                                  setBrokenGalleryUrls((prev) =>
+                                    prev.includes(item.url) ? prev : [...prev, item.url]
+                                  );
+                                }}
                               />
                             )}
                           </div>
@@ -503,7 +498,7 @@ const SchoolProfile = () => {
                           )}
                         </figure>
                       ))
-                    ) : (
+                    ) : displayGalleryImages.length > 0 ? (
                       displayGalleryImages.map((imageUrl, i) => (
                         <div key={`${imageUrl}-${i}`} className="aspect-video relative overflow-hidden rounded-lg bg-muted group cursor-pointer">
                           <img
@@ -511,12 +506,21 @@ const SchoolProfile = () => {
                             alt={`${school.name} gallery ${i + 1}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={(event) => {
+                              // Drop the broken tile rather than leaving an
+                              // empty frame; never substitute another image.
                               event.currentTarget.onerror = null;
-                              event.currentTarget.src = DEFAULT_SCHOOL_GALLERY_IMAGES[i % DEFAULT_SCHOOL_GALLERY_IMAGES.length];
+                              setBrokenGalleryUrls((prev) => (prev.includes(imageUrl) ? prev : [...prev, imageUrl]));
                             }}
                           />
                         </div>
                       ))
+                    ) : (
+                      <div className="col-span-full rounded-lg border border-dashed border-border bg-muted/30 p-10 text-center">
+                        <p className="font-medium">No photos yet</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {school.name} hasn't added gallery photos. School staff can upload them from the school dashboard.
+                        </p>
+                      </div>
                     )}
                   </div>
                 </CardContent>
