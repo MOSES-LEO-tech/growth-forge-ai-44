@@ -6,6 +6,8 @@ export type ShowcaseSchool = {
   location: string | null;
   country: string | null;
   logo_url: string | null;
+  /** Gallery photo if the school has one, else its badge. Null when neither. */
+  cover_url?: string | null;
   student_count: number;
 };
 
@@ -17,6 +19,9 @@ export type ShowcaseProject = {
   updated_at: string | null;
   school_name: string | null;
   student: string;
+  /** First entry of the project's media, when it has any. */
+  cover_url?: string | null;
+  media_count?: number;
 };
 
 export type ShowcaseAward = {
