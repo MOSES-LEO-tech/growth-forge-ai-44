@@ -78,3 +78,22 @@ export function reinviteAvailableAt(link: LinkLike, now: Date = new Date()): Dat
   if (!Number.isFinite(at.getTime())) return null;
   return at.getTime() > now.getTime() ? at : null;
 }
+
+/** A parent's link row, as far as the workspace needs it. */
+export interface ChildLinkLike extends LinkLike {
+  direction: 'child' | 'parent';
+  link_id: string;
+  counterparty_name: string | null;
+  counterparty_email: string | null;
+}
+
+/**
+ * Requests this parent sent that the child has not answered.
+ *
+ * `direction: 'child'` means the counterparty is my child (I am the parent). A
+ * pending row is not a link: without this the workspace said "No children linked
+ * yet" while a request was visibly waiting in the panel below.
+ */
+export function pendingChildRequests<T extends ChildLinkLike>(links: T[]): T[] {
+  return links.filter((link) => link.direction === 'child' && OPEN_STATES.includes(link.state));
+}

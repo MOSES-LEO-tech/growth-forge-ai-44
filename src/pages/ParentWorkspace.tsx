@@ -5,6 +5,7 @@ import {
   Award,
   BookOpenCheck,
   ChevronDown,
+  Clock,
   GraduationCap,
   MessageSquare,
   Sparkles,
@@ -26,6 +27,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getChildren } from "@/lib/supabase/parent";
+import { listParentLinks, type ParentLinkRow } from "@/lib/supabase/links";
+import { linkExpiry, linkStatusLabel, pendingChildRequests } from "@/lib/linkPresentation";
 import { ChildOverviewWidget } from "@/components/widgets/ChildOverviewWidget";
 import { ProjectsMonitoringWidget } from "@/components/widgets/ProjectsMonitoringWidget";
 import { AchievementsMonitoringWidget } from "@/components/widgets/AchievementsMonitoringWidget";
@@ -49,6 +52,8 @@ const ParentWorkspace = () => {
   const { toast } = useToast();
 
   const [children, setChildren] = useState<LinkedChild[]>([]);
+  /** Requests sent but not yet accepted — shown instead of a bare empty state. */
+  const [pendingRequests, setPendingRequests] = useState<ParentLinkRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("overview");
@@ -58,8 +63,12 @@ const ParentWorkspace = () => {
     setLoading(true);
     setError(null);
     try {
-      const kids = (await getChildren(user.id)) as unknown as LinkedChild[];
+      const [kids, links] = await Promise.all([
+        getChildren(user.id) as Promise<LinkedChild[]>,
+        listParentLinks().catch(() => [] as ParentLinkRow[]),
+      ]);
       setChildren(kids);
+      setPendingRequests(pendingChildRequests(links));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load children.");
     } finally {
@@ -144,6 +153,52 @@ const ParentWorkspace = () => {
               <Button variant="outline" size="sm" onClick={() => void loadChildren()}>
                 Try again
               </Button>
+            </CardContent>
+          </Card>
+        ) : children.length === 0 && pendingRequests.length > 0 ? (
+          <Card>
+            <CardContent className="flex flex-col gap-4 p-6 sm:p-8">
+              <div className="flex items-start gap-3">
+                <div className="flat-icon h-11 w-11 shrink-0">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Waiting for your child to accept</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Your request has been sent. It appears on your child&apos;s dashboard, where they can accept
+                    or decline it.
+                  </p>
+                </div>
+              </div>
+
+              <ul className="divide-y rounded-lg border bg-card">
+                {pendingRequests.map((request) => {
+                  const expiry = linkExpiry(request);
+                  return (
+                    <li
+                      key={request.link_id}
+                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {request.counterparty_name || request.counterparty_email || "Your child"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {linkStatusLabel(request.state)}
+                          {request.counterparty_email ? ` · ${request.counterparty_email}` : ""}
+                          {expiry.label ? ` · ${expiry.label}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant="secondary">Waiting</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <p className="text-xs text-muted-foreground">
+                They appear here the moment they accept. If the request expires, send it again from the{" "}
+                <strong>Your children</strong> panel below.
+              </p>
             </CardContent>
           </Card>
         ) : children.length === 0 ? (
