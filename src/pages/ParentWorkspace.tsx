@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   Award,
@@ -58,7 +58,21 @@ const ParentWorkspace = () => {
   const [pendingRequests, setPendingRequests] = useState<ParentLinkRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState("overview");
+  /*
+   * The active tab is carried in the URL (?tab=gallery) so a refresh or a shared
+   * link lands on the same view instead of snapping back to Overview.
+   */
+  const TAB_VALUES = ["overview", "projects", "achievements", "gallery", "guidance"] as const;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab = (TAB_VALUES as readonly string[]).includes(tabParam ?? "")
+    ? (tabParam as string)
+    : "overview";
+  const setTab = (next: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
 
   const loadChildren = useCallback(async () => {
     if (!user) return;
