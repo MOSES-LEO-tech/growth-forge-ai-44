@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { bodyStartsExpanded, opensDialogOnMount } from "@/lib/widgetExpansion";
 
 interface ExpandableWidgetProps {
   title: string;
@@ -11,7 +12,15 @@ interface ExpandableWidgetProps {
   children: ReactNode;
   expandedContent: ReactNode;
   className?: string;
+  /**
+   * Show the expanded content inside the card from the start.
+   *
+   * This does NOT open the dialog. Pages and tabs use it for the full widget
+   * body; wiring it to the dialog previously covered the parent workspace with
+   * a notifications modal on sign-in.
+   */
   defaultExpanded?: boolean;
+  /** Controlled dialog state - the only way a dialog may open without a click. */
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
   onExpandChange?: (expanded: boolean) => void;
@@ -28,10 +37,13 @@ export function ExpandableWidget({
   onExpandedChange,
   onExpandChange,
 }: ExpandableWidgetProps) {
-  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = useState(() =>
+    opensDialogOnMount({ controlledOpen: controlledExpanded })
+  );
   const isControlled = controlledExpanded !== undefined;
   const isExpanded = isControlled ? controlledExpanded : internalExpanded;
   const setIsExpanded = isControlled ? (onExpandedChange ?? (() => {})) : setInternalExpanded;
+  const showExpandedInline = bodyStartsExpanded({ defaultExpanded });
 
   const handleToggle = (open: boolean) => {
     setIsExpanded(open);
@@ -56,7 +68,7 @@ export function ExpandableWidget({
             <span className="sr-only">Expand {title}</span>
           </Button>
         </CardHeader>
-        <CardContent className="flex-1 p-4">{children}</CardContent>
+        <CardContent className="flex-1 p-4">{showExpandedInline ? expandedContent : children}</CardContent>
       </Card>
 
       <Dialog open={isExpanded} onOpenChange={handleToggle}>
