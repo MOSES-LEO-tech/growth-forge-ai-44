@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { countCommentsByResource, countProjectFiles } from '@/lib/commentCounts';
 
 /**
  * Children this parent holds an ACTIVE link to.
@@ -116,21 +117,51 @@ export const getChildOverview = async (childId: string) => {
   };
 };
 
+/**
+ * A child's projects, with the counts the parent card shows.
+ *
+ * Comments are counted in a second query: `comments` is polymorphic
+ * (resource_type/resource_id), so `comments(count)` cannot be embedded in a
+ * projects select — asking for it returned "Could not find a relationship
+ * between 'projects' and 'comments'". The count is the number the viewer sent,
+ * which is what the card's "Encourage (N sent)" label claims.
+ */
 export const getChildProjects = async (childId: string | number) => {
   const { data, error } = await supabase
     .from('projects')
-    .select('*, comments(count)')
+    .select('*')
     .eq('user_id', String(childId))
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  return data.map(p => ({
-    ...p,
-    files_count: (p.media_urls as any)?.length || 0,
-    my_comments_count: (p.comments as any)?.[0]?.count || 0
+  const projects = data ?? [];
+  const counts = await countViewerComments(projects.map((project) => String(project.id)));
+
+  return projects.map((project) => ({
+    ...project,
+    files_count: countProjectFiles(project.media_urls),
+    my_comments_count: counts[String(project.id)] ?? 0,
   }));
+};
+
+/** Comments this viewer left on the given projects. Failure is non-fatal. */
+const countViewerComments = async (projectIds: string[]): Promise<Record<string, number>> => {
+  if (projectIds.length === 0) return {};
+
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) return {};
+
+  const { data, error } = await supabase
+    .from('comments')
+    .select('resource_id')
+    .eq('user_id', auth.user.id)
+    .eq('resource_type', 'project')
+    .in('resource_id', projectIds);
+
+  if (error) return {};
+  return countCommentsByResource(data ?? []);
 };
 
 export const postProjectComment = async (projectId: string | number, content: string) => {

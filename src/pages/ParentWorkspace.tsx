@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Clock,
   GraduationCap,
+  Image as ImageIcon,
   MessageSquare,
   Sparkles,
   Users,
@@ -30,6 +31,7 @@ import { getChildren } from "@/lib/supabase/parent";
 import { listParentLinks, type ParentLinkRow } from "@/lib/supabase/links";
 import { linkExpiry, linkStatusLabel, pendingChildRequests } from "@/lib/linkPresentation";
 import { ChildOverviewWidget } from "@/components/widgets/ChildOverviewWidget";
+import { ChildGallery } from "@/components/parent/ChildGallery";
 import { ProjectsMonitoringWidget } from "@/components/widgets/ProjectsMonitoringWidget";
 import { AchievementsMonitoringWidget } from "@/components/widgets/AchievementsMonitoringWidget";
 import { AIGuidanceWidget } from "@/components/widgets/AIGuidanceWidget";
@@ -256,6 +258,9 @@ const ParentWorkspace = () => {
                   <TabsTrigger value="achievements" className="gap-1.5">
                     <Award className="h-3.5 w-3.5" /> Achievements
                   </TabsTrigger>
+                  <TabsTrigger value="gallery" className="gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" /> Gallery
+                  </TabsTrigger>
                   <TabsTrigger value="guidance">Guidance</TabsTrigger>
                 </TabsList>
 
@@ -274,6 +279,10 @@ const ParentWorkspace = () => {
 
                 <TabsContent value="achievements" className="mt-6">
                   <AchievementsMonitoringWidget childId={selectedChild.id} defaultExpanded />
+                </TabsContent>
+
+                <TabsContent value="gallery" className="mt-6">
+                  <ChildGallery childId={selectedChild.id} childName={selectedChild.full_name} />
                 </TabsContent>
 
                 <TabsContent value="guidance" className="mt-6">
