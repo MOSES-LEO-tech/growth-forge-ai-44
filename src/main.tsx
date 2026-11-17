@@ -3,11 +3,22 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
 import "./index.css";
 
-// Auto-apply the new version when a service-worker update is ready, so users
-// are not stuck on a stale cached bundle after a deploy.
+/**
+ * Apply a new deployment without leaving the user on stale code.
+ *
+ * `updateSW(true)` activates the waiting worker, but a page already controlled
+ * by the old worker keeps running its old chunks — a deploy then looks like it
+ * had no effect (a parent kept seeing an error that was already fixed).
+ * Activation is therefore followed by one reload, which loads the new bundle.
+ */
 const updateSW = registerSW({
+  immediate: true,
   onNeedRefresh() {
-    void updateSW(true);
+    void updateSW(true).finally(() => {
+      if (typeof navigator !== "undefined" && navigator.serviceWorker?.controller) {
+        window.location.reload();
+      }
+    });
   },
 });
 
