@@ -72,7 +72,7 @@ const emptyDraft = (): AnnouncementDraft => ({
   audience: "students",
 });
 
-const AdminAnnouncements = () => {
+const AdminAnnouncements = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const schoolId = profile?.school_id ?? null;
@@ -224,9 +224,8 @@ const AdminAnnouncements = () => {
     );
   }
 
-  return (
-    <Shell>
-      <AdminPageHeader
+  const header = (
+    <AdminPageHeader
         kicker="Announcements"
         title="School announcements"
         description="Write announcements for students, parents, or staff. Publishing delivers them straight to recipients' notification feeds."
@@ -236,6 +235,10 @@ const AdminAnnouncements = () => {
           </Button>
         }
       />
+  );
+
+  const panel = (
+    <>
 
       {loading ? (
         <div className="flex justify-center py-16">
@@ -393,6 +396,27 @@ const AdminAnnouncements = () => {
           </DialogContent>
         </Dialog>
       )}
+    </>
+  );
+
+  /* Embedded inside the Content page's Announcements tab: no shell, no header. */
+  if (embedded) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button onClick={() => setDraft(emptyDraft())}>
+            <Plus className="mr-1.5 h-4 w-4" /> New announcement
+          </Button>
+        </div>
+        {panel}
+      </div>
+    );
+  }
+
+  return (
+    <Shell>
+      {header}
+      {panel}
     </Shell>
   );
 };

@@ -40,7 +40,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import AdminAnnouncements from "./AdminAnnouncements";
 import AdminShell from "@/components/AdminShell";
 import SchoolAdminLayout from "@/components/SchoolAdminLayout";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -547,7 +549,22 @@ const AdminContent = () => {
   const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
   const isTeacher = profile?.role === "teacher";
 
-  const [activeTab, setActiveTab] = useState(isAdmin ? "pages" : "news");
+  /*
+   * The open tab is addressable (/admin/content?tab=announcements). Announcements
+   * used to be its own nav item and is now a tab here; the old URL redirects.
+   */
+  const contentTabs = isAdmin
+    ? ["pages", "news", "events", "resources", "school", "announcements"]
+    : ["news", "events", "resources"];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab =
+    requestedTab && contentTabs.includes(requestedTab) ? requestedTab : isAdmin ? "pages" : "news";
+  const setActiveTab = (next: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
   const [myOnly, setMyOnly] = useState(isTeacher);
 
   const [pages, setPages] = useState<CmsPage[]>([]);
@@ -812,7 +829,7 @@ const AdminContent = () => {
             <TabsList
               className={cn(
                 "grid w-full grid-cols-2 sm:grid-cols-4",
-                isAdmin ? "max-w-3xl lg:grid-cols-5" : "max-w-2xl"
+                isAdmin ? "max-w-4xl lg:grid-cols-6" : "max-w-2xl"
               )}
             >
               {isAdmin && <TabsTrigger value="pages">Pages</TabsTrigger>}
@@ -820,6 +837,7 @@ const AdminContent = () => {
               <TabsTrigger value="events">Events</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
               {isAdmin && <TabsTrigger value="school">School page</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="announcements">Announcements</TabsTrigger>}
             </TabsList>
 
             {isAdmin && (
@@ -909,6 +927,12 @@ const AdminContent = () => {
                     ))}
                   </div>
                 )}
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="announcements" className="mt-6">
+                <AdminAnnouncements embedded />
               </TabsContent>
             )}
 

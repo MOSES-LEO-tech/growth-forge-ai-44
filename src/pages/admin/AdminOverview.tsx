@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatNullable } from "@/lib/numeric";
+import { AnalyticsWidget } from "@/components/widgets/AnalyticsWidget";
+import { PortfolioModerationWidget } from "@/components/widgets/PortfolioModerationWidget";
 import { getErrorMessage } from "@/lib/errors";
 import {
   ArrowUpRight,
@@ -107,15 +109,15 @@ const AdminOverview = () => {
                     show: hasPendingProjects,
                     title: `${formatNullable(pendingProjects)} project${pendingProjects === 1 ? "" : "s"} to review`,
                     desc: "Approve, reject with a reason, or send back for more evidence.",
-                    to: "/admin/moderation",
-                    label: "Open moderation",
+                    to: "#approvals",
+                    label: "Review below",
                     icon: FolderKanban,
                   },
                   {
                     show: hasPendingAchievements,
                     title: `${formatNullable(pendingAchievements)} award${pendingAchievements === 1 ? "" : "s"} to verify`,
                     desc: "Only verified awards carry the school's endorsement.",
-                    to: "/admin/moderation",
+                    to: "/admin/students?tab=achievements",
                     label: "Verify awards",
                     icon: Trophy,
                   },
@@ -133,10 +135,14 @@ const AdminOverview = () => {
                         </div>
                       </div>
                       <Button asChild size="sm" variant="outline" className="gap-2 self-start">
-                        <Link to={to}>
-                          {label}
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </Link>
+                        {to.startsWith("#") ? (
+                          <a href={to}>{label}</a>
+                        ) : (
+                          <Link to={to}>
+                            {label}
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
                       </Button>
                     </div>
                   ))}
@@ -144,9 +150,23 @@ const AdminOverview = () => {
             )}
           </section>
 
+          <section id="approvals" aria-label="Portfolio approvals" className="mb-8 scroll-mt-24">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Portfolio approvals
+            </h2>
+            <PortfolioModerationWidget defaultExpanded schoolId={profile?.school_id ?? null} />
+          </section>
+
+          <section id="analytics" aria-label="Analytics" className="mb-8 scroll-mt-24">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Analytics
+            </h2>
+            <AnalyticsWidget defaultExpanded schoolId={profile?.school_id ?? null} />
+          </section>
+
           <section aria-label="Shortcuts" className="grid gap-3 sm:grid-cols-2">
             {[
-              { to: "/admin/announcements", label: "Post an announcement", desc: "Reaches students, parents or staff", icon: Megaphone },
+              { to: "/admin/content?tab=announcements", label: "Post an announcement", desc: "Reaches students, parents or staff", icon: Megaphone },
               { to: "/admin/settings", label: "Badge & gallery", desc: "How your school appears publicly", icon: Users },
             ].map(({ to, label, desc, icon: Icon }) => (
               <Link

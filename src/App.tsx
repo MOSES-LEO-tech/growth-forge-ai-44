@@ -43,11 +43,8 @@ const ParentMessages = lazy(() => import("./pages/ParentMessages"));
 const ParentSubscription = lazy(() => import("./pages/ParentSubscription"));
 const TeacherWorkspace = lazy(() => import("./pages/TeacherWorkspace"));
 const AdminCms = lazy(() => import("./pages/admin/AdminContent"));
-const AdminAnnouncements = lazy(() => import("./pages/admin/AdminAnnouncements"));
+const AdminStudents = lazy(() => import("./pages/admin/AdminStudents"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
-const AdminAcademic = lazy(() => import("./pages/admin/AdminAcademic"));
-const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
-const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminScholarships = lazy(() => import("./pages/admin/AdminScholarships"));
 const AdminScholarshipEditor = lazy(() => import("./pages/admin/AdminScholarshipEditor"));
@@ -125,16 +122,17 @@ const App = () => (
                     <Route path="/teacher" element={<TeacherWorkspace />} />
                   </Route>
                   <Route element={<RequireAuth allowedRoles={['admin', 'teacher', 'super_admin']} />}>
-                    <Route path="/content" element={<AdminCms />} />
-                    <Route path="/announcements" element={<AdminAnnouncements />} />
+                    <Route path="/content" element={<Navigate to="/admin/content" replace />} />
+                    <Route path="/announcements" element={<Navigate to="/admin/content?tab=announcements" replace />} />
                   </Route>
                   <Route element={<RequireAuth allowedRoles={['admin', 'super_admin']} />}>
                     <Route path="/admin/overview" element={<AdminOverview />} />
                     <Route path="/admin/content" element={<AdminCms />} />
-                    <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-                    <Route path="/admin/academic" element={<AdminAcademic />} />
-                    <Route path="/admin/moderation" element={<AdminModeration />} />
-                    <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                    <Route path="/admin/students" element={<AdminStudents />} />
+                    <Route path="/admin/announcements" element={<Navigate to="/admin/content?tab=announcements" replace />} />
+                    <Route path="/admin/academic" element={<Navigate to="/admin/students" replace />} />
+                    <Route path="/admin/moderation" element={<Navigate to="/admin/students" replace />} />
+                    <Route path="/admin/analytics" element={<Navigate to="/admin/overview" replace />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
                     <Route path="/admin/scholarships" element={<AdminScholarships />} />
                     <Route path="/admin/scholarships/new" element={<AdminScholarshipEditor />} />

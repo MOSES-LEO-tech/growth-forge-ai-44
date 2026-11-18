@@ -1,31 +1,19 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  BarChart3,
-  BookOpen,
-  ExternalLink,
-  FileText,
-  GraduationCap,
-  LayoutDashboard,
-  Megaphone,
-  Settings,
-  ShieldCheck,
-} from "lucide-react";
+import { ExternalLink, FileText, GraduationCap, LayoutDashboard, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { SCHOOL_ADMIN_SECTIONS as SECTIONS, type AdminSectionIcon } from "@/lib/adminNav";
 import type { ReactNode } from "react";
 
-export const SCHOOL_ADMIN_SECTIONS = [
-  { label: "Overview", to: "/admin/overview", icon: LayoutDashboard },
-  { label: "Content", to: "/admin/content", icon: FileText },
-  { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
-  { label: "Academic", to: "/admin/academic", icon: BookOpen },
-  { label: "Moderation", to: "/admin/moderation", icon: ShieldCheck },
-  { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
-  { label: "Scholarships", to: "/admin/scholarships", icon: GraduationCap },
-  { label: "Settings", to: "/admin/settings", icon: Settings },
-] as const;
+const SECTION_ICONS: Record<AdminSectionIcon, typeof LayoutDashboard> = {
+  overview: LayoutDashboard,
+  content: FileText,
+  students: Users,
+  scholarships: GraduationCap,
+  settings: Settings,
+};
 
 const pillClasses = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -66,12 +54,15 @@ const SchoolAdminLayout = ({ children }: { children: ReactNode }) => {
         className="sticky top-16 z-40 border-b border-border bg-background"
       >
         <div className="mx-auto flex w-full max-w-[1440px] items-center gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {SCHOOL_ADMIN_SECTIONS.map(({ label, to, icon: Icon }) => (
-            <NavLink key={to} to={to} className={pillClasses}>
-              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {label}
-            </NavLink>
-          ))}
+          {SECTIONS.map(({ label, to, icon }) => {
+            const Icon = SECTION_ICONS[icon];
+            return (
+              <NavLink key={to} to={to} className={pillClasses}>
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {label}
+              </NavLink>
+            );
+          })}
           {schoolId && (
             <NavLink
               to={`/schools/${schoolId}`}
