@@ -1,4 +1,5 @@
-import { Check, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bell, Check, Lock, Settings, ShieldCheck, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +12,20 @@ import {
 import { useTheme } from "@/contexts/ThemeProvider";
 import { COLOR_THEMES, MODE_OPTIONS } from "@/lib/theme-options";
 import CustomThemeCreator from "./CustomThemeCreator";
+
+/**
+ * The one settings entry point.
+ *
+ * Appearance stays inline (a light/dark toggle is worth a single click); the
+ * account sections link into the Settings page, which reads the section from
+ * `?tab=` so each destination is directly addressable.
+ */
+const ACCOUNT_LINKS = [
+  { label: "Account settings", tab: "profile", icon: UserCog },
+  { label: "Notifications", tab: "notifications", icon: Bell },
+  { label: "Security", tab: "security", icon: ShieldCheck },
+  { label: "Privacy", tab: "privacy", icon: Lock },
+] as const;
 
 export default function SettingsDropdown() {
   const { theme, setTheme, colorTheme, setColorTheme, customThemes, isTransitioning } = useTheme();
@@ -66,6 +81,19 @@ export default function SettingsDropdown() {
             {colorTheme === themeOption.value && (
               <Check className="ml-auto h-4 w-4 text-primary" />
             )}
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuSeparator />
+
+        {/* Account sections */}
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Account</DropdownMenuLabel>
+        {ACCOUNT_LINKS.map(({ label, tab, icon: Icon }) => (
+          <DropdownMenuItem key={tab} asChild>
+            <Link to={`/settings?tab=${tab}`} className="flex cursor-pointer items-center gap-3">
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </Link>
           </DropdownMenuItem>
         ))}
 

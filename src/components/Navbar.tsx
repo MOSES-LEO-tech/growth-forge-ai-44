@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LayoutDashboard, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
 
 /** Guests see the marketing story. Signed-in users get one merged bar. */
 const GUEST_LINKS = [
@@ -149,12 +149,6 @@ const Navbar = () => {
                   <Link to={workspace.to} className="flex cursor-pointer items-center gap-2">
                     <WorkspaceIcon className="h-4 w-4" />
                     {workspace.label}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="flex cursor-pointer items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

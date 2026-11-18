@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
   Check,
@@ -33,6 +33,7 @@ import SchoolMediaManager from "@/components/admin/SchoolMediaManager";
 import { updateProfile, uploadAvatar } from "@/lib/supabase/profile";
 import { COLOR_THEMES, MODE_OPTIONS } from "@/lib/theme-options";
 import { EDUCATION_SYSTEMS, GRADE_OPTIONS } from "@/lib/onboarding";
+import { resolveSettingsTab } from "@/lib/settingsTabs";
 import type { Profile } from "@/integrations/supabase/types";
 import Navbar from "@/components/Navbar";
 
@@ -80,7 +81,17 @@ const Settings = () => {
   const { toast } = useToast();
   const { theme, setTheme, colorTheme, setColorTheme } = useTheme();
 
-  const [activeTab, setActiveTab] = useState("profile");
+  /*
+   * The open section is addressable: /settings?tab=security. The gear menu links
+   * straight to a section, a refresh keeps it, and a link can be shared.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = resolveSettingsTab(searchParams.get("tab"));
+  const setActiveTab = (next: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
   const [saving, setSaving] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
